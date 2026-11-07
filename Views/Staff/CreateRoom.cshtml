@@ -1,0 +1,39 @@
+@model EasyStayHotel.Models.Room
+@{
+    Layout = "~/Views/Shared/_StaffLayout.cshtml";
+    ViewData["Title"] = "เพิ่มห้องพักใหม่";
+}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow-sm border-0 mt4">
+            <div class="card-header gb-primary text-white">
+                <h5 class="card-title m-0">+ เพิ่มห้องพักใหม่(Create New Room)</h5>
+            </div>
+            <div class="card-body p-4">
+                <form asp-controller="Staff" asp-action="CreateRoom" method="post">
+                    <div class="mb-3">
+                        <label asp-for="RoomNo" class="form-label fw-bold">หมายเลขห้อง(RoomNumber)</label>
+                        <input asp-for="RoomNo" class="form-control" placeholder="เช่น 101, 201" required />
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="RoomTypeId" class="form-lable fw-bold">ประเภทห้อง(Room Type Id)</label>
+                        <input asp-for="RoomTypeId" type="number" class="form-control"
+                               placeholder="ระบุ ID ประเภทห้อง (เช่น 1, 2, 3,)" />
+                    </div>
+                    <div class="mb-4">
+                        <label asp-for="Status" class="form-lable fw-bold">สถานะเริ่มต้น (Initial Status)</label>
+                        <select asp-for="Status" class="form-select">
+                            <option value="Available">ว่างพร้อมใช้งาน (Available)</option>
+                            <option value="Maintenance">ซ่อมบำรุง (Maintenance)</option>
+                        </select>
+                    </div>
+                    <div class="d-flex justify-content-end">
+                        <a asp-controller="Staff" asp-action="Index" class="btn btn-secondary me-2">ยกเลิก</a>
+                        <button type="submit" class="btn btn-success">บันทึกข้อมูลห้องพัก</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    </div>
+</div>

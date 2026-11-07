@@ -1,0 +1,59 @@
+@using Microsoft.EntityFrameworkCore.Metadata.Internal
+@model EasyStayHotel.Models.Booking
+@{
+    Layout = "~/Views/Shared/_StaffLayout.cshtml";
+    ViewData["Title"] = "จองห้องพัก (Walk-in)";
+}
+
+<div class="card shadow-sm border-0 mt4">
+    <div class="card-header bg-success text-white">
+        <h5 class="card-title m-0">สร้างการจองใหม่ (Walk-in Booking)</h5>
+    </div>
+    <div class="card-body p-4">
+        <form asp-controller="Staff" asp-action="WalkinBooking" method="post">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold">ชื่อลูกค้า (Customer Name)</label>
+                    <input name="CustomerId" type="number" class="form-contor"
+                           placeholder="ใส่รหัสลูกค้า หรือแก้ปรับเป็นชื่อ" required />
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="CheckInDate" class="form-label fw-bold">วันที่เข้าพัก (CheckIn)</label>
+                    <input asp-for="CheckInDate" type="date" class="form-control" required />
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label asp-for="CheckOutDate" class="form-label fw-bold">วันที่ออก (Check-out)</label>
+                    <input asp-for="CheckOutDate" type="date" class="form-control" required />
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-4">
+                    <label asp-for="RoomId" class="form-label fw-bold">เลือกห้องพักที่ว่าง(Available Rooms)</label>
+                    <select asp-for="RoomId" class="form-select border-success" required>
+                        <option value="">-- กรุณาเลือกห้องพัก --</option>
+                        @if (ViewBag.AvailableRooms != null)
+                        {
+                            foreach (var room in ViewBag.AvailableRooms)
+                            {
+                                <option value="@room.RoomId">ห้อง @room.RoomNo</option>
+                            }
+                        }
+                    </select>
+                </div>
+            <div class="col-md6 mb-4">
+                <label asp-for="TotalPrice" class="form-label fw-bold">ราคารวม (Total Price)</label>
+                <input asp-for="TotalPrice" type="number" step="0.01" class="form-contor" placeholder="ระบุราคาห้อง" required/>
+            </div>
+            </div>
+            <hr/>
+            <div class="d-flex justify-content-end">
+                <a asp-controller="Staff" asp-action="Index" class="btn btn-secondary me-2">ยกเลิก</a>
+                <button type="submit" class="btn btn-success">ยืนยันการจองห้องพัก</button>
+
+            </div>
+        </form>
+    </div>
+
+</div>

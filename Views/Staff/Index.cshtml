@@ -1,0 +1,65 @@
+@model IEnumerable<EasyStayHotel.Models.Room>
+@{
+    Layout = "~/Views/Shared/_StaffLayout.cshtml";
+    ViewData["Title"] = "Room Status";
+}
+<div class="card shadow-sm border-0">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-item-center mb-3">
+            <h5 class="card-title m-0">รายการห้องพักทั้งหมด</h5>
+            <div>
+                <span class="badge bg-success me-2">ว่าง(Available)</span>
+                <span class="badge bg-danger me-2">ไม่ว่าง(Occupied)</span>
+                <span class="badge bg-warning text-dark me-2">รอทำความสะอาด(Cleaning)</span>
+                <span class="badge bg-secondary ">ซ่อมบำรุง(Maintenance)</span>
+            </div>
+        </div>
+        <table class="table table-hover table-bordered">
+            <thead class="table-light">
+                <tr>
+                    <th>เลขห้อง</th>
+                    <th>ประเภทห้อง</th>
+                    <th>สถานะปัจจุบัน</th>
+                    <th>จัดการ</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var room in Model)
+                {
+                    <tr>
+                        <td class="fw-bold fs-5">@room.RoomNo</td>
+                        <td>@(room.RoomType != null ? room.RoomType.TypeName : "ไม่มีข้อมูล")</td>
+                        <td>
+                            @if (room.Status == "Available")
+                            {
+                                <span class="badge bg-success">ว่าง พร้อมใช้งาน</span>
+                            }
+                            else if (room.Status == "Occupied")
+                            {
+
+                                <span class="badge bg-danger">มีแขกเข้าพักอยู่</span>
+                            }
+                            else if (room.Status == "Cleaning")
+                            {
+
+                                <span
+                                class="badge bg-warning text-dark">รอทำความสะอาด</span>
+                            }
+                            else
+                            {
+
+                                <span class="badge bg-secondary">@room.Status</span>
+                            }
+                        </td>
+                        <td>
+                            <a asp-controller="Staff" asp-action="EditRoom" asp-route-id="@room.RoomId"
+                               class="btn btn-sm btn-primary">เปลี่ยนสถานะ</a>
+
+                            <a asp-controller="Staff" asp-action="DeleteRoom" asp-route-id="@room.RoomId" class="btn btn-sm btn-danger ms-1" onclick="return confirm('คุณแน่ใจว่าต้องการลบห้อง @room.RoomNo อย่างถาว?');">ลบ</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

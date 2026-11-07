@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@ViewData["Title"] - Easy Stay Staff Console</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true">
+</head>
+<body>
+    <div class="d-flex" style="min-height: 100vh;">
+        <div class="bg-dark text-white p-3" style="width: 250;">
+            <h4 class="text-center text-info mb-4">East Stay<br><small class="text-light fs-6">STAFF CONSOLE</small></h4>
+            <hr/>
+            <ul class="nav flex-column">
+                <li class="nav-item mb-2">
+                    <a class="nav-link text-white" href="#">ภาพรวมระบบ (Overview)</a>
+                </li>
+                <li class="nav-item mb-2">
+                    <a  class="nav-link text-white" asp--controller="Staff" asp-action="WalkinBooking">จองแบบ Walk-in</a>
+                </li>
+                <li class="nav-item mb-2">
+                    <a class="nav-link text-info fw0bold" asp-controller="Staff" asp-action="Index">จัดการห้องพัก (Room Status)</a>
+                </li>
+                <li class="nav-item mb-2">
+                    <a class="nav-link" text-white href="#">การคืนเงิน (Refunds)</a>
+                </li>
+            </ul>
+        </div>
+        <div class="flex-grow-1 bg-light">
+            <div class="bg-white p-3 shadow-sm d-flex justify-content-between align-item-center mb-4">
+                <h5 class="m-0 text-primary">ระบบจัดการห้องพักและซ่อมบำรุง</h5>
+                <div>
+                    <span class="me-3">พนักงานต้อนรับ</span>
+                    <a href="#" class="btn btn-sm btn-outline-danger">ออกจากระบบ (Logout)</a>
+
+                </div>
+            </div>
+            <div class="container-fluid px-4">
+                @RenderBody()
+            </div>
+        </div>
+    </div>
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
