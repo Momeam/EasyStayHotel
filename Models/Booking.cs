@@ -11,6 +11,8 @@ public partial class Booking
 
     public int? UserId { get; set; }
 
+    public string? GuestName {get; set;}
+
     public int? RoomId { get; set; }
 
     public DateOnly CheckInDate { get; set; }

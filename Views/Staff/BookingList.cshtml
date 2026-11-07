@@ -1,0 +1,35 @@
+@model IEnumerable<EasyStayHotel.Models.Booking>
+    @{
+        Layout = "~/Views?Shared?_StaffLayout.cshtml";
+        ViewData["Title"] = "รายชื่อผู้เข้าพัก";
+    }
+
+    <div class="card shadow-sm border-0 m-4">
+        <div class="card-header bg-info text-white">
+            <h5 class="card-title m-0">รายชื่อผู้เข้าพักและการจองทั้งหมด</h5>
+        </div>
+        <div class="card-body p-4">
+            <table class="table table-hover table-bordered text-center align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>รหัสอ้างอิง</th>
+                        <th>ชื่อแขกที่เข้าพัก</th>
+                        <th>หมายเลขห้อง</th>
+                        <th>วันที่เข้าพัก</th>
+                        <th>วันที่ิิิออก</th>
+                        <th>ราคารวม</th>
+                        <th>สถานะ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model != null && Model.Any())
+                {
+                    foreach (var item in Model)
+                    {
+                        
+                    }
+                }
+            </tbody>
+            </table>
+        </div>
+    </div>

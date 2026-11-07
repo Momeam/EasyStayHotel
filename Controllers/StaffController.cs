@@ -89,6 +89,7 @@ namespace EasyStayHotel.Controllers
     [HttpPost]
         public IActionResult WalkinBooking(Booking newBooking)
         {
+            newBooking.BookingRef = "WK-" + DateTime.Now.ToString("yyyyMMddHHmmss");
             newBooking.BookingStatus = "Confirmed";
 
             _context.Bookings.Add(newBooking);
@@ -101,6 +102,15 @@ namespace EasyStayHotel.Controllers
             _context.SaveChanges();
             return RedirectToAction("Index");
         }
-    
+
+        public IActionResult BookingList()
+        {
+            var bookings = _context.Bookings
+            .Include(b => b.Room)
+            .OrderByDescending(b => b.CheckInDate)
+            .ToList();
+
+            return View(bookings);
+        }
     }
 }

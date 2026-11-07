@@ -13,9 +13,9 @@
         <form asp-controller="Staff" asp-action="WalkinBooking" method="post">
             <div class="row">
                 <div class="col-md-6 mb-3">
-                    <label class="form-label fw-bold">ชื่อลูกค้า (Customer Name)</label>
-                    <input name="CustomerId" type="number" class="form-contor"
-                           placeholder="ใส่รหัสลูกค้า หรือแก้ปรับเป็นชื่อ" required />
+                    <label asp-for="GuestName" class="form-label fw-bold">ชื่อลูกค้า (Customer Name)</label>
+                    <input asp-for="GuestName" name="CustomerId" type="text" class="form-control"
+                           placeholder="ระบุชื่อผู้เข้าพัก" required />
                 </div>
             </div>
             <div class="row">
@@ -42,12 +42,13 @@
                         }
                     </select>
                 </div>
-            <div class="col-md6 mb-4">
-                <label asp-for="TotalPrice" class="form-label fw-bold">ราคารวม (Total Price)</label>
-                <input asp-for="TotalPrice" type="number" step="0.01" class="form-contor" placeholder="ระบุราคาห้อง" required/>
+                <div class="col-md6 mb-4">
+                    <label asp-for="TotalPrice" class="form-label fw-bold">ราคารวม (Total Price)</label>
+                    <input asp-for="TotalPrice" type="number" step="0.01" class="form-contor" placeholder="ระบุราคาห้อง"
+                           required />
+                </div>
             </div>
-            </div>
-            <hr/>
+            <hr />
             <div class="d-flex justify-content-end">
                 <a asp-controller="Staff" asp-action="Index" class="btn btn-secondary me-2">ยกเลิก</a>
                 <button type="submit" class="btn btn-success">ยืนยันการจองห้องพัก</button>
