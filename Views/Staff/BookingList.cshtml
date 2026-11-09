@@ -1,6 +1,6 @@
 @model IEnumerable<EasyStayHotel.Models.Booking>
     @{
-        Layout = "~/Views?Shared?_StaffLayout.cshtml";
+        Layout = "~/Views/Shared/_StaffLayout.cshtml";
         ViewData["Title"] = "รายชื่อผู้เข้าพัก";
     }
 
@@ -9,27 +9,78 @@
             <h5 class="card-title m-0">รายชื่อผู้เข้าพักและการจองทั้งหมด</h5>
         </div>
         <div class="card-body p-4">
-            <table class="table table-hover table-bordered text-center align-middle">
-                <thead class="table-light">
-                    <tr>
-                        <th>รหัสอ้างอิง</th>
-                        <th>ชื่อแขกที่เข้าพัก</th>
-                        <th>หมายเลขห้อง</th>
-                        <th>วันที่เข้าพัก</th>
-                        <th>วันที่ิิิออก</th>
-                        <th>ราคารวม</th>
-                        <th>สถานะ</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @if (Model != null && Model.Any())
+              <table class="table table-hover table-bordered text-center align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>รหัสอ้างอิง</th>
+                    <th>ชื่อแขกที่เข้าพัก</th>
+                    <th>หมายเลขห้อง</th>
+                    <th>วันที่เข้าพัก</th>
+                    <th>วันที่ออก</th>
+                    <th>ราคารวม</th>
+                    <th>สถานะ</th>
+                    <th>จัดการ</th> <!-- เพิ่มคอลัมน์ที่ 8 ตรงนี้ครับ -->
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model != null && Model.Any())
                 {
                     foreach (var item in Model)
                     {
-                        
+                        <tr>
+                            <td>@item.BookingRef</td>
+                            <td class="fw-bold text-primary">@(item.GuestName ?? "ไม่ระบุชื่อ")</td>
+                            <td>@(item.Room != null ? item.Room.RoomNo : "-")</td>
+                            <td>@item.CheckInDate.ToString("dd/MM/yyyy")</td>
+                            <td>@item.CheckOutDate.ToString("dd/MM/yyyy")</td>
+                            <td>@item.TotalPrice.ToString("N2") ฿</td>
+                            
+                            <!-- คอลัมน์ป้ายสถานะ -->
+                            <td>
+                                @if (item.BookingStatus == "Confirmed" || item.BookingStatus == "CheckedIn")
+                                {
+                                    <span class="badge bg-success">กำลังเข้าพัก</span>
+                                }
+                                else if (item.BookingStatus == "Completed")
+                                {
+                                    <span class="badge bg-secondary">เช็คเอาท์แล้ว</span>
+                                }
+                                else if (item.BookingStatus == "Pending")
+                                {
+                                    <span class="badge bg-warning text-dark">รอยืนยัน</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-warning text-dark">@item.BookingStatus</span>
+                                }
+                            </td>
+                            
+                            <!-- คอลัมน์ปุ่มจัดการ Check-in / Check-out -->
+                            <td>
+                                @if (item.BookingStatus == "Pending")
+                                {
+                                    <a asp-controller="Staff" asp-action="CheckInBooking" asp-route-id="@item.BookingId" class="btn btn-sm btn-primary" onclick="return confirm('ยืนยันการรับ Check-in แขกท่านนี้?');">รับเช็คอิน</a>
+                                }
+                                else if (item.BookingStatus == "Confirmed" || item.BookingStatus == "CheckedIn")
+                                {
+                                    <a asp-controller="Staff" asp-action="CheckOutBooking" asp-route-id="@item.BookingId" class="btn btn-sm btn-danger" onclick="return confirm('ยืนยันการ Check-out และส่งห้องทำความสะอาด?');">เช็คเอาท์</a>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
+                        </tr>
                     }
                 }
+                else
+                {
+                    <tr>
+                        <td colspan="8" class="text-muted text-center py-4">ยังไม่มีรายการจองในระบบ</td>
+                    </tr>
+                }
             </tbody>
-            </table>
-        </div>
+        </table>
+        
     </div>
+</div>

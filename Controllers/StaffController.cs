@@ -112,5 +112,39 @@ namespace EasyStayHotel.Controllers
 
             return View(bookings);
         }
+
+
+        //ระบบ Check-in / Check-out จากหน้า Booking List
+
+        public IActionResult CheckInBooking(int id)
+        {
+            var booking = _context.Bookings.Include(b => b.Room).FirstOrDefault(b => b.BookingId == id);
+            if (booking != null)
+            {
+                booking.BookingStatus = "CheckIn";
+                if (booking.Room != null)
+                {
+                    booking.Room.Status ="Occupied";
+                }
+                _context.SaveChanges();
+            }
+            return RedirectToAction("BookingList");
+        }
+        //ปุ่มเช็คเอ้า
+        public IActionResult CheckOutBooking(int id)
+        {
+            var booking = _context.Bookings.Include(b => b.Room).FirstOrDefault(b => b.BookingId == id);
+            if(booking != null)
+            {
+                booking.BookingStatus = "Completed";
+                if(booking.Room != null)
+                {
+                    booking.Room.Status = "Cleaning";
+
+                }
+                _context.SaveChanges();
+            }
+            return RedirectToAction("BookingList");
+        }
     }
 }
