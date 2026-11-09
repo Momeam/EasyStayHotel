@@ -1,0 +1,69 @@
+@model IEnumerable<EasyStayHotel.Models.User>
+@{
+    // เรียกใช้ Layout ของ Admin
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "จัดการผู้ใช้งาน";
+}
+
+<div class="card shadow-sm border-0">
+    <div class="card-header bg-dark text-warning d-flex justify-content-between align-items-center">
+        <h5 class="m-0">👥 จัดการบัญชีผู้ใช้งานระบบ (User Management)</h5>
+        <button class="btn btn-sm btn-primary">+ เพิ่มผู้ใช้งานใหม่</button>
+    </div>
+    <div class="card-body p-4">
+        <table class="table table-hover table-bordered text-center align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>รหัสผู้ใช้ (ID)</th>
+                    <th>ชื่อผู้ใช้งาน (Username)</th>
+                    <th>อีเมล (Email)</th>
+                    <th>บทบาท (Role)</th>
+                    <th>จัดการ</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model != null && Model.Any())
+                {
+                    foreach (var user in Model)
+                    {
+                        <tr>
+                            <td>@user.UserId</td>
+                            <!-- 1. แก้จาก Username เป็น FullName ตาม Model ของคุณ -->
+                            <td class="fw-bold">@user.FullName</td>
+                            <td>@user.Email</td>
+                            <td>
+                                <!-- 2. ดึง Role จากฐานข้อมูลมาโชว์ พร้อมใส่สีป้ายให้สวยงาม -->
+                                @if (user.Role == "Admin")
+                                {
+                                    <span class="badge bg-danger">ผู้ดูแลระบบ</span>
+                                }
+                                else if (user.Role == "Staff")
+                                {
+                                    <span class="badge bg-primary">พนักงานต้อนรับ</span>
+                                }
+                                else if (user.Role == "Accounting")
+                                {
+                                    <span class="badge bg-warning text-dark">พนักงานบัญชี</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">@(user.Role ?? "ผู้ใช้งานทั่วไป")</span>
+                                }
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-warning">แก้ไข</button>
+                                <button class="btn btn-sm btn-danger">ลบ</button>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="5" class="text-muted py-4">ยังไม่มีข้อมูลผู้ใช้งานในระบบ</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
