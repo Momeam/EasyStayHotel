@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - ระบบบัญชี Easy Stay</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+</head>
+
+<body class="bg-light">
+    <!-- แถบเมนูด้านบน (Navbar) สำหรับบัญชี -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-secondary shadow-sm">
+        <div class="container-fluid">
+            <a class="navbar-brand fw-bold text-warning" href="#">Easy Stay | Accounting</a>
+            <div class="collapse navbar-collapse">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" asp-controller="Accounting" asp-action="RevenueReport">สรุปรายได้</a>
+                    </li>
+                </ul>
+                <span class="navbar-text text-white">
+                    พนักงานบัญชี | <a href="#" class="text-warning text-decoration-none">ออกจากระบบ</a>
+                </span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- พื้นที่แสดงเนื้อหาหลัก -->
+    <div class="container mt-4">
+        @RenderBody()
+    </div>
+</body>
+
+</html>
