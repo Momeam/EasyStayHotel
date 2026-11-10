@@ -1,0 +1,63 @@
+@model EasyStayHotel.Models.User
+@{
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "เพิ่มผู้ใช้งานใหม่";
+}
+
+<div class="row justify-content-center mt-4">
+    <div class="col-md-8">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-dark text-warning">
+                <h5 class="m-0">➕ เพิ่มผู้ใช้งานใหม่ในระบบ</h5>
+            </div>
+            <div class="card-body p-4">
+                <form asp-controller="Admin" asp-action="AddUser" method="post">
+                    @if(ViewBag.ErrorMessage != null)
+                        {
+                            <div class="alert alert-danger shadow-sm border-0 py-2">
+                                    <strong>ผิดพลาด:</strong>@ViewBag.ErrorMessage
+                            </div>
+                        }
+                        <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="FullName" class="form-label fw-bold">ชื่อ-นามสกุล:</label>
+                            <input asp-for="FullName" type="text" class="form-control" placeholder="เช่น คุณสมชาย แผนกต้อนรับ" required />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Email" class="form-label fw-bold">อีเมล (ใช้สำหรับ Login):</label>
+                            <input asp-for="Email" type="email" class="form-control" placeholder="เช่น somchai@easystay.com" required />
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Password" class="form-label fw-bold">รหัสผ่านเริ่มต้น:</label>
+                            <input asp-for="Password" type="text" class="form-control" placeholder="กำหนดรหัสผ่านให้พนักงาน" required />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <!-- เว้นว่างไว้เพื่อรักษาสมดุลของ Layout -->
+                        </div>
+                    </div>
+
+                    <!-- ล็อก Dropdown ไว้แค่ 3 ตำแหน่ง -->
+                    <div class="mb-4">
+                        <label asp-for="Role" class="form-label fw-bold text-primary">กำหนดตำแหน่ง (Role):</label>
+                        <select asp-for="Role" class="form-select border-primary" required>
+                            <option value="">-- กรุณาเลือกตำแหน่ง --</option>
+                            <option value="Admin">ผู้ดูแลระบบ (Admin)</option>
+                            <option value="Staff">พนักงานต้อนรับ (Staff)</option>
+                            <option value="Accounting">พนักงานบัญชี (Accounting)</option>
+                        </select>
+                        <small class="text-danger mt-1 d-block">* หมายเหตุ: ตำแหน่ง Super Admin มีได้เพียงบัญชีเดียวในระบบ ไม่สามารถสร้างเพิ่มได้</small>
+                    </div>
+
+                    <hr />
+                    <div class="d-flex justify-content-between">
+                        <a asp-controller="Admin" asp-action="UserManagement" class="btn btn-outline-secondary">กลับหน้าจัดการผู้ใช้</a>
+                        <button type="submit" class="btn btn-success px-5">บันทึกข้อมูล</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

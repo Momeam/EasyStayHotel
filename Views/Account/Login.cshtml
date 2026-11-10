@@ -1,0 +1,39 @@
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml"; // ใช้หน้ากากหลักของเว็บไซต์ (หน้าลูกค้า)
+    ViewData["Title"] = "เข้าสู่ระบบ";
+}
+
+<div class="container mt-5 mb-5">
+    <div class="row justify-content-center">
+        <div class="col-md-5">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-primary text-white text-center py-3">
+                    <h4 class="m-0">เข้าสู่ระบบ Easy Stay</h4>
+                </div>
+                <div class="card-body p-4">
+                    <!-- แจ้งเตือนถ้ารหัสผิด -->
+                    @if (ViewBag.Error != null)
+                    {
+                        <div class="alert alert-danger shadow-sm py-2">@ViewBag.Error</div>
+                    }
+
+                    <form asp-controller="Account" asp-action="Login" method="post">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">อีเมล (Email)</label>
+                            <input type="email" name="email" class="form-control" placeholder="email@example.com" required />
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">รหัสผ่าน (Password)</label>
+                            <input type="password" name="password" class="form-control" placeholder="••••••••" required />
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 mb-3">เข้าสู่ระบบ</button>
+                        <div class="text-center mt-3">
+                            <span class="text-muted">ยังไม่มีบัญชีใช่หรือไม่?</span>
+                            <a asp-controller="Account" asp-action="Register" class="text-decoration-none fw-bold">สมัครสมาชิก</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
