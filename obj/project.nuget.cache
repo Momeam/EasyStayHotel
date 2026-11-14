@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "pTYD4sG6X0E=",
+  "dgSpecHash": "MAWd1jOnDhU=",
   "success": true,
   "projectFilePath": "C:\\Users\\LENOVO\\EasyStayHotel\\EasyStayHotel.csproj",
   "expectedPackageFiles": [
@@ -31,16 +31,13 @@
   ],
   "logs": [
     {
-      "code": "NU1902",
+      "code": "NU1900",
       "level": "Warning",
-      "message": "Package 'MySqlConnector' 2.3.5 has a known moderate severity vulnerability, https://github.com/advisories/GHSA-473q-m89c-ghf8",
+      "message": "Error occurred while getting package vulnerability data: Unable to load the service index for source https://api.nuget.org/v3/index.json.",
       "projectPath": "C:\\Users\\LENOVO\\EasyStayHotel\\EasyStayHotel.csproj",
       "warningLevel": 1,
       "filePath": "C:\\Users\\LENOVO\\EasyStayHotel\\EasyStayHotel.csproj",
-      "libraryId": "MySqlConnector",
-      "targetGraphs": [
-        "net10.0"
-      ]
+      "targetGraphs": []
     }
   ]
 }
