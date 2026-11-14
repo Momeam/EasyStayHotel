@@ -1,0 +1,45 @@
+@model EasyStayHotel.Models.Room
+@{
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "เพิ่มห้องพักใหม่";
+}
+
+<div class="row justify-content-center mt-4">
+    <div class="col-md-8">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-dark text-white">
+                <h5 class="m-0">🛏️ เพิ่มห้องพักใหม่เข้าสู่ระบบ</h5>
+            </div>
+            <div class="card-body p-4">
+                <form asp-controller="Admin" asp-action="CreateRoom" method="post">
+                    
+                    <div class="mb-3">
+                        <label asp-for="RoomNo" class="form-label fw-bold">หมายเลขห้อง (Room Number):</label>
+                        <input asp-for="RoomNo" class="form-control" placeholder="เช่น 101, 102" required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="RoomTypeId" class="form-label fw-bold">ประเภทห้องพัก (Room Type ID):</label>
+                        <input asp-for="RoomTypeId" type="number" class="form-control" required />
+                    </div>
+
+                    <div class="mb-4">
+                        <label asp-for="Status" class="form-label fw-bold">สถานะห้องพัก:</label>
+                        <select asp-for="Status" class="form-select" required>
+                            <option value="Available">ว่าง (Available)</option>
+                            <option value="Occupied">มีผู้เข้าพัก (Occupied)</option>
+                            <option value="Cleaning">กำลังทำความสะอาด (Cleaning)</option>
+                            <option value="Maintenance">ปิดปรับปรุง (Maintenance)</option>
+                        </select>
+                    </div>
+
+                    <hr />
+                    <div class="d-flex justify-content-between">
+                        <a asp-controller="Admin" asp-action="Dashboard" class="btn btn-outline-secondary">กลับหน้าหลัก</a>
+                        <button type="submit" class="btn btn-primary px-5">บันทึกข้อมูลห้องพัก</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

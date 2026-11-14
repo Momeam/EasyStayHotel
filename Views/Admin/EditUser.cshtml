@@ -1,0 +1,77 @@
+@model EasyStayHotel.Models.User
+@{
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "แก้ไขข้อมูลผู้ใช้งาน";
+}
+
+<div class="row justify-content-center mt-4">
+    <div class="col-md-8">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-dark text-warning d-flex justify-content-between align-items-center">
+                <h5 class="m-0">✏️ แก้ไขข้อมูลผู้ใช้งาน</h5>
+            </div>
+            <div class="card-body p-4">
+                <form asp-controller="Admin" asp-action="EditUser" method="post">
+                    <!-- ซ่อน UserId ไว้เพื่อส่งกลับไปอัปเดตให้ถูกคน -->
+                    <input type="hidden" asp-for="UserId" />
+                    
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="FullName" class="form-label fw-bold">ชื่อ-นามสกุล:</label>
+                            <input asp-for="FullName" class="form-control" required />
+                            <span asp-validation-for="FullName" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Email" class="form-label fw-bold">อีเมล (Email):</label>
+                            <input asp-for="Email" type="email" class="form-control" required />
+                            <span asp-validation-for="Email" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Password" class="form-label fw-bold">รหัสผ่าน:</label>
+                            <input asp-for="Password" type="text" class="form-control" required />
+                            <span asp-validation-for="Password" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Phone" class="form-label fw-bold">เบอร์โทรศัพท์:</label>
+                            <input asp-for="Phone" class="form-control" />
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="IdCardOrPassport" class="form-label fw-bold">เลขบัตรประชาชน / พาสปอร์ต:</label>
+                            <input asp-for="IdCardOrPassport" class="form-control" />
+                        </div>
+                        <div class="col-md-6 mb-4">
+                            <label asp-for="Role" class="form-label fw-bold text-primary">กำหนดตำแหน่ง (Role):</label>
+                            <select asp-for="Role" class="form-select border-primary" required>
+                                <option value="Admin">ผู้ดูแลระบบ (Admin)</option>
+                                <option value="Staff">พนักงานต้อนรับ (Staff)</option>
+                                <option value="Accounting">พนักงานบัญชี (Accounting)</option>
+                                <option value="Customer">ลูกค้า (Customer)</option>
+                                <option value="SuperAdmin">เจ้าของระบบ (SuperAdmin)</option>
+                            </select>
+                            <span asp-validation-for="Role" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <hr />
+                    <div class="d-flex justify-content-between">
+                        <a asp-controller="Admin" asp-action="UserManagement" class="btn btn-outline-secondary">ยกเลิกกลับไปหน้าหลัก</a>
+                        <button type="submit" class="btn btn-warning px-5 fw-bold">💾 บันทึกการแก้ไข</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- เรียกใช้ Script สำหรับตรวจสอบข้อมูลฟอร์ม -->
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -7,6 +8,7 @@
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
+
 <body style="background-color: #f4f6f9;">
     <div class="d-flex" style="min-height: 100vh;">
         
@@ -19,39 +21,51 @@
             <hr class="border-secondary" />
             <ul class="nav nav-pills flex-column mb-auto">
                 <li class="nav-item mb-2">
-                    <a class="nav-link text-white" asp-controller="Admin" asp-action="Dashboard">ภาพรวมระบบ (Dashboard)</a>
-                </li>
-                <li class="nav-item mb-2">
-                    <a class="nav-link text-warning fw-bold" asp-controller="Admin" asp-action="UserManagement">จัดการผู้ใช้งาน (Users)</a>
-                </li>
-                <li class="nav-item mb-2">
-                    <a class="nav-link text-white" asp-controller="Admin" asp-action="RoomManagement">จัดการประเภทห้องพัก</a>
-                </li>
-            </ul>
-        </div>
+                    <a class="nav-link text-white" asp-controller="Admin" asp-action="Dashboard">ภาพรวมระบบ
+                        (Dashboard)</a>
+                    </li>
+                    <li class="nav-item mb-2">
+                        <a class="nav-link text-warning fw-bold" asp-controller="Admin"
+                           asp-action="UserManagement">จัดการผู้ใช้งาน (Users)</a>
+                    </li>
+                    <li class="nav-item mb-2">
+                        <a class="nav-link text-white" asp-controller="Admin" asp-action="RoomManagement">
+                            จัดการห้องพัก (Rooms)
+                        </a>
+                    </li>
+            
+            
+                    <li class="nav-item mt-3">
+                        <a class="nav-link text-white bg-success rounded" asp-controller="Admin" asp-action="CreateRoom">
+                            สร้างห้องพักใหม่
+                        </a>
+                    </li>
+         
+                </ul>
+            </div>
 
-        <!-- Content Area -->
-        <div class="flex-grow-1">
-            <!-- Navbar ด้านบน -->
-            <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm mb-4 px-4">
-                <div class="container-fluid">
-                    <span class="navbar-brand fw-bold text-primary">ระบบการจัดการระดับผู้บริหาร</span>
-                    <div class="d-flex align-items-center">
-                        <span class="me-3 fw-bold text-dark">ผู้ดูแลระบบ (Admin)</span>
-                        <a href="#" class="btn btn-outline-danger btn-sm">ออกจากระบบ</a>
+            <!-- Content Area -->
+            <div class="flex-grow-1">
+                <!-- Navbar ด้านบน -->
+                <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm mb-4 px-4">
+                    <div class="container-fluid">
+                        <span class="navbar-brand fw-bold text-primary">ระบบการจัดการระดับผู้บริหาร</span>
+                        <div class="d-flex align-items-center">
+                            <span class="me-3 fw-bold text-dark">ผู้ดูแลระบบ (Admin)</span>
+                        <a asp-controller="Account" asp-action="Logout" class="btn btn-outline-danger btn-sm">ออกจากระบบ</a>                        </div>
                     </div>
-                </div>
-            </nav>
+                </nav>
 
-            <!-- พื้นที่แสดงเนื้อหาหลัก -->
-            <div class="container-fluid px-4">
-                @RenderBody()
+                <!-- พื้นที่แสดงเนื้อหาหลัก -->
+                <div class="container-fluid px-4">
+                    @RenderBody()
+                </div>
             </div>
         </div>
-    </div>
 
-    <script src="~/lib/jquery/dist/jquery.min.js"></script>
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    @await RenderSectionAsync("Scripts", required: false)
-</body>
+        <script src="~/lib/jquery/dist/jquery.min.js"></script>
+        <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+        @await RenderSectionAsync("Scripts", required: false)
+    </body>
+
 </html>

@@ -1,0 +1,80 @@
+@model IEnumerable<EasyStayHotel.Models.Room>
+@{
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "จัดการห้องพัก";
+}
+
+<div class="card shadow-sm border-0 mt-4">
+    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+        <h5 class="m-0">🛏️ จัดการข้อมูลห้องพัก (Room Management)</h5>
+        <!-- ปุ่มเพิ่มห้องพัก ชี้ไปยังหน้า CreateRoom ของ Admin -->
+        <a asp-controller="Admin" asp-action="CreateRoom" class="btn btn-sm btn-success">+ เพิ่มห้องพักใหม่</a>
+    </div>
+    <div class="card-body p-4">
+        
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success shadow-sm py-2">
+                <strong>✅ สำเร็จ:</strong> @TempData["SuccessMessage"]
+            </div>
+        }
+
+        <table class="table table-hover table-bordered text-center align-middle mt-3">
+            <thead class="table-light">
+                <tr>
+                    <th>หมายเลขห้อง</th>
+                    <th>ประเภทห้อง (ID)</th>
+                    <th>สถานะ</th>
+                    <th>จัดการ</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model != null && Model.Any())
+                {
+                    foreach (var room in Model)
+                    {
+                        <tr>
+                            <td class="fw-bold text-primary">@room.RoomNo</td>
+                            <td>@(room.RoomType?.TypeName ?? "ไม่ระบุ")</td>
+                            <td>
+                                @if (room.Status == "Available")
+                                {
+                                    <span class="badge bg-success">ว่าง</span>
+                                }
+                                else if (room.Status == "Occupied")
+                                {
+                                    <span class="badge bg-danger">มีผู้เข้าพัก</span>
+                                }
+                                else if (room.Status == "Cleaning")
+                                {
+                                    <span class="badge bg-warning text-dark">กำลังทำความสะอาด</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">@room.Status</span>
+                                }
+                            </td>
+                            <td>
+                                <!-- ปุ่มแก้ไข ส่ง id ของห้องไปที่ EditRoom -->
+                                <a asp-action="EditRoom" asp-route-id="@room.RoomId" class="btn btn-sm btn-warning">แก้ไข</a>
+    
+                                <!-- ปุ่มลบ พร้อมกล่องข้อความยืนยัน -->
+                                <a asp-controller="Admin" asp-action="DeleteRoom" asp-route-id="@room.RoomId"
+                                   class="btn btn-sm btn-danger"
+                                   onclick="return confirm('คุณแน่ใจหรือไม่ว่าต้องการลบห้อง @room.RoomNo ?');">
+                                    ลบ
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="4" class="text-muted py-4">ยังไม่มีข้อมูลห้องพักในระบบ</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

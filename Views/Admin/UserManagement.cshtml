@@ -5,65 +5,136 @@
     ViewData["Title"] = "จัดการผู้ใช้งาน";
 }
 
-<div class="card shadow-sm border-0">
+<div class="card shadow-sm border-0 mt-4">
     <div class="card-header bg-dark text-warning d-flex justify-content-between align-items-center">
         <h5 class="m-0">👥 จัดการบัญชีผู้ใช้งานระบบ (User Management)</h5>
         <a asp-controller="Admin" asp-action="AddUser" class="btn btn-sm btn-primary">+ เพิ่มผู้ใช้งานใหม่</a>
     </div>
+    
     <div class="card-body p-4">
-        <table class="table table-hover table-bordered text-center align-middle">
-            <thead class="table-light">
-                <tr>
-                    <th>รหัสผู้ใช้ (ID)</th>
-                    <th>ชื่อผู้ใช้งาน (Username)</th>
-                    <th>อีเมล (Email)</th>
-                    <th>บทบาท (Role)</th>
-                    <th>จัดการ</th>
-                </tr>
-            </thead>
-            <tbody>
-                @if (Model != null && Model.Any())
-                {
-                    foreach (var user in Model)
+        
+        <!-- 1. ส่วนแสดงแจ้งเตือน (Alert) -->
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger shadow-sm py-2">
+                <strong>❌ ปฏิเสธการเข้าถึง:</strong> @TempData["ErrorMessage"]
+            </div>
+        }
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success shadow-sm py-2">
+                <strong>✅ สำเร็จ:</strong> @TempData["SuccessMessage"]
+            </div>
+        }
+
+        <!-- 2. ฟอร์มค้นหา -->
+        <form asp-action="UserManagement" method="get" class="mb-4">
+            <div class="input-group">
+                <input type="text" name="searchString" value="@ViewBag.SearchString" class="form-control" placeholder="ค้นหาด้วย Username หรือ Role...">
+                <button type="submit" class="btn btn-primary">ค้นหา</button>
+                <a asp-action="UserManagement" class="btn btn-outline-secondary">ล้างค่า</a>
+            </div>
+        </form>
+
+        <!-- 3. ตารางแสดงข้อมูล (ใช้เวอร์ชันที่จัดรูปแบบสวยงามแล้ว) -->
+        <div class="table-responsive">
+            <table class="table table-hover table-bordered text-center align-middle">
+                <!-- เปลี่ยนเป็น table-dark เพื่อให้เข้ากับ Header ของ Card -->
+                <thead class="table-dark">
+                    <tr>
+                        <th>รหัสผู้ใช้ (ID)</th>
+                        <th>ชื่อผู้ใช้งาน (FullName)</th>
+                        <th>อีเมล (Email)</th>
+                        <th>บทบาท (Role)</th>
+                        <th>จัดการ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model != null && Model.Any())
+                    {
+                        foreach (var user in Model)
+                        {
+                            <tr>
+                                <td>@user.UserId</td>
+                                <td class="fw-bold">@user.FullName</td>
+                                <td>@user.Email</td>
+                                <td>
+                                    <!-- ดึง Role จากฐานข้อมูลมาโชว์ พร้อมใส่สีป้าย -->
+                                    @if (user.Role == "SuperAdmin")
+                                    {
+                                        <span class="badge bg-danger text-light border border-dark">เจ้าของระบบ</span>
+                                    }
+                                    else if (user.Role == "Admin")
+                                    {
+                                        <span class="badge bg-danger">ผู้ดูแลระบบ</span>
+                                    }
+                                    else if (user.Role == "Staff")
+                                    {
+                                        <span class="badge bg-primary">พนักงานต้อนรับ</span>
+                                    }
+                                    else if (user.Role == "Accounting")
+                                    {
+                                        <span class="badge bg-warning text-dark">พนักงานบัญชี</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">@(user.Role ?? "ผู้ใช้งานทั่วไป")</span>
+                                    }
+                                </td>
+                                <td>
+                                    <!-- ปุ่มแก้ไข (เปลี่ยนให้เป็น tag <a> เพื่อให้กดลิงก์ได้จริง) -->
+                                    <a asp-action="EditUser" asp-route-id="@user.UserId" class="btn btn-sm btn-warning">แก้ไข</a>
+                                    
+                                    <!-- ปุ่มลบ -->
+                                    <a asp-controller="Admin" asp-action="DeleteUser" asp-route-id="@user.UserId" 
+                                       class="btn btn-sm btn-danger" 
+                                       onclick="return confirm('คุณแน่ใจหรือไม่ว่าต้องการลบ @user.FullName ออกจากระบบ?');">
+                                       ลบ
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
                     {
                         <tr>
-                            <td>@user.UserId</td>
-                            <!-- 1. แก้จาก Username เป็น FullName ตาม Model ของคุณ -->
-                            <td class="fw-bold">@user.FullName</td>
-                            <td>@user.Email</td>
-                            <td>
-                                <!-- 2. ดึง Role จากฐานข้อมูลมาโชว์ พร้อมใส่สีป้ายให้สวยงาม -->
-                                @if (user.Role == "Admin")
-                                {
-                                    <span class="badge bg-danger">ผู้ดูแลระบบ</span>
-                                }
-                                else if (user.Role == "Staff")
-                                {
-                                    <span class="badge bg-primary">พนักงานต้อนรับ</span>
-                                }
-                                else if (user.Role == "Accounting")
-                                {
-                                    <span class="badge bg-warning text-dark">พนักงานบัญชี</span>
-                                }
-                                else
-                                {
-                                    <span class="badge bg-secondary">@(user.Role ?? "ผู้ใช้งานทั่วไป")</span>
-                                }
-                            </td>
-                            <td>
-                                <button class="btn btn-sm btn-warning">แก้ไข</button>
-                                <button class="btn btn-sm btn-danger">ลบ</button>
-                            </td>
+                            <td colspan="5" class="text-muted py-4">ยังไม่มีข้อมูลผู้ใช้งานในระบบ</td>
                         </tr>
                     }
-                }
-                else
-                {
-                    <tr>
-                        <td colspan="5" class="text-muted py-4">ยังไม่มีข้อมูลผู้ใช้งานในระบบ</td>
-                    </tr>
-                }
-            </tbody>
-        </table>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 4. ส่วนปุ่มแบ่งหน้า (Pagination) -->
+        @if (ViewBag.TotalPages > 1)
+        {
+            <nav aria-label="Page navigation">
+                <ul class="pagination justify-content-center mt-4 mb-0">
+                    <!-- ปุ่มก่อนหน้า -->
+                    <li class="page-item @(ViewBag.CurrentPage == 1 ? "disabled" : "")">
+                        <a class="page-link" asp-action="UserManagement" 
+                           asp-route-searchString="@ViewBag.SearchString" 
+                           asp-route-pageNumber="@(ViewBag.CurrentPage - 1)">Previous</a>
+                    </li>
+
+                    <!-- วนลูปสร้างตัวเลขหน้า -->
+                    @for (int i = 1; i <= ViewBag.TotalPages; i++)
+                    {
+                        <li class="page-item @(ViewBag.CurrentPage == i ? "active" : "")">
+                            <a class="page-link" asp-action="UserManagement" 
+                               asp-route-searchString="@ViewBag.SearchString" 
+                               asp-route-pageNumber="@i">@i</a>
+                        </li>
+                    }
+
+                    <!-- ปุ่มถัดไป -->
+                    <li class="page-item @(ViewBag.CurrentPage == ViewBag.TotalPages ? "disabled" : "")">
+                        <a class="page-link" asp-action="UserManagement" 
+                           asp-route-searchString="@ViewBag.SearchString" 
+                           asp-route-pageNumber="@(ViewBag.CurrentPage + 1)">Next</a>
+                    </li>
+                </ul>
+            </nav>
+        }
     </div>
 </div>
