@@ -1,86 +1,314 @@
 @model IEnumerable<EasyStayHotel.Models.Booking>
-    @{
-        Layout = "~/Views/Shared/_StaffLayout.cshtml";
-        ViewData["Title"] = "รายชื่อผู้เข้าพัก";
-    }
+@{
+    Layout = "~/Views/Shared/_StaffLayout.cshtml";
+    ViewData["Title"] = "รายชื่อผู้เข้าพักและการจองทั้งหมด";
+    string activeTab = ViewBag.ActiveTab as string ?? "All";
+    string searchText = ViewBag.SearchText as string ?? "";
+    var availableRooms = ViewBag.AvailableRooms as List<EasyStayHotel.Models.Room> ?? new List<EasyStayHotel.Models.Room>();
+}
 
-    <div class="card shadow-sm border-0 m-4">
-        <div class="card-header bg-info text-white">
-            <h5 class="card-title m-0">รายชื่อผู้เข้าพักและการจองทั้งหมด</h5>
+<div class="container-fluid py-4 mb-5">
+    <!-- ส่วนหัว -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary px-3 py-1 rounded-pill">
+                    <i class="bi bi-geo-alt-fill me-1"></i> สาขา@ViewBag.CurrentBranchTh
+                </span>
+                <span class="badge bg-dark rounded-pill px-3 py-1">Guest & Booking Registry</span>
+            </div>
+            <h3 class="fw-bold m-0 text-dark">รายชื่อผู้เข้าพักและการจองทั้งหมด (Booking List)</h3>
+            <p class="text-muted small mb-0">ค้นหา ตรวจสอบข้อมูลการจองออนไลน์และ Walk-in พร้อมปุ่มจัดห้องและเช็คอิน/เช็คเอาท์</p>
         </div>
-        <div class="card-body p-4">
-              <table class="table table-hover table-bordered text-center align-middle">
-            <thead class="table-light">
-                <tr>
-                    <th>รหัสอ้างอิง</th>
-                    <th>ชื่อแขกที่เข้าพัก</th>
-                    <th>หมายเลขห้อง</th>
-                    <th>วันที่เข้าพัก</th>
-                    <th>วันที่ออก</th>
-                    <th>ราคารวม</th>
-                    <th>สถานะ</th>
-                    <th>จัดการ</th> <!-- เพิ่มคอลัมน์ที่ 8 ตรงนี้ครับ -->
-                </tr>
-            </thead>
-            <tbody>
-                @if (Model != null && Model.Any())
-                {
-                    foreach (var item in Model)
+
+        <div class="d-flex flex-wrap gap-2">
+            <a asp-action="CheckInDesk" class="btn btn-primary fw-bold rounded-pill px-3 shadow-sm">
+                <i class="bi bi-key-fill me-1"></i> เช็คอินการจองออนไลน์
+            </a>
+            <a asp-action="WalkinBooking" class="btn btn-success fw-bold rounded-pill px-3 shadow-sm">
+                <i class="bi bi-person-plus-fill me-1"></i> เปิดห้อง Walk-in
+            </a>
+        </div>
+    </div>
+
+    <!-- แถบสถิติการจอง 4 กล่อง (Booking Statistics) -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3 col-6">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white border-start border-primary border-4">
+                <span class="text-muted small fw-bold">รายการจองทั้งหมด</span>
+                <h3 class="fw-bold text-dark m-0 mt-1">@ViewBag.CountAll</h3>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white border-start border-warning border-4">
+                <span class="text-muted small fw-bold">รอเช็คอิน (Pending)</span>
+                <h3 class="fw-bold text-warning m-0 mt-1">@ViewBag.CountPending</h3>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white border-start border-success border-4">
+                <span class="text-muted small fw-bold">กำลังพักอยู่ (In-House)</span>
+                <h3 class="fw-bold text-success m-0 mt-1">@ViewBag.CountInHouse</h3>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white border-start border-secondary border-4">
+                <span class="text-muted small fw-bold">เช็คเอาท์แล้ว (Completed)</span>
+                <h3 class="fw-bold text-muted m-0 mt-1">@ViewBag.CountCompleted</h3>
+            </div>
+        </div>
+    </div>
+
+    <!-- การ์ดหลัก: แท็บตัวกรอง + ช่องค้นหา + ตาราง -->
+    <div class="card border-0 shadow-sm rounded-4 bg-white overflow-hidden">
+        <!-- แถบตัวกรองแท็บสถานะและช่องค้นหา -->
+        <div class="p-3 border-bottom bg-light">
+            <div class="row g-3 align-items-center">
+                <!-- แท็บสถานะ -->
+                <div class="col-lg-7 col-12">
+                    <ul class="nav nav-pills gap-1">
+                        <li class="nav-item">
+                            <a asp-action="BookingList" asp-route-tab="All" asp-route-search="@searchText"
+                               class="nav-link rounded-pill px-3 py-2 fw-medium @(activeTab == "All" ? "active bg-primary" : "text-dark bg-white border")">
+                                ทั้งหมด (@ViewBag.CountAll)
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a asp-action="BookingList" asp-route-tab="Pending" asp-route-search="@searchText"
+                               class="nav-link rounded-pill px-3 py-2 fw-medium @(activeTab == "Pending" ? "active bg-warning text-dark" : "text-dark bg-white border")">
+                                🟡 รอเช็คอิน (@ViewBag.CountPending)
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a asp-action="BookingList" asp-route-tab="InHouse" asp-route-search="@searchText"
+                               class="nav-link rounded-pill px-3 py-2 fw-medium @(activeTab == "InHouse" ? "active bg-success text-white" : "text-dark bg-white border")">
+                                🟢 กำลังพักอยู่ (@ViewBag.CountInHouse)
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a asp-action="BookingList" asp-route-tab="Completed" asp-route-search="@searchText"
+                               class="nav-link rounded-pill px-3 py-2 fw-medium @(activeTab == "Completed" ? "active bg-secondary text-white" : "text-dark bg-white border")">
+                                เช็คเอาท์แล้ว (@ViewBag.CountCompleted)
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- ช่องค้นหา -->
+                <div class="col-lg-5 col-12">
+                    <form method="get" asp-action="BookingList">
+                        <input type="hidden" name="tab" value="@activeTab" />
+                        <div class="input-group">
+                            <input type="text" name="search" class="form-control rounded-start-pill ps-3"
+                                   placeholder="ค้นหา: รหัสจอง, ชื่อแขก, เบอร์โทร, ห้อง..." value="@searchText" />
+                            <button type="submit" class="btn btn-primary rounded-end-pill px-3">
+                                <i class="bi bi-search"></i>
+                            </button>
+                            @if (!string.IsNullOrEmpty(searchText))
+                            {
+                                <a asp-action="BookingList" asp-route-tab="@activeTab" class="btn btn-outline-secondary rounded-pill ms-2" title="ล้างการค้นหา">
+                                    <i class="bi bi-x-lg"></i>
+                                </a>
+                            }
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- ตารางรายชื่อการจอง -->
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 text-center">
+                <thead class="table-light small fw-bold">
+                    <tr>
+                        <th class="text-start ps-3">รหัสอ้างอิง / ที่มา</th>
+                        <th class="text-start">ชื่อแขกผู้เข้าพัก</th>
+                        <th>หมายเลขห้อง</th>
+                        <th>ประเภทห้อง</th>
+                        <th>วันที่เข้าพัก - ออก</th>
+                        <th class="text-end">ยอดรวม</th>
+                        <th>การชำระเงิน</th>
+                        <th>สถานะการจอง</th>
+                        <th class="text-end pe-3">ดำเนินการ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model != null && Model.Any())
+                    {
+                        foreach (var item in Model)
+                        {
+                            var payment = item.Payments.OrderByDescending(p => p.PaymentId).FirstOrDefault();
+                            bool isWalkin = item.BookingRef.StartsWith("WK-");
+                            int nights = item.CheckOutDate.DayNumber - item.CheckInDate.DayNumber;
+                            if (nights <= 0) nights = 1;
+
+                            <tr>
+                                <!-- รหัสอ้างอิง & ที่มา -->
+                                <td class="text-start ps-3">
+                                    <div class="fw-bold font-monospace text-primary">@item.BookingRef</div>
+                                    @if (isWalkin)
+                                    {
+                                        <span class="badge bg-success bg-opacity-10 text-success border border-success" style="font-size: 0.7rem;">
+                                            <i class="bi bi-person-walking me-1"></i>Walk-in
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-info bg-opacity-10 text-info border border-info" style="font-size: 0.7rem;">
+                                            <i class="bi bi-globe me-1"></i>เว็บออนไลน์
+                                        </span>
+                                    }
+                                </td>
+
+                                <!-- ชื่อแขก -->
+                                <td class="text-start">
+                                    <div class="fw-bold text-dark">@(item.GuestName ?? item.User?.FullName ?? "ไม่ระบุชื่อ")</div>
+                                    <small class="text-muted"><i class="bi bi-telephone me-1"></i>@(item.User?.Phone ?? "-")</small>
+                                </td>
+
+                                <!-- หมายเลขห้อง -->
+                                <td>
+                                    @if (item.Room != null)
+                                    {
+                                        <span class="badge bg-dark fs-6 rounded-3 px-3 py-1">
+                                            @item.Room.RoomNo
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary text-white rounded-pill px-2">ยังไม่จัดห้อง</span>
+                                    }
+                                </td>
+
+                                <!-- ประเภทห้อง -->
+                                <td>
+                                    <span class="small text-muted">
+                                        @(item.Room?.RoomType?.TypeName ?? "Standard")
+                                    </span>
+                                </td>
+
+                                <!-- วันที่ -->
+                                <td class="small">
+                                    <div><i class="bi bi-calendar-event text-primary me-1"></i>@item.CheckInDate.ToString("dd/MM/yyyy")</div>
+                                    <div class="text-muted"><i class="bi bi-calendar-check text-muted me-1"></i>@item.CheckOutDate.ToString("dd/MM/yyyy") (@nights คืน)</div>
+                                </td>
+
+                                <!-- ยอดรวม -->
+                                <td class="text-end fw-bold text-dark">
+                                    ฿@item.TotalPrice.ToString("N2")
+                                </td>
+
+                                <!-- การชำระเงิน -->
+                                <td>
+                                    @if (payment != null && payment.PaymentStatus == "Paid")
+                                    {
+                                        <span class="badge bg-success rounded-pill px-2 py-1">
+                                            <i class="bi bi-check-circle-fill me-1"></i>ชำระแล้ว
+                                        </span>
+                                        <div class="small text-muted" style="font-size: 0.75rem;">@payment.PaymentMethod</div>
+                                        @if (!string.IsNullOrEmpty(payment.SlipImageUrl))
+                                        {
+                                            <a href="@payment.SlipImageUrl" target="_blank" class="small text-primary text-decoration-none d-block">
+                                                <i class="bi bi-image"></i> ดูสลิป
+                                            </a>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-warning text-dark rounded-pill px-2 py-1 mb-1 d-inline-block">
+                                            <i class="bi bi-hourglass-split me-1"></i>รอตรวจสอบ
+                                        </span>
+                                        @if (!string.IsNullOrEmpty(payment?.SlipImageUrl))
+                                        {
+                                            <a href="@payment.SlipImageUrl" target="_blank" class="small text-primary fw-bold text-decoration-none d-block mb-1">
+                                                <i class="bi bi-image"></i> ตรวจสลิป
+                                            </a>
+                                        }
+                                        <form asp-action="ConfirmPayment" method="post" class="d-inline" onsubmit="return confirm('ยืนยันว่าตรวจสอบยอดเงิน ฿@item.TotalPrice.ToString("N2") ถูกต้องแล้ว?');">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="bookingId" value="@item.BookingId" />
+                                            <input type="hidden" name="paymentMethod" value="@(payment?.PaymentMethod ?? "Cash")" />
+                                            <button type="submit" class="btn btn-sm btn-outline-success rounded-pill py-0 px-2" style="font-size: 0.72rem;" title="กดยืนยันรับชำระเงิน">
+                                                <i class="bi bi-check2"></i> ยืนยันรับเงิน
+                                            </button>
+                                        </form>
+                                    }
+                                </td>
+
+                                <!-- สถานะการจอง -->
+                                <td>
+                                    @if (item.BookingStatus == "CheckIn" || item.BookingStatus == "CheckedIn")
+                                    {
+                                        <span class="badge bg-success rounded-pill px-3 py-1">
+                                            <i class="bi bi-door-open-fill me-1"></i>กำลังพักอยู่
+                                        </span>
+                                    }
+                                    else if (item.BookingStatus == "Completed")
+                                    {
+                                        <span class="badge bg-secondary rounded-pill px-3 py-1">
+                                            <i class="bi bi-check-all me-1"></i>เช็คเอาท์แล้ว
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-warning text-dark rounded-pill px-3 py-1">
+                                            <i class="bi bi-clock-history me-1"></i>รอเช็คอิน
+                                        </span>
+                                    }
+                                </td>
+
+                                <!-- ปุ่มดำเนินการ -->
+                                <td class="text-end pe-3">
+                                    <div class="d-flex justify-content-end gap-1">
+                                        @if (item.BookingStatus != "CheckIn" && item.BookingStatus != "CheckedIn" && item.BookingStatus != "Completed")
+                                        {
+                                            <!-- ปุ่มเปิดหน้าเช็คอิน & จัดห้อง -->
+                                            <a asp-action="CheckInDesk" asp-route-bookingRef="@item.BookingRef"
+                                               class="btn btn-sm btn-primary rounded-pill px-3 fw-bold shadow-sm"
+                                               title="จัดหมายเลขห้องและรับเช็คอิน">
+                                                <i class="bi bi-key-fill me-1"></i> เช็คอิน
+                                            </a>
+                                        }
+                                        else if (item.BookingStatus == "CheckIn" || item.BookingStatus == "CheckedIn")
+                                        {
+                                            <!-- ปุ่มเช็คเอาท์ -->
+                                            <form asp-action="CheckOutBooking" method="post" class="d-inline"
+                                                  onsubmit="return confirm('ยืนยันการเช็คเอาท์แขกห้อง @(item.Room?.RoomNo ?? "")? สถานะห้องจะเปลี่ยนเป็นรอทำความสะอาด');">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="id" value="@item.BookingId" />
+                                                <button type="submit" class="btn btn-sm btn-danger rounded-pill px-3 fw-bold shadow-sm">
+                                                    <i class="bi bi-box-arrow-right me-1"></i> เช็คเอาท์
+                                                </button>
+                                            </form>
+                                        }
+
+                                        <!-- ปุ่มดูใบเสร็จ -->
+                                        <a asp-action="BookingReceipt" asp-route-id="@item.BookingId"
+                                           class="btn btn-sm btn-outline-secondary rounded-pill px-2"
+                                           title="พิมพ์หรือดูใบเสร็จ">
+                                            <i class="bi bi-receipt"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
                     {
                         <tr>
-                            <td>@item.BookingRef</td>
-                            <td class="fw-bold text-primary">@(item.GuestName ?? "ไม่ระบุชื่อ")</td>
-                            <td>@(item.Room != null ? item.Room.RoomNo : "-")</td>
-                            <td>@item.CheckInDate.ToString("dd/MM/yyyy")</td>
-                            <td>@item.CheckOutDate.ToString("dd/MM/yyyy")</td>
-                            <td>@item.TotalPrice.ToString("N2") ฿</td>
-                            
-                            <!-- คอลัมน์ป้ายสถานะ -->
-                            <td>
-                                @if (item.BookingStatus == "Confirmed" || item.BookingStatus == "CheckedIn")
-                                {
-                                    <span class="badge bg-success">กำลังเข้าพัก</span>
-                                }
-                                else if (item.BookingStatus == "Completed")
-                                {
-                                    <span class="badge bg-secondary">เช็คเอาท์แล้ว</span>
-                                }
-                                else if (item.BookingStatus == "Pending")
-                                {
-                                    <span class="badge bg-warning text-dark">รอยืนยัน</span>
-                                }
-                                else
-                                {
-                                    <span class="badge bg-warning text-dark">@item.BookingStatus</span>
-                                }
-                            </td>
-                            
-                            <!-- คอลัมน์ปุ่มจัดการ Check-in / Check-out -->
-                            <td>
-                                @if (item.BookingStatus == "Pending")
-                                {
-                                    <a asp-controller="Staff" asp-action="CheckInBooking" asp-route-id="@item.BookingId" class="btn btn-sm btn-primary" onclick="return confirm('ยืนยันการรับ Check-in แขกท่านนี้?');">รับเช็คอิน</a>
-                                }
-                                else if (item.BookingStatus == "Confirmed" || item.BookingStatus == "CheckedIn")
-                                {
-                                    <a asp-controller="Staff" asp-action="CheckOutBooking" asp-route-id="@item.BookingId" class="btn btn-sm btn-danger" onclick="return confirm('ยืนยันการ Check-out และส่งห้องทำความสะอาด?');">เช็คเอาท์</a>
-                                }
-                                else
-                                {
-                                    <span class="text-muted">-</span>
-                                }
+                            <td colspan="9" class="text-center py-5 text-muted">
+                                <i class="bi bi-inbox fs-1 opacity-25 d-block mb-2"></i>
+                                <span class="fw-medium">ไม่พบข้อมูลการจองในหมวดหมู่นี้</span>
+                                <div class="mt-2">
+                                    <a asp-action="WalkinBooking" class="btn btn-sm btn-success rounded-pill px-3">
+                                        <i class="bi bi-plus-circle me-1"></i> สร้างการจองใหม่แบบ Walk-in
+                                    </a>
+                                </div>
                             </td>
                         </tr>
                     }
-                }
-                else
-                {
-                    <tr>
-                        <td colspan="8" class="text-muted text-center py-4">ยังไม่มีรายการจองในระบบ</td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-        
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>

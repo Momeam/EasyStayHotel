@@ -1,0 +1,213 @@
+@model EasyStayHotel.Models.AccountingFeedback
+@{
+    Layout = "~/Views/Shared/_StaffLayout.cshtml";
+    ViewData["Title"] = "ส่งรายงานและ Feedback ถึงฝ่ายบัญชี";
+    var recentFeedbacks = ViewBag.RecentFeedbacks as List<EasyStayHotel.Models.AccountingFeedback> ?? new List<EasyStayHotel.Models.AccountingFeedback>();
+    decimal suggestedCash = ViewBag.SuggestedCash != null ? (decimal)ViewBag.SuggestedCash : 0;
+    decimal suggestedTransfer = ViewBag.SuggestedTransfer != null ? (decimal)ViewBag.SuggestedTransfer : 0;
+    int checkInsCount = ViewBag.CheckInsCount != null ? (int)ViewBag.CheckInsCount : 0;
+    int checkOutsCount = ViewBag.CheckOutsCount != null ? (int)ViewBag.CheckOutsCount : 0;
+}
+
+<div class="container-fluid py-4 mb-5">
+    <!-- ส่วนหัว -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary px-3 py-1 rounded-pill">
+                    <i class="bi bi-geo-alt-fill me-1"></i> สาขา@ViewBag.CurrentBranchTh
+                </span>
+                <span class="badge bg-warning text-dark rounded-pill px-3 py-1">Front Desk to Accounting Bridge</span>
+            </div>
+            <h3 class="fw-bold m-0 text-dark">ส่งรายงานกะและ Feedback ถึงฝ่ายบัญชี (Accounting Handover)</h3>
+            <p class="text-muted small mb-0">ส่งรายงานสรุปยอดเงินสดประจำกะ แจ้งเรื่องการคืนเงิน หรือส่งข้อเสนอแนะถึงแผนกบัญชีโดยตรง</p>
+        </div>
+
+        <div>
+            <a asp-action="DailyOverview" class="btn btn-outline-primary fw-medium rounded-pill px-3 bg-white shadow-sm">
+                <i class="bi bi-calendar2-day-fill me-1"></i> ดูภาพรวมรายวัน
+            </a>
+        </div>
+    </div>
+
+    <!-- สรุปตัวเลขคำนวณอัตโนมัติของวันนี้สำหรับกรอกข้อมูล -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3 col-6">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white border-start border-success border-4">
+                <span class="text-muted small fw-bold">ยอดเงินสดในระบบวันนี้</span>
+                <h4 class="fw-bold text-success m-0 mt-1">฿@suggestedCash.ToString("N0")</h4>
+                <small class="text-muted" style="font-size: 0.75rem;">จากรายการชำระเงินสด</small>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white border-start border-info border-4">
+                <span class="text-muted small fw-bold">ยอดเงินโอน/พร้อมเพย์วันนี้</span>
+                <h4 class="fw-bold text-info m-0 mt-1">฿@suggestedTransfer.ToString("N0")</h4>
+                <small class="text-muted" style="font-size: 0.75rem;">จาก PromptPay / บัตร</small>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white border-start border-primary border-4">
+                <span class="text-muted small fw-bold">เช็คอินวันนี้</span>
+                <h4 class="fw-bold text-primary m-0 mt-1">@checkInsCount รายการ</h4>
+                <small class="text-muted" style="font-size: 0.75rem;">เปิดห้องพักวันนี้</small>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white border-start border-secondary border-4">
+                <span class="text-muted small fw-bold">เช็คเอาท์วันนี้</span>
+                <h4 class="fw-bold text-muted m-0 mt-1">@checkOutsCount รายการ</h4>
+                <small class="text-muted" style="font-size: 0.75rem;">ส่งห้องแม่บ้านแล้ว</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- ฝั่งซ้าย: ฟอร์มส่ง Feedback และรายงานกะ -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm rounded-4 bg-white overflow-hidden">
+                <div class="card-header bg-dark text-white p-3">
+                    <h6 class="fw-bold m-0 text-warning">
+                        <i class="bi bi-pencil-square me-2"></i>แบบฟอร์มส่งรายงาน / Feedback ถึงฝ่ายบัญชี
+                    </h6>
+                </div>
+                <div class="card-body p-4">
+                    <form asp-action="AccountingFeedback" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" asp-for="Branch" value="@ViewBag.CurrentBranch" />
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small text-dark">ผู้ส่งรายงาน (Staff Name)</label>
+                                <input asp-for="StaffName" class="form-control" readonly />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small text-dark">รอบกะการทำงาน (Shift) *</label>
+                                <select asp-for="Shift" class="form-select border-primary" required>
+                                    <option value="รอบเช้า (Morning Shift 07:00 - 15:00)">รอบเช้า (Morning 07:00 - 15:00)</option>
+                                    <option value="รอบบ่าย (Afternoon Shift 14:00 - 22:00)">รอบบ่าย (Afternoon 14:00 - 22:00)</option>
+                                    <option value="รอบค่ำ/ปิดกะ (Night Shift 22:00 - 07:00)" selected>รอบค่ำ/ปิดกะ (Night Shift 22:00 - 07:00)</option>
+                                    <option value="รายงานสรุปปิดวันประจำคืนนี้ (Daily Close)">รายงานสรุปปิดวันประจำคืนนี้ (Daily Close)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small text-dark">หมวดหมู่รายงาน (Category) *</label>
+                                <select asp-for="Category" class="form-select" required>
+                                    <option value="รายงานรอบกะ/ประจำวัน" selected>📊 รายงานรอบกะ / สรุปยอดประจำวัน</option>
+                                    <option value="แจ้งเรื่องการคืนเงิน (Refund)">💸 แจ้งเรื่องการคืนเงิน (Refunds)</option>
+                                    <option value="ตรวจสอบสลิป/ข้อผิดพลาดทางการเงิน">⚠️ ตรวจสอบสลิป / ยอดเงินไม่ตรง</option>
+                                    <option value="ข้อเสนอแนะทั่วไปถึงฝ่ายบัญชี">💬 ข้อเสนอแนะทั่วไปถึงฝ่ายบัญชี</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small text-dark">ยอดเงินสดที่ส่งมอบ (Cash on Hand ฿) *</label>
+                                <input asp-for="CashAmount" type="number" step="0.01" class="form-control fw-bold text-success" required />
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small text-dark">ยอดเงินโอน/พร้อมเพย์รวม (฿)</label>
+                                <input asp-for="TransferAmount" type="number" step="0.01" class="form-control" />
+                            </div>
+                            <div class="col-md-3 col-6">
+                                <label class="form-label fw-bold small text-dark">จำนวนเช็คอิน</label>
+                                <input asp-for="TotalCheckIns" type="number" class="form-control text-center" />
+                            </div>
+                            <div class="col-md-3 col-6">
+                                <label class="form-label fw-bold small text-dark">จำนวนเช็คเอาท์</label>
+                                <input asp-for="TotalCheckOuts" type="number" class="form-control text-center" />
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold small text-dark">
+                                ข้อความ Feedback / รายละเอียดส่งถึงฝ่ายบัญชี *
+                            </label>
+                            <textarea asp-for="Message" class="form-control" rows="4"
+                                      placeholder="เช่น ปิดรอบคืนนี้ยอดเงินสดครบถ้วน 3,600 บาท มีแขกห้อง 201 ขอเลทเช็คเอาท์เก็บเงินสดเพิ่ม 300 บาทแนบหลักฐานไว้ในเก๊ะเรียบร้อยครับ" required></textarea>
+                            <small class="text-muted">ข้อความนี้จะถูกส่งไปยังกระดานของแผนกบัญชีทันที เพื่อให้ฝ่ายบัญชีตรวจสอบและลงนามรับทราบ</small>
+                        </div>
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-warning text-dark btn-lg fw-bold shadow-sm py-3">
+                                <i class="bi bi-send-fill me-1"></i> ยืนยันการส่งรายงานและ Feedback ถึงบัญชี
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- ฝั่งขวา: ประวัติรายงานและ Feedback ที่เคยส่งไป -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm rounded-4 bg-white overflow-hidden">
+                <div class="card-header bg-white border-bottom p-3 d-flex justify-content-between align-items-center">
+                    <h6 class="fw-bold m-0 text-dark">
+                        <i class="bi bi-clock-history text-primary me-2"></i>ประวัติ Feedback & รายงานที่ส่งแล้ว
+                    </h6>
+                    <span class="badge bg-light text-muted border rounded-pill">@recentFeedbacks.Count รายการ</span>
+                </div>
+
+                <div class="card-body p-0">
+                    @if (recentFeedbacks.Any())
+                    {
+                        <div class="list-group list-group-flush">
+                            @foreach (var fb in recentFeedbacks)
+                            {
+                                <div class="list-group-item p-3">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <div>
+                                            <span class="badge bg-primary bg-opacity-10 text-primary border border-primary rounded-pill me-1">
+                                                @fb.Shift
+                                            </span>
+                                            <span class="badge bg-light text-dark border rounded-pill">
+                                                @fb.Category
+                                            </span>
+                                        </div>
+                                        <div>
+                                            @if (fb.IsAcknowledged)
+                                            {
+                                                <span class="badge bg-success rounded-pill px-2 py-1">
+                                                    <i class="bi bi-check-all me-1"></i>บัญชีรับทราบแล้ว (@fb.AcknowledgedBy)
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-warning text-dark rounded-pill px-2 py-1">
+                                                    <i class="bi bi-hourglass-split me-1"></i>รอฝ่ายบัญชีตรวจสอบ
+                                                </span>
+                                            }
+                                        </div>
+                                    </div>
+
+                                    <p class="text-dark mb-2 small" style="white-space: pre-line;">@fb.Message</p>
+
+                                    <div class="d-flex flex-wrap justify-content-between align-items-center small text-muted pt-2 border-top">
+                                        <div>
+                                            <span class="me-3">💵 เงินสด: <strong class="text-success">฿@fb.CashAmount.ToString("N0")</strong></span>
+                                            <span>📱 เงินโอน: <strong>฿@fb.TransferAmount.ToString("N0")</strong></span>
+                                        </div>
+                                        <div>
+                                            <i class="bi bi-clock me-1"></i>@fb.CreatedAt.ToString("dd/MM/yyyy HH:mm น.") โดย @fb.StaffName
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="p-5 text-center text-muted">
+                            <i class="bi bi-chat-left-dots fs-1 opacity-25 d-block mb-2"></i>
+                            <p class="small mb-0">ยังไม่มีประวัติการส่งรายงานถึงฝ่ายบัญชี</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

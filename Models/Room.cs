@@ -13,6 +13,8 @@ public partial class Room
 
     public string? Status { get; set; }
 
+    public string Branch { get; set; } = "Bangkok";
+
     public virtual ICollection<Booking> Bookings { get; set; } = new List<Booking>();
 
     public virtual Roomtype? RoomType { get; set; }

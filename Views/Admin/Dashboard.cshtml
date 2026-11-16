@@ -1,54 +1,184 @@
+@model IEnumerable<EasyStayHotel.Models.Booking>
 @{
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
-    ViewData["Title"] = "ภาพรวมระบบ (Dashboard)";
+    ViewData["Title"] = "ภาพรวมระบบ (Overview Dashboard)";
 }
 
 <div class="mt-4">
-    <h3 class="fw-bold mb-4">📊 ภาพรวมระบบ (Admin Dashboard)</h3>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="fw-bold m-0 text-primary">ภาพรวมระบบบริหารจัดการ (Overview Dashboard)</h3>
+            <span class="text-muted small">มุมมองสำหรับพนักงานตำแหน่ง: ผู้ดูแลระบบ (Admin)</span>
+        </div>
+        <div>
+            <span class="badge bg-success px-3 py-2 rounded-pill"><i class="bi bi-circle-fill small me-1"></i> ระบบทำงานปกติ</span>
+        </div>
+    </div>
 
-    <div class="row">
-        <!-- การ์ดจำนวนผู้ใช้งาน -->
-        <div class="col-md-3 mb-4">
-            <div class="card text-white bg-primary shadow-sm border-0 h-100">
-                <div class="card-body d-flex flex-column justify-content-center align-items-center">
-                    <h5 class="card-title">👥 ผู้ใช้งานระบบ</h5>
-                    <h1 class="display-4 fw-bold">@ViewBag.TotalUsers</h1>
-                    <span class="small text-light">บัญชีทั้งหมด</span>
+    <!-- ส่วนที่ 1: การ์ดสถิติ (Stats Cards) -->
+    <div class="row mb-4">
+        <!-- รายรับรวมวันนี้ -->
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0 border-start border-primary border-4 h-100 rounded-3">
+                <div class="card-body">
+                    <h6 class="text-muted fw-bold mb-2">รายรับรวมวันนี้</h6>
+                    <h2 class="text-primary fw-bold mb-0">฿@ViewBag.TodayRevenue.ToString("N0")</h2>
                 </div>
             </div>
         </div>
 
-        <!-- การ์ดจำนวนการจองทั้งหมด -->
-        <div class="col-md-3 mb-4">
-            <div class="card text-white bg-info shadow-sm border-0 h-100">
-                <div class="card-body d-flex flex-column justify-content-center align-items-center">
-                    <h5 class="card-title">📝 การจองทั้งหมด</h5>
-                    <h1 class="display-4 fw-bold">@ViewBag.TotalBookings</h1>
-                    <span class="small text-light">รายการ</span>
+        <!-- จำนวนห้องว่าง -->
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0 h-100 rounded-3">
+                <div class="card-body">
+                    <h6 class="text-muted fw-bold mb-2">จำนวนห้องว่างวันนี้</h6>
+                    <h2 class="text-dark fw-bold mb-0">@ViewBag.AvailableRooms / @ViewBag.TotalRooms <span class="fs-6 text-muted">ห้อง</span></h2>
                 </div>
             </div>
         </div>
 
-        <!-- การ์ดจำนวนห้องพักทั้งหมด -->
-        <div class="col-md-3 mb-4">
-            <div class="card text-dark bg-warning shadow-sm border-0 h-100">
-                <div class="card-body d-flex flex-column justify-content-center align-items-center">
-                    <h5 class="card-title">🏨 ห้องพักทั้งหมด</h5>
-                    <h1 class="display-4 fw-bold">@ViewBag.TotalRooms</h1>
-                    <span class="small text-dark">ห้อง</span>
+        <!-- อัตราการเข้าพัก -->
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0 h-100 rounded-3">
+                <div class="card-body">
+                    <h6 class="text-muted fw-bold mb-2">อัตราการเข้าพักวันนี้</h6>
+                    <h2 class="text-dark fw-bold mb-0">@ViewBag.OccupancyRate%</h2>
                 </div>
             </div>
         </div>
 
-        <!-- การ์ดจำนวนห้องว่าง -->
-        <div class="col-md-3 mb-4">
-            <div class="card text-white bg-success shadow-sm border-0 h-100">
-                <div class="card-body d-flex flex-column justify-content-center align-items-center">
-                    <h5 class="card-title">✅ ห้องว่างพร้อมขาย</h5>
-                    <h1 class="display-4 fw-bold">@ViewBag.AvailableRooms</h1>
-                    <span class="small text-light">ห้อง</span>
+        <!-- จำนวนแขกพักอยู่ตอนนี้ -->
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0 h-100 rounded-3">
+                <div class="card-body">
+                    <h6 class="text-muted fw-bold mb-2">จำนวนรายการเข้าพักตอนนี้</h6>
+                    <h2 class="text-dark fw-bold mb-0">@ViewBag.ActiveBookings <span class="fs-6 text-muted">รายการ</span></h2>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- ส่วนที่ 2: กราฟ (Charts) -->
+    <div class="row mb-4">
+        <!-- กราฟแท่ง รายรับย้อนหลัง 7 วัน -->
+        <div class="col-md-8">
+            <div class="card shadow-sm border-0 h-100 rounded-3">
+                <div class="card-body">
+                    <h6 class="fw-bold mb-4">รายรับย้อนหลัง 7 วันที่ผ่านมา</h6>
+                    <canvas id="revenueChart" height="100"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- กราฟโดนัท สัดส่วนการจอง -->
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0 h-100 rounded-3">
+                <div class="card-body">
+                    <h6 class="fw-bold mb-4">สัดส่วนการเข้าพักตามประเภทห้อง</h6>
+                    <canvas id="roomTypeChart" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ส่วนที่ 3: ตารางการจองล่าสุด -->
+    <div class="card shadow-sm border-0 mb-5 rounded-3">
+        <div class="card-header bg-white border-bottom">
+            <h6 class="m-0 fw-bold py-2">📋 การจองล่าสุด (Recent Bookings)</h6>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover text-center align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>รหัสอ้างอิง</th>
+                            <th>ชื่อลูกค้า</th>
+                            <th>ห้องพัก</th>
+                            <th>เช็คอิน</th>
+                            <th>เช็คเอาท์</th>
+                            <th>ยอดรวม</th>
+                            <th>สถานะ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model != null && Model.Any())
+                        {
+                            foreach (var booking in Model)
+                            {
+                                <tr>
+                                    <td class="fw-bold text-primary">@booking.BookingRef</td>
+                                    <td>@(string.IsNullOrEmpty(booking.GuestName) ? "-" : booking.GuestName)</td>
+                                    <td class="fw-bold">@(booking.Room != null ? booking.Room.RoomNo : "N/A")</td>
+                                    <td>@booking.CheckInDate.ToString("dd/MM/yyyy")</td>
+                                    <td>@booking.CheckOutDate.ToString("dd/MM/yyyy")</td>
+                                    <td>@booking.TotalPrice.ToString("N2") ฿</td>
+                                    <td>
+                                        @if (booking.BookingStatus == "Pending")
+                                        { <span class="badge bg-warning text-dark">รอยืนยัน</span> }
+                                        else if (booking.BookingStatus == "Confirmed")
+                                        { <span class="badge bg-info text-dark">ยืนยันแล้ว</span> }
+                                        else if (booking.BookingStatus == "CheckIn" || booking.BookingStatus == "CheckedIn")
+                                        { <span class="badge bg-success">กำลังเข้าพัก</span> }
+                                        else
+                                        { <span class="badge bg-secondary">@booking.BookingStatus</span> }
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 </div>
+
+<!-- โหลด Chart.js และสร้างกราฟ -->
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // กราฟแท่ง รายรับย้อนหลัง 7 วัน (Bar Chart)
+        const revCtx = document.getElementById('revenueChart').getContext('2d');
+        const revenueChart = new Chart(revCtx, {
+            type: 'bar',
+            data: {
+                labels: @Html.Raw(Json.Serialize(ViewBag.RevenueLabels)),
+                datasets: [{
+                    label: 'รายรับ (บาท)',
+                    data: @Html.Raw(Json.Serialize(ViewBag.RevenueData)),
+                    backgroundColor: '#0d6efd', // สีฟ้าธีม Bootstrap Primary
+                    borderRadius: 4,
+                    barThickness: 30
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, grid: { borderDash: [5, 5] } },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+
+        // กราฟโดนัท สัดส่วนประเภทห้องพัก (Doughnut Chart)
+        const typeCtx = document.getElementById('roomTypeChart').getContext('2d');
+        const roomTypeChart = new Chart(typeCtx, {
+            type: 'doughnut',
+            data: {
+                labels: @Html.Raw(Json.Serialize(ViewBag.RoomTypeLabels)),
+                datasets: [{
+                    data: @Html.Raw(Json.Serialize(ViewBag.RoomTypeData)),
+                    backgroundColor: ['#0d6efd', '#0dcaf0', '#ffc107', '#6c757d'], // ใช้โทนฟ้า-เหลือง
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                cutout: '70%',
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
+            }
+        });
+    </script>
+}

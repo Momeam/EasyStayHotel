@@ -5,6 +5,8 @@ namespace EasyStayHotel.Models;
 
 public partial class Payment
 {
+    public string? PaymentMethod { get; set; }
+
     public int PaymentId { get; set; }
 
     public int? BookingId { get; set; }

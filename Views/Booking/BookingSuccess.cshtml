@@ -1,0 +1,27 @@
+@{
+    ViewData["Title"] = "การจองสำเร็จ";
+}
+
+<div class="container py-5 text-center" style="max-width: 600px;">
+    <div class="card border-0 shadow-lg rounded-4 p-5 bg-white">
+        <i class="bi bi-check-circle-fill text-success" style="font-size: 5rem;"></i>
+        <h2 class="fw-bold mt-4 mb-3">การจองสำเร็จ!</h2>
+        <p class="text-muted mb-4">ขอบคุณสำหรับการจองห้องพักกับ Easy Stay ระบบได้รับหลักฐานการชำระเงินของคุณแล้ว</p>
+        
+        <div class="bg-light p-4 rounded-3 mb-4 border">
+            <p class="mb-1 text-muted small">หมายเลขการจอง (Booking Reference)</p>
+            <h3 class="fw-bold text-primary m-0">@ViewBag.BookingRef</h3>
+        </div>
+        
+        <p class="small text-muted mb-4">พนักงานของเรากำลังตรวจสอบรายการชำระเงิน คุณสามารถใช้หมายเลขการจองนี้เพื่อติดตามสถานะได้ตลอดเวลา</p>
+        
+        <div class="d-grid gap-2">
+            <a asp-controller="Booking" asp-action="MyBookings" asp-route-bookingRef="@ViewBag.BookingRef" class="btn btn-primary btn-lg fw-bold">
+                <i class="bi bi-journal-check me-1"></i> ดูสถานะและรายละเอียดการจองนี้
+            </a>
+            <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary btn-lg fw-bold">
+                กลับสู่หน้าหลัก
+            </a>
+        </div>
+    </div>
+</div>

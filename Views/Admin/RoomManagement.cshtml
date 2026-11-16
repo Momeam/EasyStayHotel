@@ -1,80 +1,121 @@
 @model IEnumerable<EasyStayHotel.Models.Room>
 @{
+     //Layout ให้เรียกใช้แถบเมนูของ Admin เท่านั้น
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
-    ViewData["Title"] = "จัดการห้องพัก";
+    ViewData["Title"] = "ระบบจัดการห้องพัก";
+}
+<!-- ฟังก์ชันสำหรับแปลงสถานะจาก DB เป็นสีและข้อความภาษาไทย -->
+@functions {
+    public string GetStatusColor(string status)
+    {
+        return status switch
+        {
+            "Available" => "success",
+            "Occupied" => "danger",
+            "Cleaning" => "warning",
+            "Maintenance" => "secondary",
+            _ => "primary"
+        };
+    }
+
+    public string GetStatusLabel(string status)
+    {
+        return status switch
+        {
+            "Available" => "ว่าง",
+            "Occupied" => "ไม่ว่าง",
+            "Cleaning" => "รอความสะอาด",
+            "Maintenance" => "ซ่อมบำรุง",
+            _ => status
+        };
+    }
+
+    public string GetStatusRemark(string status)
+    {
+        return status switch
+        {
+            "Available" => "ทำความสะอาดแล้ว • พร้อมใช้งาน",
+            "Occupied" => "มีแขกเข้าพักอยู่",
+            "Cleaning" => "มอบหมายแม่บ้านแล้ว",
+            "Maintenance" => "ช่างกำลังดำเนินการแก้ไข",
+            _ => "รอการตรวจสอบ"
+        };
+    }
 }
 
-<div class="card shadow-sm border-0 mt-4">
-    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
-        <h5 class="m-0">🛏️ จัดการข้อมูลห้องพัก (Room Management)</h5>
-        <!-- ปุ่มเพิ่มห้องพัก ชี้ไปยังหน้า CreateRoom ของ Admin -->
-        <a asp-controller="Admin" asp-action="CreateRoom" class="btn btn-sm btn-success">+ เพิ่มห้องพักใหม่</a>
+<div class="container-fluid mt-4 mb-5">
+    <!-- ส่วนหัว (Header) และปุ่มจัดการ -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="fw-bold mb-1">ระบบจัดการสถานะห้องพัก (Room Management)</h3>
+            <p class="text-muted small mb-0">ภาพรวมสถานะห้องพักปัจจุบันและการจัดการทำความสะอาดแบบเรียลไทม์</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-arrow-clockwise"></i> อัปเดตข้อมูล</a>
+            <button class="btn btn-primary">กรองตามสถานะ</button>
+        </div>
     </div>
-    <div class="card-body p-4">
-        
-        @if (TempData["SuccessMessage"] != null)
-        {
-            <div class="alert alert-success shadow-sm py-2">
-                <strong>✅ สำเร็จ:</strong> @TempData["SuccessMessage"]
-            </div>
-        }
 
-        <table class="table table-hover table-bordered text-center align-middle mt-3">
-            <thead class="table-light">
-                <tr>
-                    <th>หมายเลขห้อง</th>
-                    <th>ประเภทห้อง (ID)</th>
-                    <th>สถานะ</th>
-                    <th>จัดการ</th>
-                </tr>
-            </thead>
-            <tbody>
-                @if (Model != null && Model.Any())
-                {
-                    foreach (var room in Model)
-                    {
-                        <tr>
-                            <td class="fw-bold text-primary">@room.RoomNo</td>
-                            <td>@(room.RoomType?.TypeName ?? "ไม่ระบุ")</td>
-                            <td>
-                                @if (room.Status == "Available")
-                                {
-                                    <span class="badge bg-success">ว่าง</span>
-                                }
-                                else if (room.Status == "Occupied")
-                                {
-                                    <span class="badge bg-danger">มีผู้เข้าพัก</span>
-                                }
-                                else if (room.Status == "Cleaning")
-                                {
-                                    <span class="badge bg-warning text-dark">กำลังทำความสะอาด</span>
-                                }
-                                else
-                                {
-                                    <span class="badge bg-secondary">@room.Status</span>
-                                }
-                            </td>
-                            <td>
-                                <!-- ปุ่มแก้ไข ส่ง id ของห้องไปที่ EditRoom -->
-                                <a asp-action="EditRoom" asp-route-id="@room.RoomId" class="btn btn-sm btn-warning">แก้ไข</a>
-    
-                                <!-- ปุ่มลบ พร้อมกล่องข้อความยืนยัน -->
-                                <a asp-controller="Admin" asp-action="DeleteRoom" asp-route-id="@room.RoomId"
-                                   class="btn btn-sm btn-danger"
-                                   onclick="return confirm('คุณแน่ใจหรือไม่ว่าต้องการลบห้อง @room.RoomNo ?');">
-                                    ลบ
-                                </a>
-                            </td>
-                        </tr>
-                    }
-                }
-                else
-                {
-                    <tr>
-                        <td colspan="4" class="text-muted py-4">ยังไม่มีข้อมูลห้องพักในระบบ</td>
-                    </tr>
-                }
-            </tbody>
-        </table>
+    <!-- แถบอธิบายสถานะห้องพัก (Legend) -->
+    <div class="card shadow-sm border-0 mb-4 rounded-3">
+        <div class="card-body py-3">
+            <span class="fw-bold me-3 text-muted small">คำอธิบายสถานะห้องพัก</span>
+            <span class="me-3 small"><span class="badge bg-success p-2 me-1"> </span> <strong>ว่าง (Available)</strong> — พร้อมเข้าพัก</span>
+            <span class="me-3 small"><span class="badge bg-danger p-2 me-1"> </span> <strong>ไม่ว่าง (Occupied)</strong> — มีแขกเข้าพักอยู่</span>
+            <span class="me-3 small"><span class="badge bg-warning p-2 me-1"> </span> <strong>รอทำความสะอาด (Cleaning)</strong> — รอแม่บ้านตรวจสอบ</span>
+            <span class="me-3 small"><span class="badge bg-secondary p-2 me-1"> </span> <strong>ซ่อมบำรุง (Maintenance)</strong> — ปิดปรับปรุง</span>
+        </div>
     </div>
+
+    <!-- วนลูปจัดกลุ่มตามประเภทห้องพัก (Room Type) -->
+    @{
+        var groupedRooms = Model.GroupBy(r => r.RoomType?.TypeName ?? "ไม่ระบุประเภท").OrderBy(g => g.Key);
+    }
+
+    @foreach (var group in groupedRooms)
+    {
+        <h5 class="fw-bold mt-4 mb-3 text-dark">ประเภทห้อง: @group.Key</h5>
+        
+        <div class="row g-3">
+            @foreach (var room in group)
+            {
+                var colorClass = GetStatusColor(room.Status);
+                var labelText = GetStatusLabel(room.Status);
+                var remarkText = GetStatusRemark(room.Status);
+
+                <div class="col-md-3">
+                    <!-- การ์ดห้องพัก ใช้ border ด้านซ้ายให้ตรงกับสีสถานะ และคลิกเพื่อแก้ไขได้ -->
+                    <a asp-action="EditRoom" asp-route-id="@room.RoomId" class="text-decoration-none text-dark">
+                        <div class="card h-100 shadow-sm border-0 border-start border-@colorClass border-4 rounded-3 transition-hover">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h2 class="fw-bold m-0 text-dark">@room.RoomNo</h2>
+                                    <span class="badge bg-@colorClass text-white px-2 py-1 rounded-pill">@labelText</span>
+                                </div>
+                                
+                                <p class="text-muted small mb-3">@group.Key</p>
+                                
+                                <hr class="text-muted opacity-25 my-2" />
+                                
+                                <small class="text-@colorClass fw-bold" style="font-size: 0.8rem;">
+                                    @remarkText
+                                </small>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            }
+        </div>
+    }
 </div>
+
+<!-- เพิ่ม CSS เล็กน้อยสำหรับการ์ดเมื่อเอาเมาส์ชี้ -->
+<style>
+    .transition-hover {
+        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    }
+    .transition-hover:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important;
+    }
+</style>

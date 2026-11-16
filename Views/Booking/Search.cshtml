@@ -1,0 +1,499 @@
+@model IEnumerable<dynamic>
+@using EasyStayHotel.Services
+@{
+    ViewData["Title"] = "ผลการค้นหาห้องพัก";
+    string currentBranch = ViewBag.Branch ?? "Bangkok";
+    string branchNameTh = RoomPreviewHelper.GetBranchNameTh(currentBranch);
+    int? selectedRoomTypeId = ViewBag.SelectedRoomTypeId as int?;
+    int nights = ViewBag.Nights != null && (int)ViewBag.Nights > 0 ? (int)ViewBag.Nights : 1;
+}
+
+<style>
+    .search-room-card {
+        border-radius: 1.25rem;
+        transition: transform 0.22s ease, box-shadow 0.22s ease;
+        overflow: hidden;
+    }
+    .search-room-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 14px 30px rgba(15, 23, 42, 0.1) !important;
+    }
+    .search-room-card.highlighted-room {
+        border: 2px solid #0d6efd !important;
+        box-shadow: 0 10px 25px rgba(13, 110, 253, 0.15) !important;
+    }
+    .search-room-img {
+        width: 100%;
+        height: 100%;
+        min-height: 250px;
+        object-fit: cover;
+        transition: transform 0.4s ease;
+    }
+    .search-room-card:hover .search-room-img {
+        transform: scale(1.05);
+    }
+</style>
+
+<div class="container py-4">
+    <!-- แถบปรับเปลี่ยนการค้นหาด่วน (Quick Modify Search Bar) -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4 bg-white">
+        <div class="card-body p-3 p-md-4">
+            <form asp-controller="Booking" asp-action="Search" method="get" class="row g-3 align-items-end">
+                <div class="col-lg-3 col-md-6">
+                    <label class="form-label fw-bold text-muted small mb-1">
+                        <i class="bi bi-geo-alt-fill text-primary"></i> สาขา / จังหวัด
+                    </label>
+                    <select name="branch" class="form-select border-primary fw-medium">
+                        <option value="Bangkok" selected="@(currentBranch == "Bangkok")">กรุงเทพมหานคร (Bangkok)</option>
+                        <option value="Chonburi" selected="@(currentBranch == "Chonburi")">ชลบุรี - พัทยา (Chonburi)</option>
+                        <option value="Phuket" selected="@(currentBranch == "Phuket")">ภูเก็ต (Phuket)</option>
+                    </select>
+                </div>
+                <div class="col-lg-2 col-md-6">
+                    <label class="form-label fw-bold text-muted small mb-1">วันที่ Check-in</label>
+                    <input type="date" name="checkIn" id="searchCheckIn" class="form-control" value="@ViewBag.CheckIn" required />
+                </div>
+                <div class="col-lg-2 col-md-6">
+                    <label class="form-label fw-bold text-muted small mb-1">วันที่ Check-out</label>
+                    <input type="date" name="checkOut" id="searchCheckOut" class="form-control" value="@ViewBag.CheckOut" required />
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <label class="form-label fw-bold text-muted small mb-1">จำนวนห้อง</label>
+                            <input type="number" name="rooms" class="form-control text-center" min="1" value="@(ViewBag.RoomsReq ?? 1)" required />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-bold text-muted small mb-1">จำนวนแขก</label>
+                            <input type="number" name="guests" class="form-control text-center" min="1" value="@(ViewBag.GuestsReq ?? 2)" required />
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-2 col-12">
+                    <button type="submit" class="btn btn-primary w-100 fw-bold">
+                        <i class="bi bi-arrow-repeat me-1"></i> อัปเดตการค้นหา
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- แถบแจ้งผลการค้นหา -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center border-bottom pb-3 mb-3">
+        <div>
+            <h4 class="fw-bold m-0 text-primary">
+                ผลการค้นหา: พบประเภทห้องว่าง <span id="visibleRoomCount">@ViewBag.TotalFound</span> รายการ
+            </h4>
+            <p class="text-muted small m-0 mt-1">
+                <i class="bi bi-building me-1"></i> กำลังดูสาขา: <strong class="text-primary fs-6">@branchNameTh</strong> |
+                เช็คอิน: <strong>@ViewBag.CheckIn</strong> |
+                เช็คเอาท์: <strong>@ViewBag.CheckOut</strong> (@nights คืน, แขก @ViewBag.GuestsReq ท่าน)
+            </p>
+        </div>
+        <div class="mt-2 mt-md-0">
+            <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+                <i class="bi bi-arrow-left me-1"></i> กลับหน้าแรก
+            </a>
+        </div>
+    </div>
+
+    <!-- แถบสลับดูและจองห้องพักในสาขาอื่นทันที (Branch Switcher Tabs) -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4 bg-white p-3 border-start border-primary border-4">
+        <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-primary bg-opacity-10 text-primary p-2 rounded-circle fs-6">
+                    <i class="bi bi-geo-alt-fill"></i>
+                </span>
+                <div>
+                    <span class="fw-bold small d-block text-dark">เลือกดูและจองห้องพักสาขาอื่น:</span>
+                    <span class="text-muted" style="font-size: 0.75rem;">คลิกที่สาขาด้านล่างเพื่อสลับไปดูห้องว่างในจังหวัดที่คุณต้องการได้ทันที</span>
+                </div>
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+                <a asp-controller="Booking" asp-action="Search"
+                   asp-route-branch="Bangkok"
+                   asp-route-checkIn="@ViewBag.CheckIn"
+                   asp-route-checkOut="@ViewBag.CheckOut"
+                   asp-route-rooms="@ViewBag.RoomsReq"
+                   asp-route-guests="@ViewBag.GuestsReq"
+                   asp-route-roomTypeId="@selectedRoomTypeId"
+                   class="btn btn-sm rounded-pill px-3 py-2 fw-medium @(currentBranch == "Bangkok" ? "btn-primary shadow-sm" : "btn-outline-secondary bg-light")">
+                    <i class="bi bi-building me-1"></i> สาขากรุงเทพมหานคร
+                    <span class="badge @(currentBranch == "Bangkok" ? "bg-white text-primary" : "bg-success text-white") rounded-pill ms-1">
+                        @(ViewBag.AvailBkk ?? 0) ห้องว่าง
+                    </span>
+                </a>
+                <a asp-controller="Booking" asp-action="Search"
+                   asp-route-branch="Chonburi"
+                   asp-route-checkIn="@ViewBag.CheckIn"
+                   asp-route-checkOut="@ViewBag.CheckOut"
+                   asp-route-rooms="@ViewBag.RoomsReq"
+                   asp-route-guests="@ViewBag.GuestsReq"
+                   asp-route-roomTypeId="@selectedRoomTypeId"
+                   class="btn btn-sm rounded-pill px-3 py-2 fw-medium @(currentBranch == "Chonburi" ? "btn-primary shadow-sm" : "btn-outline-secondary bg-light")">
+                    <i class="bi bi-water me-1"></i> สาขาชลบุรี (พัทยา)
+                    <span class="badge @(currentBranch == "Chonburi" ? "bg-white text-primary" : "bg-success text-white") rounded-pill ms-1">
+                        @(ViewBag.AvailChon ?? 0) ห้องว่าง
+                    </span>
+                </a>
+                <a asp-controller="Booking" asp-action="Search"
+                   asp-route-branch="Phuket"
+                   asp-route-checkIn="@ViewBag.CheckIn"
+                   asp-route-checkOut="@ViewBag.CheckOut"
+                   asp-route-rooms="@ViewBag.RoomsReq"
+                   asp-route-guests="@ViewBag.GuestsReq"
+                   asp-route-roomTypeId="@selectedRoomTypeId"
+                   class="btn btn-sm rounded-pill px-3 py-2 fw-medium @(currentBranch == "Phuket" ? "btn-primary shadow-sm" : "btn-outline-secondary bg-light")">
+                    <i class="bi bi-brightness-high me-1"></i> สาขาภูเก็ต
+                    <span class="badge @(currentBranch == "Phuket" ? "bg-white text-primary" : "bg-success text-white") rounded-pill ms-1">
+                        @(ViewBag.AvailPhuket ?? 0) ห้องว่าง
+                    </span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- ด้านซ้าย: ตัวกรองการค้นหา (ใช้งานได้จริง) -->
+        <div class="col-lg-3 mb-4">
+            <div class="card border-0 shadow-sm rounded-4 sticky-top" style="top: 90px;">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="fw-bold m-0"><i class="bi bi-funnel-fill text-primary me-1"></i> ตัวกรองการค้นหา</h6>
+                        <button type="button" id="btnResetFilter" class="btn btn-link p-0 text-decoration-none small text-muted">ล้างทั้งหมด</button>
+                    </div>
+                    <hr class="opacity-25" />
+
+                    <p class="fw-bold small mb-2">ช่วงราคา (บาท / คืน)</p>
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                        <input type="number" id="filterMinPrice" class="form-control form-control-sm text-center" placeholder="ต่ำสุด" value="0" min="0">
+                        <span class="text-muted small">ถึง</span>
+                        <input type="number" id="filterMaxPrice" class="form-control form-control-sm text-center" placeholder="สูงสุด" value="10000" min="500">
+                    </div>
+
+                    <p class="fw-bold small mb-2 mt-3">ประเภทห้องพัก</p>
+                    @if (Model != null && Model.Any())
+                    {
+                        foreach (var item in Model)
+                        {
+                            <div class="form-check mb-2">
+                                <input class="form-check-input filter-roomtype-cb"
+                                       type="checkbox"
+                                       value="@item.RoomType.RoomTypeId"
+                                       id="cbType_@item.RoomType.RoomTypeId"
+                                       checked>
+                                <label class="form-check-label small d-flex justify-content-between" for="cbType_@item.RoomType.RoomTypeId">
+                                    <span>@item.RoomType.TypeName</span>
+                                    <span class="text-muted">(@item.AvailableCount)</span>
+                                </label>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <p class="text-muted small">ไม่มีประเภทห้องว่าง</p>
+                    }
+
+                    <button type="button" id="btnApplyFilter" class="btn btn-primary btn-sm w-100 mt-3 fw-bold py-2 rounded-3">
+                        <i class="bi bi-check2-circle me-1"></i> นำตัวกรองไปใช้
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ด้านขวา: รายการห้องพักที่ค้นพบพร้อมพรีวิว -->
+        <div class="col-lg-9">
+            @if (Model != null && Model.Any())
+            {
+                foreach (var item in Model)
+                {
+                    int rtId = item.RoomType.RoomTypeId;
+                    string typeName = item.RoomType.TypeName;
+                    decimal basePrice = item.RoomType.BasePrice;
+                    int capacity = item.RoomType.Capacity > 0 ? item.RoomType.Capacity : 2;
+                    string mainImg = RoomPreviewHelper.GetMainImage(typeName, rtId);
+                    var gallery = RoomPreviewHelper.GetGalleryImages(typeName, rtId);
+                    string roomSize = RoomPreviewHelper.GetRoomSize(typeName, rtId);
+                    string bedType = RoomPreviewHelper.GetBedType(typeName, rtId);
+                    var badge = RoomPreviewHelper.GetHighlightBadge(typeName, rtId);
+                    string desc = RoomPreviewHelper.GetDefaultDescription(typeName, item.RoomType.Description, rtId);
+                    var amenities = RoomPreviewHelper.GetAmenities(typeName, rtId);
+                    bool isSelectedType = selectedRoomTypeId.HasValue && selectedRoomTypeId.Value == rtId;
+                    decimal totalForStay = basePrice * nights;
+
+                    <div class="card border-0 shadow-sm search-room-card mb-4 @(isSelectedType ? "highlighted-room" : "")"
+                         data-roomtype-id="@rtId"
+                         data-price="@basePrice">
+
+                        @if (isSelectedType)
+                        {
+                            <div class="bg-primary text-white px-4 py-1 small fw-bold d-flex align-items-center gap-2">
+                                <i class="bi bi-star-fill text-warning"></i> ห้องพักประเภทที่คุณเลือกจากหน้าพรีวิว
+                            </div>
+                        }
+
+                        <div class="row g-0">
+                            <!-- รูปภาพพรีวิวห้องพัก -->
+                            <div class="col-md-4 position-relative overflow-hidden bg-light">
+                                <img src="@mainImg" class="search-room-img" alt="@typeName" />
+                                <div class="position-absolute top-0 start-0 m-3">
+                                    <span class="badge @badge.BadgeClass rounded-pill px-3 py-1 shadow-sm">@badge.Label</span>
+                                </div>
+                                <button type="button"
+                                        class="btn btn-dark btn-sm bg-opacity-75 border-0 rounded-pill position-absolute bottom-0 start-0 m-3 px-3"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#searchPreviewModal-@rtId">
+                                    <i class="bi bi-images me-1"></i> ดูภาพพรีวิว (@gallery.Count รูป)
+                                </button>
+                            </div>
+
+                            <!-- รายละเอียดห้องพัก -->
+                            <div class="col-md-8">
+                                <div class="card-body p-4 d-flex flex-column h-100">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <div>
+                                            <h5 class="fw-bold text-primary m-0">@typeName</h5>
+                                            <div class="text-muted small mt-1">
+                                                <span class="me-3"><i class="bi bi-arrows-fullscreen text-primary me-1"></i> @roomSize</span>
+                                                <span class="me-3"><i class="bi bi-people-fill text-primary me-1"></i> รองรับสูงสุด @capacity ท่าน</span>
+                                                <span><i class="bi bi-lamp-fill text-primary me-1"></i> @bedType</span>
+                                            </div>
+                                        </div>
+                                        <span class="badge bg-success bg-opacity-10 text-success border border-success px-3 py-2 rounded-pill">
+                                            <i class="bi bi-check-circle-fill me-1"></i> ว่าง @item.AvailableCount ห้อง
+                                        </span>
+                                    </div>
+
+                                    <p class="text-muted small mb-3">@desc</p>
+
+                                    <div class="d-flex flex-wrap gap-2 mb-3">
+                                        @foreach (var am in amenities.Take(4))
+                                        {
+                                            <span class="badge bg-light text-dark border fw-normal py-1 px-2">
+                                                <i class="bi @am.Icon text-success me-1"></i> @am.Text
+                                            </span>
+                                        }
+                                    </div>
+
+                                    <div class="small text-muted mb-auto">
+                                        <i class="bi bi-key-fill text-warning me-1"></i> หมายเลขห้องว่างในสาขา @branchNameTh: <strong>@item.SampleRoomNumbers</strong>
+                                    </div>
+
+                                    <!-- ลิงก์จองประเภทห้องนี้ในสาขาอื่น -->
+                                    <div class="d-flex flex-wrap align-items-center gap-2 mt-2 pt-2 border-top small text-muted">
+                                        <span><i class="bi bi-arrow-left-right text-primary me-1"></i> จองประเภทนี้ในสาขาอื่น:</span>
+                                        <a asp-controller="Booking" asp-action="Search" asp-route-branch="Bangkok" asp-route-checkIn="@ViewBag.CheckIn" asp-route-checkOut="@ViewBag.CheckOut" asp-route-rooms="@ViewBag.RoomsReq" asp-route-guests="@ViewBag.GuestsReq" asp-route-roomTypeId="@rtId" class="badge bg-light text-dark border text-decoration-none py-1 px-2 @(currentBranch == "Bangkok" ? "d-none" : "")">
+                                            <i class="bi bi-building me-1 text-primary"></i> กรุงเทพฯ
+                                        </a>
+                                        <a asp-controller="Booking" asp-action="Search" asp-route-branch="Chonburi" asp-route-checkIn="@ViewBag.CheckIn" asp-route-checkOut="@ViewBag.CheckOut" asp-route-rooms="@ViewBag.RoomsReq" asp-route-guests="@ViewBag.GuestsReq" asp-route-roomTypeId="@rtId" class="badge bg-light text-dark border text-decoration-none py-1 px-2 @(currentBranch == "Chonburi" ? "d-none" : "")">
+                                            <i class="bi bi-water me-1 text-info"></i> ชลบุรี (พัทยา)
+                                        </a>
+                                        <a asp-controller="Booking" asp-action="Search" asp-route-branch="Phuket" asp-route-checkIn="@ViewBag.CheckIn" asp-route-checkOut="@ViewBag.CheckOut" asp-route-rooms="@ViewBag.RoomsReq" asp-route-guests="@ViewBag.GuestsReq" asp-route-roomTypeId="@rtId" class="badge bg-light text-dark border text-decoration-none py-1 px-2 @(currentBranch == "Phuket" ? "d-none" : "")">
+                                            <i class="bi bi-brightness-high me-1 text-warning"></i> ภูเก็ต
+                                        </a>
+                                    </div>
+
+                                    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-end mt-4 pt-3 border-top gap-3">
+                                        <div>
+                                            <div class="d-flex align-items-baseline gap-1">
+                                                <h4 class="fw-bold text-dark m-0">฿@basePrice.ToString("N0")</h4>
+                                                <span class="small text-muted">/ คืน</span>
+                                            </div>
+                                            <small class="text-primary fw-medium">
+                                                รวม @nights คืน: ฿@totalForStay.ToString("N0") (ก่อนหักส่วนลดโปรโมชั่น)
+                                            </small>
+                                        </div>
+
+                                        <div class="d-flex gap-2">
+                                            <button type="button"
+                                                    class="btn btn-outline-primary px-3 py-2 rounded-3"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#searchPreviewModal-@rtId">
+                                                <i class="bi bi-eye me-1"></i> พรีวิวห้อง
+                                            </button>
+                                            <a asp-controller="Booking" asp-action="Checkout"
+                                               asp-route-roomId="@item.FirstAvailableRoomId"
+                                               asp-route-checkIn="@ViewBag.CheckIn"
+                                               asp-route-checkOut="@ViewBag.CheckOut"
+                                               asp-route-guests="@ViewBag.GuestsReq"
+                                               asp-route-rooms="@ViewBag.RoomsReq"
+                                               class="btn btn-primary fw-bold px-4 py-2 rounded-3 shadow-sm">
+                                                เลือกห้องนี้ <i class="bi bi-chevron-right ms-1"></i>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Modal พรีวิวรูปภาพและรายละเอียดห้องพักในหน้า Search -->
+                    <div class="modal fade" id="searchPreviewModal-@rtId" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog modal-lg modal-dialog-centered">
+                            <div class="modal-content border-0 rounded-4 overflow-hidden shadow-lg">
+                                <div class="modal-header bg-dark text-white border-0">
+                                    <h5 class="modal-title fw-bold">@typeName - สาขา@branchNameTh</h5>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body p-0">
+                                    <div id="searchCarousel-@rtId" class="carousel slide" data-bs-ride="carousel">
+                                        <div class="carousel-inner" style="height: 350px;">
+                                            @for (int i = 0; i < gallery.Count; i++)
+                                            {
+                                                <div class="carousel-item @(i == 0 ? "active" : "") h-100">
+                                                    <img src="@gallery[i]" class="d-block w-100 h-100" style="object-fit: cover;" alt="@typeName" />
+                                                </div>
+                                            }
+                                        </div>
+                                        <button class="carousel-control-prev" type="button" data-bs-target="#searchCarousel-@rtId" data-bs-slide="prev">
+                                            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                        </button>
+                                        <button class="carousel-control-next" type="button" data-bs-target="#searchCarousel-@rtId" data-bs-slide="next">
+                                            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                        </button>
+                                    </div>
+                                    <div class="p-4">
+                                        <div class="d-flex justify-content-between align-items-center mb-3">
+                                            <div>
+                                                <span class="badge bg-primary me-2">ขนาด @roomSize</span>
+                                                <span class="badge bg-secondary me-2">รองรับ @capacity ท่าน</span>
+                                                <span class="badge bg-success">ว่าง @item.AvailableCount ห้อง</span>
+                                            </div>
+                                            <h4 class="fw-bold text-primary m-0">฿@basePrice.ToString("N0") <small class="fs-6 text-muted">/ คืน</small></h4>
+                                        </div>
+                                        <p class="text-muted small mb-3">@desc</p>
+                                        <h6 class="fw-bold small mb-2">สิ่งอำนวยความสะดวกครบครัน:</h6>
+                                        <div class="row g-2 mb-4">
+                                            @foreach (var am in amenities)
+                                            {
+                                                <div class="col-sm-6 small">
+                                                    <i class="bi @am.Icon text-primary me-2"></i> @am.Text
+                                                </div>
+                                            }
+                                        </div>
+                                        <div class="d-flex justify-content-end gap-2 border-top pt-3">
+                                            <button type="button" class="btn btn-light" data-bs-dismiss="modal">ปิดหน้าต่าง</button>
+                                            <a asp-controller="Booking" asp-action="Checkout"
+                                               asp-route-roomId="@item.FirstAvailableRoomId"
+                                               asp-route-checkIn="@ViewBag.CheckIn"
+                                               asp-route-checkOut="@ViewBag.CheckOut"
+                                               asp-route-guests="@ViewBag.GuestsReq"
+                                               asp-route-rooms="@ViewBag.RoomsReq"
+                                               class="btn btn-primary fw-bold px-4">
+                                                จองห้องพักนี้ทันที
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                <!-- กล่องแจ้งเตือนกรณีกรองแล้วไม่พบห้อง -->
+                <div id="noFilterMatchBox" class="text-center py-5 bg-white rounded-4 shadow-sm d-none">
+                    <i class="bi bi-funnel display-3 text-muted mb-3 d-block"></i>
+                    <h5 class="fw-bold">ไม่พบห้องพักที่ตรงกับตัวกรองของคุณ</h5>
+                    <p class="text-muted small">ลองปรับช่วงราคาหรือเลือกประเภทห้องพักเพิ่มเติม</p>
+                    <button type="button" id="btnResetFilterEmpty" class="btn btn-outline-primary btn-sm rounded-pill px-4">
+                        ล้างตัวกรองทั้งหมด
+                    </button>
+                </div>
+            }
+            else
+            {
+                <div class="text-center py-5 bg-white rounded-4 shadow-sm p-4">
+                    <i class="bi bi-search display-1 text-muted mb-3 d-block"></i>
+                    <h5 class="fw-bold">ไม่พบห้องว่างในสาขา @branchNameTh สำหรับวันที่ท่านเลือก</h5>
+                    <p class="text-muted small mb-4">คุณสามารถเลือกดูห้องว่างและจองในสาขาอื่นของเราได้ทันที:</p>
+                    <div class="d-flex flex-wrap justify-content-center gap-2 mb-4">
+                        <a asp-controller="Booking" asp-action="Search"
+                           asp-route-branch="Bangkok" asp-route-checkIn="@ViewBag.CheckIn" asp-route-checkOut="@ViewBag.CheckOut" asp-route-rooms="@ViewBag.RoomsReq" asp-route-guests="@ViewBag.GuestsReq"
+                           class="btn btn-outline-primary rounded-pill px-3 py-2 fw-medium @(currentBranch == "Bangkok" ? "d-none" : "")">
+                            <i class="bi bi-building me-1"></i> ดูสาขากรุงเทพฯ (ว่าง @(ViewBag.AvailBkk ?? 0) ห้อง)
+                        </a>
+                        <a asp-controller="Booking" asp-action="Search"
+                           asp-route-branch="Chonburi" asp-route-checkIn="@ViewBag.CheckIn" asp-route-checkOut="@ViewBag.CheckOut" asp-route-rooms="@ViewBag.RoomsReq" asp-route-guests="@ViewBag.GuestsReq"
+                           class="btn btn-outline-info text-dark rounded-pill px-3 py-2 fw-medium @(currentBranch == "Chonburi" ? "d-none" : "")">
+                            <i class="bi bi-water me-1"></i> ดูสาขาชลบุรี-พัทยา (ว่าง @(ViewBag.AvailChon ?? 0) ห้อง)
+                        </a>
+                        <a asp-controller="Booking" asp-action="Search"
+                           asp-route-branch="Phuket" asp-route-checkIn="@ViewBag.CheckIn" asp-route-checkOut="@ViewBag.CheckOut" asp-route-rooms="@ViewBag.RoomsReq" asp-route-guests="@ViewBag.GuestsReq"
+                           class="btn btn-outline-success rounded-pill px-3 py-2 fw-medium @(currentBranch == "Phuket" ? "d-none" : "")">
+                            <i class="bi bi-brightness-high me-1"></i> ดูสาขาภูเก็ต (ว่าง @(ViewBag.AvailPhuket ?? 0) ห้อง)
+                        </a>
+                    </div>
+                    <div>
+                        <a asp-controller="Home" asp-action="Index" class="btn btn-light border rounded-pill px-4">
+                            <i class="bi bi-arrow-left me-1"></i> กลับไปดูพรีวิวห้องพักทุกสาขา
+                        </a>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            function applyClientFilters() {
+                const minPrice = parseFloat($('#filterMinPrice').val()) || 0;
+                const maxPrice = parseFloat($('#filterMaxPrice').val()) || 999999;
+
+                const selectedTypes = [];
+                $('.filter-roomtype-cb:checked').each(function () {
+                    selectedTypes.push(parseInt($(this).val()));
+                });
+
+                let visibleCount = 0;
+                $('.search-room-card').each(function () {
+                    const card = $(this);
+                    const rtId = parseInt(card.data('roomtype-id'));
+                    const price = parseFloat(card.data('price'));
+
+                    const matchPrice = price >= minPrice && price <= maxPrice;
+                    const matchType = selectedTypes.includes(rtId);
+
+                    if (matchPrice && matchType) {
+                        card.removeClass('d-none');
+                        visibleCount++;
+                    } else {
+                        card.addClass('d-none');
+                    }
+                });
+
+                $('#visibleRoomCount').text(visibleCount);
+                if (visibleCount === 0 && $('.search-room-card').length > 0) {
+                    $('#noFilterMatchBox').removeClass('d-none');
+                } else {
+                    $('#noFilterMatchBox').addClass('d-none');
+                }
+            }
+
+            $('#btnApplyFilter').on('click', applyClientFilters);
+            $('.filter-roomtype-cb').on('change', applyClientFilters);
+
+            $('#btnResetFilter, #btnResetFilterEmpty').on('click', function () {
+                $('#filterMinPrice').val(0);
+                $('#filterMaxPrice').val(10000);
+                $('.filter-roomtype-cb').prop('checked', true);
+                applyClientFilters();
+            });
+
+            // ตรวจสอบวันที่ในแถบค้นหาด้านบน
+            $('#searchCheckIn').on('change', function () {
+                const checkInVal = $(this).val();
+                if (checkInVal) {
+                    const nextDay = new Date(checkInVal);
+                    nextDay.setDate(nextDay.getDate() + 1);
+                    const minCheckOut = nextDay.toISOString().split('T')[0];
+                    $('#searchCheckOut').attr('min', minCheckOut);
+                    if ($('#searchCheckOut').val() <= checkInVal) {
+                        $('#searchCheckOut').val(minCheckOut);
+                    }
+                }
+            });
+        });
+    </script>
+}

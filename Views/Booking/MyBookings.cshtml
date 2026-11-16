@@ -1,0 +1,239 @@
+@model IEnumerable<EasyStayHotel.Models.Booking>
+@using EasyStayHotel.Services
+@{
+    ViewData["Title"] = "ตรวจสอบสถานะการจอง & ประวัติการจอง";
+    bool isLoggedIn = ViewBag.IsLoggedIn != null && (bool)ViewBag.IsLoggedIn;
+    string searchRef = ViewBag.SearchBookingRef as string ?? "";
+    string searchContact = ViewBag.SearchContact as string ?? "";
+    bool hasSearched = !string.IsNullOrWhiteSpace(searchRef) || !string.IsNullOrWhiteSpace(searchContact);
+}
+
+@functions {
+    public (string Label, string BadgeClass, string Icon) GetBookingStatusInfo(string? status)
+    {
+        return status switch
+        {
+            "Pending" => ("รอพนักงานตรวจสอบ", "bg-warning text-dark", "bi-hourglass-split"),
+            "Confirmed" => ("ยืนยันการจองแล้ว", "bg-info text-dark", "bi-check-circle-fill"),
+            "CheckIn" or "CheckedIn" => ("เช็คอินเข้าพักแล้ว", "bg-success text-white", "bi-door-open-fill"),
+            "Completed" => ("เข้าพักเสร็จสมบูรณ์", "bg-secondary text-white", "bi-award-fill"),
+            "Cancelled" => ("ยกเลิกการจอง", "bg-danger text-white", "bi-x-circle-fill"),
+            _ => (status ?? "รอดำเนินการ", "bg-primary text-white", "bi-info-circle-fill")
+        };
+    }
+
+    public (string Label, string BadgeClass) GetPaymentStatusInfo(string? status)
+    {
+        return status switch
+        {
+            "Paid" or "Approved" => ("ชำระเงินเรียบร้อย", "bg-success bg-opacity-10 text-success border border-success"),
+            "Pending" => ("รอตรวจสอบสลิปโอนเงิน", "bg-warning bg-opacity-10 text-warning border border-warning"),
+            "Rejected" => ("หลักฐานไม่ถูกต้อง", "bg-danger bg-opacity-10 text-danger border border-danger"),
+            _ => (status ?? "รอตรวจสอบ", "bg-secondary bg-opacity-10 text-secondary border")
+        };
+    }
+}
+
+<div class="container py-5">
+    <!-- ส่วนหัวและกล่องค้นหาการจอง -->
+    <div class="row justify-content-center mb-4">
+        <div class="col-lg-10">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4">
+                <div>
+                    <span class="text-primary fw-bold small text-uppercase">Booking Status & History</span>
+                    <h3 class="fw-bold mb-1">ตรวจสอบสถานะการจองห้องพัก</h3>
+                    <p class="text-muted small mb-0">
+                        @(isLoggedIn
+                            ? "แสดงรายการจองทั้งหมดของบัญชีคุณ หรือค้นหาด้วยหมายเลขการจอง (Booking Reference)"
+                            : "กรอกหมายเลขการจอง (เช่น ES-...) หรืออีเมล/เบอร์โทรศัพท์ที่ใช้จอง เพื่อดูรายละเอียดและสถานะล่าสุด")
+                    </p>
+                </div>
+                <div class="mt-3 mt-md-0">
+                    <a asp-controller="Home" asp-action="Index" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm">
+                        <i class="bi bi-plus-circle me-1"></i> จองห้องพักเพิ่ม
+                    </a>
+                </div>
+            </div>
+
+            <!-- ฟอร์มค้นหาการจอง -->
+            <div class="card border-0 shadow-sm rounded-4 bg-white mb-4">
+                <div class="card-body p-4">
+                    <form asp-controller="Booking" asp-action="MyBookings" method="get" class="row g-3 align-items-end">
+                        <div class="col-md-5">
+                            <label class="form-label fw-bold small text-muted">
+                                <i class="bi bi-hash text-primary"></i> หมายเลขการจอง (Booking Reference)
+                            </label>
+                            <input type="text" name="bookingRef" class="form-control"
+                                   placeholder="เช่น ES-20261116..." value="@searchRef" />
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label fw-bold small text-muted">
+                                <i class="bi bi-person-lines-fill text-primary"></i> ชื่อผู้จอง / อีเมล / เบอร์โทรศัพท์
+                            </label>
+                            <input type="text" name="contact" class="form-control"
+                                   placeholder="เช่น email@example.com หรือ 08X-XXX-XXXX" value="@searchContact" />
+                        </div>
+                        <div class="col-md-2 d-flex gap-2">
+                            <button type="submit" class="btn btn-primary w-100 fw-bold">
+                                <i class="bi bi-search me-1"></i> ค้นหา
+                            </button>
+                            @if (hasSearched)
+                            {
+                                <a asp-controller="Booking" asp-action="MyBookings" class="btn btn-outline-secondary" title="ล้างการค้นหา">
+                                    <i class="bi bi-x-lg"></i>
+                                </a>
+                            }
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- รายการการจอง -->
+            @if (Model != null && Model.Any())
+            {
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="fw-bold text-dark m-0">พบรายการจองทั้งหมด @Model.Count() รายการ</h6>
+                </div>
+
+                foreach (var booking in Model)
+                {
+                    var roomType = booking.Room?.RoomType;
+                    string typeName = roomType?.TypeName ?? "ห้องพักมาตรฐาน (Easy Stay Room)";
+                    int rtId = roomType?.RoomTypeId ?? 1;
+                    string mainImg = RoomPreviewHelper.GetMainImage(typeName, rtId);
+                    string branchTh = RoomPreviewHelper.GetBranchNameTh(booking.Room?.Branch);
+                    var bookingStatus = GetBookingStatusInfo(booking.BookingStatus);
+                    var latestPayment = booking.Payments?.OrderByDescending(p => p.PaymentId).FirstOrDefault();
+                    var paymentStatus = GetPaymentStatusInfo(latestPayment?.PaymentStatus);
+
+                    int nights = booking.CheckOutDate.DayNumber - booking.CheckInDate.DayNumber;
+                    if (nights < 1) nights = 1;
+
+                    <div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden bg-white">
+                        <div class="card-header bg-light border-bottom py-3 px-4 d-flex flex-wrap justify-content-between align-items-center gap-2">
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="text-muted small">หมายเลขการจอง:</span>
+                                <span class="fw-bold text-primary fs-6">@booking.BookingRef</span>
+                                <span class="badge bg-white text-dark border ms-2">
+                                    <i class="bi bi-geo-alt-fill text-primary me-1"></i> สาขา@branchTh
+                                </span>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge @paymentStatus.BadgeClass rounded-pill px-3 py-1">
+                                    <i class="bi bi-credit-card me-1"></i> @paymentStatus.Label
+                                </span>
+                                <span class="badge @bookingStatus.BadgeClass rounded-pill px-3 py-2">
+                                    <i class="bi @bookingStatus.Icon me-1"></i> @bookingStatus.Label
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="card-body p-4">
+                            <div class="row g-4 align-items-center">
+                                <!-- รูปภาพพรีวิวห้องพัก -->
+                                <div class="col-md-3">
+                                    <img src="@mainImg" class="img-fluid rounded-3 w-100 shadow-sm" style="height: 150px; object-fit: cover;" alt="@typeName" />
+                                </div>
+
+                                <!-- ข้อมูลการเข้าพัก -->
+                                <div class="col-md-6">
+                                    <h5 class="fw-bold text-dark mb-1">
+                                        @typeName
+                                        @if (booking.Room != null)
+                                        {
+                                            <span class="badge bg-primary bg-opacity-10 text-primary fs-6 fw-normal ms-1">ห้อง @booking.Room.RoomNo</span>
+                                        }
+                                    </h5>
+                                    <p class="text-muted small mb-3">
+                                        <i class="bi bi-person-fill me-1"></i> ผู้เข้าพัก: <strong>@(booking.GuestName ?? booking.User?.FullName ?? "-")</strong>
+                                    </p>
+
+                                    <div class="row g-2 bg-light rounded-3 p-3 text-center">
+                                        <div class="col-4 border-end">
+                                            <div class="text-muted" style="font-size: 0.75rem;">เช็คอิน</div>
+                                            <div class="fw-bold small text-dark">@booking.CheckInDate.ToString("dd MMM yyyy")</div>
+                                        </div>
+                                        <div class="col-4 border-end">
+                                            <div class="text-muted" style="font-size: 0.75rem;">เช็คเอาท์</div>
+                                            <div class="fw-bold small text-dark">@booking.CheckOutDate.ToString("dd MMM yyyy")</div>
+                                        </div>
+                                        <div class="col-4">
+                                            <div class="text-muted" style="font-size: 0.75rem;">ระยะเวลา</div>
+                                            <div class="fw-bold small text-primary">@nights คืน</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- ยอดชำระและปุ่มดูสลิป -->
+                                <div class="col-md-3 text-md-end border-top border-md-top-0 pt-3 pt-md-0">
+                                    <div class="text-muted small">ยอดชำระสุทธิ</div>
+                                    <h3 class="fw-bold text-success mb-1">฿@booking.TotalPrice.ToString("N0")</h3>
+                                    <div class="small text-muted mb-3">
+                                        ช่องทาง: @(latestPayment?.PaymentMethod ?? "PromptPay")
+                                    </div>
+
+                                    @if (!string.IsNullOrEmpty(latestPayment?.SlipImageUrl))
+                                    {
+                                        <button type="button"
+                                                class="btn btn-outline-primary btn-sm rounded-pill px-3 w-100 mb-2"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#slipModal-@booking.BookingId">
+                                            <i class="bi bi-receipt me-1"></i> ดูหลักฐานสลิปโอนเงิน
+                                        </button>
+
+                                        <!-- Modal แสดงรูปสลิป -->
+                                        <div class="modal fade" id="slipModal-@booking.BookingId" tabindex="-1" aria-hidden="true">
+                                            <div class="modal-dialog modal-dialog-centered">
+                                                <div class="modal-content border-0 rounded-4 overflow-hidden">
+                                                    <div class="modal-header bg-dark text-white">
+                                                        <h6 class="modal-title fw-bold">หลักฐานการโอนเงิน - @booking.BookingRef</h6>
+                                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                    </div>
+                                                    <div class="modal-body text-center p-4 bg-light">
+                                                        <img src="@latestPayment.SlipImageUrl" class="img-fluid rounded-3 shadow-sm" style="max-height: 450px;" alt="Payment Slip" />
+                                                        <div class="mt-3 small text-muted">
+                                                            วันที่ทำรายการ: @(latestPayment.TransferDate?.ToString("dd/MM/yyyy HH:mm") ?? "-")
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="card border-0 shadow-sm rounded-4 p-5 text-center bg-white">
+                    <i class="bi bi-journal-x display-1 text-muted mb-3"></i>
+                    @if (hasSearched)
+                    {
+                        <h5 class="fw-bold">ไม่พบข้อมูลการจองที่ตรงกับคำค้นหา</h5>
+                        <p class="text-muted small mb-4">กรุณาตรวจสอบหมายเลขการจอง (Booking Reference) หรืออีเมล/เบอร์โทรศัพท์อีกครั้ง</p>
+                    }
+                    else if (isLoggedIn)
+                    {
+                        <h5 class="fw-bold">คุณยังไม่มีประวัติการจองห้องพัก</h5>
+                        <p class="text-muted small mb-4">เริ่มต้นค้นหาและชมพรีวิวห้องพักสุดหรูจากทั้ง 3 สาขาของเราได้เลย</p>
+                    }
+                    else
+                    {
+                        <h5 class="fw-bold">กรอกหมายเลขการจองเพื่อตรวจสอบสถานะ</h5>
+                        <p class="text-muted small mb-4">หรือเข้าสู่ระบบด้วยบัญชีสมาชิกของคุณเพื่อดูประวัติการจองทั้งหมดโดยอัตโนมัติ</p>
+                        <div class="d-flex justify-content-center gap-2">
+                            <a asp-controller="Account" asp-action="Login" class="btn btn-outline-primary rounded-pill px-4">
+                                <i class="bi bi-box-arrow-in-right me-1"></i> เข้าสู่ระบบสมาชิก
+                            </a>
+                            <a asp-controller="Home" asp-action="Index" class="btn btn-primary rounded-pill px-4">
+                                <i class="bi bi-house-door me-1"></i> ไปหน้าพรีวิวห้องพัก
+                            </a>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+</div>

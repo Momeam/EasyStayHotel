@@ -59,6 +59,8 @@ public partial class EasystaydbContext : DbContext
             entity.HasOne(d => d.User).WithMany(p => p.Bookings)
                 .HasForeignKey(d => d.UserId)
                 .HasConstraintName("bookings_ibfk_1");
+
+                
         });
 
         modelBuilder.Entity<Payment>(entity =>
@@ -97,6 +99,10 @@ public partial class EasystaydbContext : DbContext
             entity.HasOne(d => d.RoomType).WithMany(p => p.Rooms)
                 .HasForeignKey(d => d.RoomTypeId)
                 .HasConstraintName("rooms_ibfk_1");
+
+            entity.Property(e => e.Branch)
+                .HasMaxLength(100)
+                .HasColumnName("Branch");    
         });
 
         modelBuilder.Entity<Roomtype>(entity =>
@@ -126,6 +132,9 @@ public partial class EasystaydbContext : DbContext
             entity.Property(e => e.Role)
                 .HasMaxLength(50)
                 .HasDefaultValueSql("'Customer'");
+            entity.Property(e => e.DateOfBirth)
+                .HasColumnType("date")
+                .HasColumnName("DateOfBirth");    
         });
 
         OnModelCreatingPartial(modelBuilder);

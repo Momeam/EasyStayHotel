@@ -1,16 +1,246 @@
-@model IEnumerable<EasyStayHotel.Models.Room>
+@model IEnumerable<EasyStayHotel.Models.Payment>
 @{
-    // บังคับให้หน้านี้ไปใช้เค้าโครงของบัญชีแทน Staff
     Layout = "~/Views/Shared/_AccountingLayout.cshtml";
-    ViewData["Title"] = "หน้าหลักแผนกบัญชี";
+    ViewData["Title"] = "สรุปภาพรวมรายได้และรายงานจากพนักงาน";
+    var feedbacks = ViewBag.StaffFeedbacks as List<EasyStayHotel.Models.AccountingFeedback> ?? new List<EasyStayHotel.Models.AccountingFeedback>();
+    decimal totalRevenue = ViewBag.TotalRevenue != null ? (decimal)ViewBag.TotalRevenue : 0;
+    decimal cashTotal = ViewBag.CashTotal != null ? (decimal)ViewBag.CashTotal : 0;
+    decimal transferTotal = ViewBag.TransferTotal != null ? (decimal)ViewBag.TransferTotal : 0;
+    string selectedBranch = ViewBag.SelectedBranch as string ?? "ALL";
 }
 
-<div class="card shadow-sm border-0">
-    <div class="card-header bg-dark text-warning">
-        <h4 class="m-0">📊 สรุปภาพรวมรายได้ (Revenue Dashboard)</h4>
+<div class="container-fluid py-4 mb-5">
+    <!-- แจ้งเตือนสถานะ -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show shadow-sm rounded-3 mb-4" role="alert">
+            <i class="bi bi-check-circle-fill me-2 fs-5 text-success"></i> @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- ส่วนหัว -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            <span class="badge bg-warning text-dark rounded-pill px-3 py-1 mb-1">Accounting & Audit Portal</span>
+            <h3 class="fw-bold m-0 text-dark">สรุปภาพรวมรายได้และรายงานจากพนักงานเคาน์เตอร์</h3>
+            <p class="text-muted small mb-0">ตรวจสอบยอดเงินสด ยอดเงินโอน และลงนามรับทราบรายงาน Feedback ประจำกะจากฝ่ายปฏิบัติการ</p>
+        </div>
+
+        <!-- ตัวกรองสาขา -->
+        <div class="d-flex gap-2">
+            <a asp-action="RevenueReport" asp-route-branch="ALL"
+               class="btn btn-sm rounded-pill px-3 fw-medium @(selectedBranch == "ALL" ? "btn-dark text-white" : "btn-outline-secondary")">
+                ทุกสาขา
+            </a>
+            <a asp-action="RevenueReport" asp-route-branch="Bangkok"
+               class="btn btn-sm rounded-pill px-3 fw-medium @(selectedBranch == "Bangkok" ? "btn-primary text-white" : "btn-outline-primary")">
+                กรุงเทพฯ
+            </a>
+            <a asp-action="RevenueReport" asp-route-branch="Chonburi"
+               class="btn btn-sm rounded-pill px-3 fw-medium @(selectedBranch == "Chonburi" ? "btn-info text-white" : "btn-outline-info")">
+                ชลบุรี
+            </a>
+            <a asp-action="RevenueReport" asp-route-branch="Phuket"
+               class="btn btn-sm rounded-pill px-3 fw-medium @(selectedBranch == "Phuket" ? "btn-warning text-dark" : "btn-outline-warning")">
+                ภูเก็ต
+            </a>
+        </div>
     </div>
-    <div class="card-body p-4 text-center">
-        <h5 class="text-muted">ยินดีต้อนรับสู่พื้นที่ของพนักงานบัญชี</h5>
-        
+
+    <!-- การ์ดตัวเลขสรุปรายรับ -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 p-4 bg-dark text-white">
+                <span class="text-white-50 small fw-bold">รายรับรวมสุทธิ (Total Revenue)</span>
+                <h2 class="fw-bold text-warning m-0 mt-2">฿@totalRevenue.ToString("N2")</h2>
+                <small class="text-white-50 mt-1 d-block">จากรายการชำระเงินที่ยืนยันแล้ว</small>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 p-4 bg-white border-start border-success border-4">
+                <span class="text-muted small fw-bold">รายรับเงินสด (Cash in Hand)</span>
+                <h2 class="fw-bold text-success m-0 mt-2">฿@cashTotal.ToString("N2")</h2>
+                <small class="text-muted mt-1 d-block">รับชำระหน้าเคาน์เตอร์</small>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 p-4 bg-white border-start border-info border-4">
+                <span class="text-muted small fw-bold">รายรับเงินโอน / พร้อมเพย์ / บัตร</span>
+                <h2 class="fw-bold text-info m-0 mt-2">฿@transferTotal.ToString("N2")</h2>
+                <small class="text-muted mt-1 d-block">PromptPay & Credit Card</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- ส่วนเนื้อหา: แท็บสลับระหว่าง Feedback จาก Staff กับ รายการธุรกรรม -->
+    <div class="card border-0 shadow-sm rounded-4 bg-white overflow-hidden">
+        <div class="card-header bg-white border-bottom p-3">
+            <ul class="nav nav-pills" id="accTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active rounded-pill px-4 fw-bold" id="feedback-tab" data-bs-toggle="pill" data-bs-target="#feedbackPane" type="button" role="tab">
+                        <i class="bi bi-chat-left-text-fill me-1"></i> รายงาน & Feedback จากพนักงาน (@feedbacks.Count(f => !f.IsAcknowledged) รอตรวจสอบ)
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link rounded-pill px-4 fw-bold" id="payments-tab" data-bs-toggle="pill" data-bs-target="#paymentsPane" type="button" role="tab">
+                        <i class="bi bi-receipt-cutoff me-1"></i> รายการธุรกรรมรับชำระ (@Model.Count())
+                    </button>
+                </li>
+            </ul>
+        </div>
+
+        <div class="card-body p-0">
+            <div class="tab-content" id="accTabsContent">
+
+                <!-- 1. หน้า Feedback & Handover จากพนักงาน -->
+                <div class="tab-pane fade show active p-4" id="feedbackPane" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="fw-bold m-0 text-dark">
+                            <i class="bi bi-inbox-fill text-primary me-2"></i>รายงานสรุปปิดกะและ Feedback ที่พนักงานส่งมา
+                        </h6>
+                    </div>
+
+                    @if (feedbacks.Any())
+                    {
+                        <div class="row g-3">
+                            @foreach (var fb in feedbacks)
+                            {
+                                <div class="col-12">
+                                    <div class="card border-0 shadow-sm rounded-4 p-3 bg-light @(fb.IsAcknowledged ? "border-start border-success border-4" : "border-start border-warning border-4")">
+                                        <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
+                                            <div>
+                                                <span class="badge bg-primary text-white rounded-pill px-3 py-1 me-1">@fb.Branch</span>
+                                                <span class="badge bg-dark rounded-pill px-3 py-1 me-1">@fb.Shift</span>
+                                                <span class="badge bg-secondary text-white rounded-pill px-3 py-1">@fb.Category</span>
+                                            </div>
+                                            <div>
+                                                @if (fb.IsAcknowledged)
+                                                {
+                                                    <span class="badge bg-success rounded-pill px-3 py-1">
+                                                        <i class="bi bi-check2-circle me-1"></i>รับทราบแล้วโดย @fb.AcknowledgedBy (@fb.AcknowledgedAt?.ToString("dd/MM HH:mm"))
+                                                    </span>
+                                                }
+                                                else
+                                                {
+                                                    <form asp-action="AcknowledgeFeedback" method="post" class="d-inline">
+                                                        @Html.AntiForgeryToken()
+                                                        <input type="hidden" name="id" value="@fb.Id" />
+                                                        <button type="submit" class="btn btn-sm btn-success rounded-pill px-3 fw-bold shadow-sm">
+                                                            <i class="bi bi-check-lg me-1"></i> ลงนามรับทราบรายงาน
+                                                        </button>
+                                                    </form>
+                                                }
+                                            </div>
+                                        </div>
+
+                                        <p class="text-dark my-2" style="white-space: pre-line; line-height: 1.6;">
+                                            @fb.Message
+                                        </p>
+
+                                        <div class="d-flex flex-wrap justify-content-between align-items-center pt-2 border-top small text-muted">
+                                            <div>
+                                                <span class="me-3">💵 ยอดเงินสดส่งมอบ: <strong class="text-success">฿@fb.CashAmount.ToString("N0")</strong></span>
+                                                <span class="me-3">📱 ยอดเงินโอน: <strong>฿@fb.TransferAmount.ToString("N0")</strong></span>
+                                                <span>เช็คอิน: <strong>@fb.TotalCheckIns</strong> | เช็คเอาท์: <strong>@fb.TotalCheckOuts</strong></span>
+                                            </div>
+                                            <div>
+                                                <i class="bi bi-person-fill text-primary me-1"></i>ส่งโดย @fb.StaffName • @fb.CreatedAt.ToString("dd MMM yyyy HH:mm น.")
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-5 text-muted">
+                            <i class="bi bi-chat-square-text fs-1 opacity-25 d-block mb-2"></i>
+                            <p class="mb-0">ยังไม่มีรายงานหรือ Feedback จากพนักงาน</p>
+                        </div>
+                    }
+                </div>
+
+                <!-- 2. หน้าตารางธุรกรรมการเงิน -->
+                <div class="tab-pane fade" id="paymentsPane" role="tabpanel">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0 text-center">
+                            <thead class="table-light small fw-bold">
+                                <tr>
+                                    <th class="ps-3 text-start">#</th>
+                                    <th class="text-start">รหัสการจอง</th>
+                                    <th class="text-start">ชื่อผู้ชำระเงิน</th>
+                                    <th>สาขา & ห้อง</th>
+                                    <th>ช่องทาง</th>
+                                    <th class="text-end">ยอดเงิน</th>
+                                    <th>วันที่ทำรายการ</th>
+                                    <th>สถานะ</th>
+                                    <th class="text-end pe-3">หลักฐาน</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (Model.Any())
+                                {
+                                    foreach (var p in Model)
+                                    {
+                                        <tr>
+                                            <td class="ps-3 text-start text-muted small">@p.PaymentId</td>
+                                            <td class="text-start font-monospace fw-bold text-primary">
+                                                @(p.Booking?.BookingRef ?? "-")
+                                            </td>
+                                            <td class="text-start">
+                                                <div class="fw-bold text-dark">@(p.Booking?.GuestName ?? p.Booking?.User?.FullName ?? "-")</div>
+                                                <small class="text-muted">@(p.Booking?.User?.Phone ?? "-")</small>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-light text-dark border">
+                                                    @(p.Booking?.Room?.Branch ?? "-") ห้อง @(p.Booking?.Room?.RoomNo ?? "-")
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-secondary rounded-pill">@p.PaymentMethod</span>
+                                            </td>
+                                            <td class="text-end fw-bold text-success">
+                                                ฿@p.Amount.ToString("N2")
+                                            </td>
+                                            <td class="small text-muted">
+                                                @(p.TransferDate?.ToString("dd/MM/yyyy HH:mm") ?? "-")
+                                            </td>
+                                            <td>
+                                                <span class="badge @(p.PaymentStatus == "Paid" || p.PaymentStatus == "Confirmed" ? "bg-success" : "bg-warning text-dark") rounded-pill px-3 py-1">
+                                                    @p.PaymentStatus
+                                                </span>
+                                            </td>
+                                            <td class="text-end pe-3">
+                                                @if (!string.IsNullOrEmpty(p.SlipImageUrl))
+                                                {
+                                                    <a href="@p.SlipImageUrl" target="_blank" class="btn btn-sm btn-outline-primary rounded-pill px-2">
+                                                        <i class="bi bi-image me-1"></i>ดูสลิป
+                                                    </a>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted small">-</span>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr>
+                                        <td colspan="9" class="text-center py-5 text-muted">
+                                            ไม่พบรายการชำระเงินในเงื่อนไขที่เลือก
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </div>
     </div>
 </div>

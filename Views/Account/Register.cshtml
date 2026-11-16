@@ -1,47 +1,491 @@
-@model EasyStayHotel.Models.User
+@model EasyStayHotel.Models.ViewModels.RegisterViewModel
 @{
-    Layout = "~/Views/Shared/_Layout.cshtml";
-    ViewData["Title"] = "สมัครสมาชิก";
+    ViewData["Title"] = "สมัครสมาชิกใหม่";
 }
 
-<div class="container mt-5 mb-5">
-    <div class="row justify-content-center">
-        <div class="col-md-6">
-            <div class="card shadow-sm border-0">
-                <div class="card-header bg-success text-white text-center py-3">
-                    <h4 class="m-0">ลงทะเบียนสมาชิกใหม่</h4>
-                </div>
-                <div class="card-body p-4">
-                    <!-- แจ้งเตือนถ้าอีเมลซ้ำ -->
-                    @if (ViewBag.Error != null)
-                    {
-                        <div class="alert alert-danger shadow-sm py-2">@ViewBag.Error</div>
-                    }
+<style>
+    .auth-container {
+        max-width: 1040px;
+    }
+    .auth-banner-side {
+        background: linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(13, 110, 253, 0.85) 100%),
+                    url('https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1000&q=80') center/cover no-repeat;
+    }
+    .otp-input-field {
+        font-size: 2rem;
+        letter-spacing: 0.6rem;
+        font-weight: 700;
+        text-align: center;
+        border: 2px solid #0d6efd;
+        border-radius: 0.75rem;
+        color: #0d6efd;
+    }
+    .otp-input-field:focus {
+        border-color: #0b5ed7;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    }
+    .field-icon {
+        width: 42px;
+    }
+</style>
 
-                    <form asp-controller="Account" asp-action="Register" method="post">
-                        <div class="mb-3">
-                            <label asp-for="FullName" class="form-label fw-bold">ชื่อ-นามสกุล</label>
-                            <input asp-for="FullName" type="text" class="form-control" placeholder="เช่น สมชาย ใจดี" required />
+<div class="container py-5 my-md-2">
+    <div class="row justify-content-center">
+        <div class="col-12 auth-container">
+            <div class="card border-0 shadow-lg rounded-4 overflow-hidden bg-white">
+                <div class="row g-0">
+                    
+                    <!-- ฝั่งซ้าย: แบนเนอร์ภาพลักษณ์และสิทธิประโยชน์สมาชิก -->
+                    <div class="col-lg-4 auth-banner-side text-white p-4 p-md-5 d-flex flex-column justify-content-between position-relative">
+                        <div>
+                            <div class="d-inline-flex align-items-center gap-2 bg-white bg-opacity-20 rounded-pill px-3 py-1 mb-4">
+                                <i class="bi bi-stars text-warning"></i>
+                                <span class="small fw-medium">Join Member Club</span>
+                            </div>
+                            <h3 class="fw-bold mb-3">สมัครสมาชิก Easy Stay</h3>
+                            <p class="text-white-50 small mb-4">
+                                สมัครสมาชิกง่ายๆ ภายในไม่กี่นาที ยืนยันอีเมลด้วยรหัส OTP เพื่อความปลอดภัย พร้อมรับสิทธิประโยชน์สุดพิเศษทันที
+                            </p>
                         </div>
-                        <div class="mb-3">
-                            <label asp-for="Email" class="form-label fw-bold">อีเมล (ใช้สำหรับเข้าสู่ระบบ)</label>
-                            <input asp-for="Email" type="email" class="form-control" placeholder="email@example.com" required />
+
+                        <div class="my-3">
+                            <div class="d-flex align-items-start gap-3 mb-3">
+                                <div class="bg-white bg-opacity-20 rounded-circle p-2 mt-1 d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                                    <i class="bi bi-gift-fill text-warning"></i>
+                                </div>
+                                <div class="small">
+                                    <div class="fw-bold">ส่วนลดเดือนเกิด 10%</div>
+                                    <div class="text-white-50">ระบุวันเกิดเพื่อรับส่วนลดอัตโนมัติในเดือนเกิด</div>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-start gap-3 mb-3">
+                                <div class="bg-white bg-opacity-20 rounded-circle p-2 mt-1 d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                                    <i class="bi bi-tags-fill text-info"></i>
+                                </div>
+                                <div class="small">
+                                    <div class="fw-bold">สิทธิ์ใช้คูปองส่วนลด</div>
+                                    <div class="text-white-50">ใช้โค้ด EARLY30 (-15%) และ GROUP15</div>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-start gap-3 mb-3">
+                                <div class="bg-white bg-opacity-20 rounded-circle p-2 mt-1 d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                                    <i class="bi bi-shield-check text-success"></i>
+                                </div>
+                                <div class="small">
+                                    <div class="fw-bold">ยืนยันอีเมลด้วย OTP</div>
+                                    <div class="text-white-50">ป้องกันบัญชีปลอมด้วยรหัสความปลอดภัย</div>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-start gap-3">
+                                <div class="bg-white bg-opacity-20 rounded-circle p-2 mt-1 d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                                    <i class="bi bi-journal-check text-warning"></i>
+                                </div>
+                                <div class="small">
+                                    <div class="fw-bold">บันทึกประวัติการเข้าพัก</div>
+                                    <div class="text-white-50">ติดตามสถานะและตรวจสอบใบเสร็จออนไลน์</div>
+                                </div>
+                            </div>
                         </div>
-                        <div class="mb-3">
-                            <label asp-for="Phone" class="form-label fw-bold">เบอร์โทรศัพท์ (ทางเลือก)</label>
-                            <input asp-for="Phone" type="text" class="form-control" placeholder="08X-XXX-XXXX" />
+
+                        <div class="pt-4 border-top border-white border-opacity-25 small text-white-50">
+                            &copy; @DateTime.Now.Year Easy Stay Hotel & Resort
                         </div>
-                        <div class="mb-4">
-                            <label asp-for="Password" class="form-label fw-bold">ตั้งรหัสผ่าน (Password)</label>
-                            <input asp-for="Password" type="password" class="form-control" placeholder="••••••••" required />
+                    </div>
+
+                    <!-- ฝั่งขวา: ฟอร์มสมัครสมาชิก -->
+                    <div class="col-lg-8 p-4 p-md-5">
+                        <div class="d-flex justify-content-between align-items-start mb-4">
+                            <div>
+                                <span class="text-primary fw-bold small text-uppercase letter-spacing-1">Registration</span>
+                                <h3 class="fw-bold text-dark mt-1 mb-1">ลงทะเบียนสมาชิกใหม่</h3>
+                                <p class="text-muted small mb-0">กรอกข้อมูลให้ครบถ้วนเพื่อรับรหัส OTP ยืนยันอีเมลของคุณ</p>
+                            </div>
+                            <span class="badge bg-primary bg-opacity-10 text-primary border border-primary px-3 py-2 rounded-pill small">
+                                <i class="bi bi-envelope-check me-1"></i> ยืนยันด้วย OTP
+                            </span>
                         </div>
-                        <button type="submit" class="btn btn-success w-100 mb-3">สมัครสมาชิก</button>
-                        <div class="text-center mt-3">
-                            <a asp-controller="Account" asp-action="Login" class="text-decoration-none text-muted">มีบัญชีอยู่แล้ว? กลับไปหน้าเข้าสู่ระบบ</a>
-                        </div>
-                    </form>
+
+                        <!-- แจ้งเตือนข้อผิดพลาดถ้ามี -->
+                        @if (ViewBag.Error != null)
+                        {
+                            <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm rounded-3 py-3 mb-4" role="alert">
+                                <div class="d-flex align-items-center gap-2">
+                                    <i class="bi bi-exclamation-triangle-fill fs-5 text-danger"></i>
+                                    <span class="small fw-medium">@ViewBag.Error</span>
+                                </div>
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        }
+
+                        <form id="registerForm" asp-controller="Account" asp-action="Register" method="post">
+                            @Html.AntiForgeryToken()
+
+                            <!-- ฟิลด์ซ่อนสำหรับรับรหัส OTP ตอนยืนยัน -->
+                            <input type="hidden" asp-for="OtpCode" id="hiddenOtpInput" />
+
+                            <div class="row g-3">
+                                
+                                <!-- 1. ชื่อ-นามสกุล -->
+                                <div class="col-md-12">
+                                    <label asp-for="FullName" class="form-label small fw-bold text-dark">
+                                        ชื่อ-นามสกุลจริง *
+                                    </label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light border-end-0 text-muted field-icon">
+                                            <i class="bi bi-person"></i>
+                                        </span>
+                                        <input asp-for="FullName" id="fullNameInput" type="text" class="form-control border-start-0 ps-0"
+                                               placeholder="เช่น นายสมชาย ใจดี" required />
+                                    </div>
+                                    <span asp-validation-for="FullName" class="text-danger small"></span>
+                                </div>
+
+                                <!-- 2. อีเมล -->
+                                <div class="col-md-6">
+                                    <label asp-for="Email" class="form-label small fw-bold text-dark">
+                                        อีเมล (ใช้สำหรับเข้าสู่ระบบและรับ OTP) *
+                                    </label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light border-end-0 text-muted field-icon">
+                                            <i class="bi bi-envelope-at"></i>
+                                        </span>
+                                        <input asp-for="Email" id="emailInput" type="email" class="form-control border-start-0 ps-0"
+                                               placeholder="email@example.com" required />
+                                    </div>
+                                    <span asp-validation-for="Email" class="text-danger small"></span>
+                                </div>
+
+                                <!-- 3. เบอร์โทรศัพท์ -->
+                                <div class="col-md-6">
+                                    <label asp-for="Phone" class="form-label small fw-bold text-dark">
+                                        เบอร์โทรศัพท์ *
+                                    </label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light border-end-0 text-muted field-icon">
+                                            <i class="bi bi-telephone"></i>
+                                        </span>
+                                        <input asp-for="Phone" id="phoneInput" type="tel" class="form-control border-start-0 ps-0"
+                                               placeholder="08X-XXX-XXXX" required />
+                                    </div>
+                                    <span asp-validation-for="Phone" class="text-danger small"></span>
+                                </div>
+
+                                <!-- 4. วันเดือนปีเกิด -->
+                                <div class="col-12">
+                                    <label asp-for="DateOfBirth" class="form-label small fw-bold text-dark">
+                                        วันเดือนปีเกิด <span class="badge bg-success bg-opacity-10 text-success fw-normal ms-1">รับส่วนลดเดือนเกิด 10% อัตโนมัติ</span>
+                                    </label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light border-end-0 text-muted field-icon">
+                                            <i class="bi bi-calendar-heart"></i>
+                                        </span>
+                                        <input asp-for="DateOfBirth" type="date" class="form-control border-start-0 ps-0" />
+                                    </div>
+                                    <span asp-validation-for="DateOfBirth" class="text-danger small"></span>
+                                </div>
+
+                                <!-- 5. รหัสผ่าน -->
+                                <div class="col-md-6">
+                                    <label asp-for="Password" class="form-label small fw-bold text-dark">
+                                        ตั้งรหัสผ่าน (อย่างน้อย 6 ตัวอักษร) *
+                                    </label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light border-end-0 text-muted field-icon">
+                                            <i class="bi bi-shield-lock"></i>
+                                        </span>
+                                        <input asp-for="Password" id="passwordInput" type="password"
+                                               class="form-control border-start-0 border-end-0 ps-0"
+                                               placeholder="••••••••" required />
+                                        <button class="btn btn-outline-secondary border-start-0 toggle-pwd-btn" type="button" data-target="passwordInput">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                    </div>
+                                    <span asp-validation-for="Password" class="text-danger small"></span>
+                                </div>
+
+                                <!-- 7. ยืนยันรหัสผ่าน -->
+                                <div class="col-md-6">
+                                    <label asp-for="ConfirmPassword" class="form-label small fw-bold text-dark">
+                                        ยืนยันรหัสผ่านอีกครั้ง *
+                                    </label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light border-end-0 text-muted field-icon">
+                                            <i class="bi bi-shield-check"></i>
+                                        </span>
+                                        <input asp-for="ConfirmPassword" id="confirmPasswordInput" type="password"
+                                               class="form-control border-start-0 border-end-0 ps-0"
+                                               placeholder="••••••••" required />
+                                        <button class="btn btn-outline-secondary border-start-0 toggle-pwd-btn" type="button" data-target="confirmPasswordInput">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                    </div>
+                                    <span asp-validation-for="ConfirmPassword" class="text-danger small"></span>
+                                </div>
+
+                                <!-- กล่องแจ้งเตือนความปลอดภัย -->
+                                <div class="col-12 mt-3">
+                                    <div class="p-3 rounded-3 bg-light border small text-muted">
+                                        <i class="bi bi-info-circle-fill text-primary me-1"></i>
+                                        เมื่อกดปุ่มด้านล่าง ระบบจะส่งรหัส <strong>OTP 6 หลัก</strong> ไปยังอีเมลของท่านเพื่อยืนยันความเป็นเจ้าของอีเมลก่อนเปิดใช้งานบัญชี
+                                    </div>
+                                </div>
+
+                                <!-- ปุ่มส่งรหัส OTP และเปิด Modal -->
+                                <div class="col-12 mt-4">
+                                    <button type="button" id="btnRequestOtp" class="btn btn-primary w-100 py-3 fw-bold rounded-3 shadow-sm">
+                                        <i class="bi bi-envelope-paper me-1"></i> ส่งรหัส OTP และดำเนินการสมัครสมาชิก
+                                    </button>
+                                </div>
+
+                                <div class="col-12 text-center pt-3 border-top mt-4">
+                                    <span class="text-muted small">มีบัญชีสมาชิก Easy Stay อยู่แล้ว?</span>
+                                    <a asp-controller="Account" asp-action="Login" class="text-decoration-none fw-bold text-primary ms-1 small">
+                                        เข้าสู่ระบบที่นี่ <i class="bi bi-box-arrow-in-right"></i>
+                                    </a>
+                                </div>
+
+                            </div>
+                        </form>
+                    </div>
+
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Modal ยืนยันรหัส OTP (Email Verification Modal) -->
+<div class="modal fade" id="otpModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="otpModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 480px;">
+        <div class="modal-content border-0 rounded-4 shadow-lg overflow-hidden">
+            <div class="modal-header bg-primary text-white border-0 py-3 px-4">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-shield-lock-fill fs-5 text-warning"></i>
+                    <h5 class="modal-title fw-bold" id="otpModalLabel">ยืนยันรหัส OTP จากอีเมล</h5>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 text-center">
+                <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-inline-flex align-items-center justify-content-center p-3 mb-3" style="width: 70px; height: 70px;">
+                    <i class="bi bi-envelope-check-fill fs-1"></i>
+                </div>
+
+                <h5 class="fw-bold mb-1">กรุณากรอกรหัสยืนยัน 6 หลัก</h5>
+                <p class="text-muted small mb-3">
+                    เราได้ส่งรหัส OTP ไปยังอีเมล: <br>
+                    <strong class="text-dark" id="otpTargetEmailText">-</strong>
+                </p>
+
+                <!-- กล่องจำลอง OTP สำหรับโหมดทดสอบ (Local Dev Helper) -->
+                <div id="devOtpBox" class="alert alert-info border-0 py-2 px-3 small rounded-3 mb-3 text-start d-none">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <span><i class="bi bi-lightning-charge-fill text-warning me-1"></i> รหัส OTP สำหรับทดสอบ:</span>
+                        <strong class="fs-6 text-primary" id="devOtpCodeText"></strong>
+                    </div>
+                </div>
+
+                <!-- ช่องกรอก OTP 6 หลัก -->
+                <div class="mb-3">
+                    <input type="text" id="otpCodeInput" class="form-control otp-input-field" maxlength="6"
+                           placeholder="••••••" autocomplete="one-time-code" inputmode="numeric" />
+                    <div id="otpErrorMsg" class="text-danger small mt-2 d-none">กรุณาระบุรหัส OTP 6 หลักให้ครบถ้วน</div>
+                </div>
+
+                <!-- นับเวลาถอยหลัง 5 นาที -->
+                <div class="d-flex justify-content-between align-items-center small text-muted mb-4 px-2">
+                    <span><i class="bi bi-clock me-1"></i> รหัสหมดอายุใน: <strong class="text-danger" id="otpCountdownText">05:00</strong></span>
+                    <button type="button" id="btnResendOtp" class="btn btn-link p-0 text-decoration-none small text-primary fw-medium" disabled>
+                        ส่งรหัสใหม่อีกครั้ง
+                    </button>
+                </div>
+
+                <div class="d-grid gap-2">
+                    <button type="button" id="btnConfirmOtpAndRegister" class="btn btn-primary btn-lg fw-bold rounded-3 shadow-sm">
+                        <i class="bi bi-check2-circle me-1"></i> ยืนยันและเปิดใช้งานบัญชี
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary rounded-3" data-bs-dismiss="modal">
+                        แก้ไขข้อมูลการสมัคร
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer bg-light border-0 py-2 px-4 justify-content-center">
+                <small class="text-muted" style="font-size: 0.75rem;">
+                    <i class="bi bi-shield-check text-success me-1"></i> Easy Stay Secure Verification System
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            let countdownInterval = null;
+            let remainingSeconds = 300; // 5 นาที
+
+            // ปุ่มเปิด/ปิดตาดูรหัสผ่าน
+            $('.toggle-pwd-btn').on('click', function () {
+                const targetId = $(this).data('target');
+                const input = $('#' + targetId);
+                const icon = $(this).find('i');
+
+                if (input.attr('type') === 'password') {
+                    input.attr('type', 'text');
+                    icon.removeClass('bi-eye').addClass('bi-eye-slash');
+                } else {
+                    input.attr('type', 'password');
+                    icon.removeClass('bi-eye-slash').addClass('bi-eye');
+                }
+            });
+
+            // ตรวจสอบความถูกต้องของฟอร์มเบื้องต้น
+            function validateRegistrationForm() {
+                const fullName = $('#fullNameInput').val().trim();
+                const email = $('#emailInput').val().trim();
+                const phone = $('#phoneInput').val().trim();
+                const password = $('#passwordInput').val();
+                const confirmPassword = $('#confirmPasswordInput').val();
+
+                if (!fullName) {
+                    alert('กรุณากรอกชื่อ-นามสกุล');
+                    $('#fullNameInput').focus();
+                    return false;
+                }
+
+                const emailRegex = /^[^\s@@]+@@[^\s@@]+\.[^\s@@]+$/;
+                if (!email || !emailRegex.test(email)) {
+                    alert('กรุณากรอกอีเมลให้ถูกต้อง');
+                    $('#emailInput').focus();
+                    return false;
+                }
+
+                if (!phone || phone.length < 9) {
+                    alert('กรุณากรอกเบอร์โทรศัพท์ให้ถูกต้อง');
+                    $('#phoneInput').focus();
+                    return false;
+                }
+
+                if (!password || password.length < 6) {
+                    alert('รหัสผ่านต้องมีความยาวอย่างน้อย 6 ตัวอักษร');
+                    $('#passwordInput').focus();
+                    return false;
+                }
+
+                if (password !== confirmPassword) {
+                    alert('รหัสผ่านทั้งสองช่องไม่ตรงกัน กรุณาตรวจสอบอีกครั้ง');
+                    $('#confirmPasswordInput').focus();
+                    return false;
+                }
+
+                return true;
+            }
+
+            // ฟังก์ชันเริ่มนับเวลาถอยหลัง
+            function startCountdown() {
+                clearInterval(countdownInterval);
+                remainingSeconds = 300;
+                $('#btnResendOtp').attr('disabled', true);
+
+                countdownInterval = setInterval(function () {
+                    remainingSeconds--;
+                    const mins = Math.floor(remainingSeconds / 60);
+                    const secs = remainingSeconds % 60;
+                    $('#otpCountdownText').text(
+                        (mins < 10 ? '0' : '') + mins + ':' + (secs < 10 ? '0' : '') + secs
+                    );
+
+                    // หลังจาก 30 วินาที เปิดให้กดส่งใหม่ได้
+                    if (remainingSeconds <= 270) {
+                        $('#btnResendOtp').removeAttr('disabled');
+                    }
+
+                    if (remainingSeconds <= 0) {
+                        clearInterval(countdownInterval);
+                        $('#otpCountdownText').text('หมดอายุ');
+                        $('#otpErrorMsg').text('รหัส OTP หมดอายุแล้ว กรุณากดส่งรหัสใหม่อีกครั้ง').removeClass('d-none');
+                    }
+                }, 1000);
+            }
+
+            // ฟังก์ชันขอส่งรหัส OTP
+            function requestOtpSend() {
+                const email = $('#emailInput').val().trim();
+                const fullName = $('#fullNameInput').val().trim();
+
+                const btn = $('#btnRequestOtp');
+                const origHtml = btn.html();
+                btn.html('<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>กำลังส่งรหัส OTP...').attr('disabled', true);
+
+                $.ajax({
+                    url: '/Account/SendOtp',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ Email: email, FullName: fullName }),
+                    success: function (res) {
+                        btn.html(origHtml).removeAttr('disabled');
+
+                        if (res.success) {
+                            $('#otpTargetEmailText').text(res.email);
+                            $('#otpCodeInput').val('').focus();
+                            $('#otpErrorMsg').addClass('d-none');
+
+                            // แสดง Dev OTP ช่วยอำนวยความสะดวกในการทดสอบ
+                            if (res.devOtp) {
+                                $('#devOtpCodeText').text(res.devOtp);
+                                $('#devOtpBox').removeClass('d-none');
+                            } else {
+                                $('#devOtpBox').addClass('d-none');
+                            }
+
+                            // เปิด Modal OTP
+                            const modal = new bootstrap.Modal(document.getElementById('otpModal'));
+                            modal.show();
+                            startCountdown();
+                        } else {
+                            alert(res.message);
+                        }
+                    },
+                    error: function (xhr) {
+                        btn.html(origHtml).removeAttr('disabled');
+                        alert('ไม่สามารถส่งรหัส OTP ได้ในขณะนี้ กรุณาลองใหม่อีกครั้ง');
+                    }
+                });
+            }
+
+            // เมื่อกดปุ่ม "ส่งรหัส OTP และดำเนินการสมัครสมาชิก"
+            $('#btnRequestOtp').on('click', function () {
+                if (validateRegistrationForm()) {
+                    requestOtpSend();
+                }
+            });
+
+            // ปุ่มส่งรหัสใหม่อีกครั้งใน Modal
+            $('#btnResendOtp').on('click', function () {
+                $(this).attr('disabled', true);
+                requestOtpSend();
+            });
+
+            // เมื่อกดยืนยัน OTP ใน Modal
+            $('#btnConfirmOtpAndRegister').on('click', function () {
+                const otp = $('#otpCodeInput').val().trim();
+                if (!otp || otp.length < 6) {
+                    $('#otpErrorMsg').text('กรุณาระบุรหัส OTP ให้ครบถ้วน 6 หลัก').removeClass('d-none');
+                    $('#otpCodeInput').focus();
+                    return;
+                }
+
+                // นำค่า OTP ไปใส่ใน Input ฟอร์มหลัก แล้ว Submit ฟอร์ม
+                $('#hiddenOtpInput').val(otp);
+                $(this).html('<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>กำลังยืนยัน...').attr('disabled', true);
+                $('#registerForm').submit();
+            });
+
+            // ตรวจจับการกด Enter ในช่อง OTP
+            $('#otpCodeInput').on('keypress', function (e) {
+                if (e.which === 13) {
+                    $('#btnConfirmOtpAndRegister').click();
+                }
+            });
+        });
+    </script>
+}

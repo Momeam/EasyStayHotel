@@ -91,7 +91,6 @@ C:\Users\LENOVO\EasyStayHotel\obj\Debug\net10.0\rjsmcshtml.dswa.cache.json
 C:\Users\LENOVO\EasyStayHotel\obj\Debug\net10.0\scopedcss\Views\Shared\_Layout.cshtml.rz.scp.css
 C:\Users\LENOVO\EasyStayHotel\obj\Debug\net10.0\scopedcss\bundle\EasyStayHotel.styles.css
 C:\Users\LENOVO\EasyStayHotel\obj\Debug\net10.0\scopedcss\projectbundle\EasyStayHotel.bundle.scp.css
-C:\Users\LENOVO\EasyStayHotel\obj\Debug\net10.0\compressed\f0zfxdsy1d-{0}-b9sayid5wm-b9sayid5wm.gz
 C:\Users\LENOVO\EasyStayHotel\obj\Debug\net10.0\compressed\8iut9k52qw-{0}-61n19gt1b8-61n19gt1b8.gz
 C:\Users\LENOVO\EasyStayHotel\obj\Debug\net10.0\compressed\i0ttnqjzl3-{0}-xtxxf3hu2r-xtxxf3hu2r.gz
 C:\Users\LENOVO\EasyStayHotel\obj\Debug\net10.0\compressed\ckdpdo2dse-{0}-bqjiyaj88i-bqjiyaj88i.gz
@@ -170,3 +169,4 @@ C:\Users\LENOVO\EasyStayHotel\bin\Debug\net10.0\MySqlConnector.dll
 C:\Users\LENOVO\EasyStayHotel\bin\Debug\net10.0\Pomelo.EntityFrameworkCore.MySql.dll
 C:\Users\LENOVO\EasyStayHotel\obj\Debug\net10.0\EasyStayHotel.csproj.AssemblyReference.cache
 C:\Users\LENOVO\EasyStayHotel\bin\Debug\net10.0\Microsoft.Bcl.AsyncInterfaces.dll
+C:\Users\LENOVO\EasyStayHotel\obj\Debug\net10.0\compressed\f0zfxdsy1d-{0}-kat0ysbog0-kat0ysbog0.gz

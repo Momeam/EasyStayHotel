@@ -1,0 +1,226 @@
+@{
+    Layout = "~/Views/Shared/_StaffLayout.cshtml";
+    ViewData["Title"] = "เช็คอินการจองออนไลน์ (Check-in Desk)";
+
+    var targetBooking = ViewBag.TargetBooking as EasyStayHotel.Models.Booking;
+    var availableRooms = ViewBag.AvailableRooms as List<EasyStayHotel.Models.Room> ?? new List<EasyStayHotel.Models.Room>();
+    var pendingArrivals = ViewBag.PendingArrivals as List<EasyStayHotel.Models.Booking> ?? new List<EasyStayHotel.Models.Booking>();
+    string searchQuery = ViewBag.SearchQuery as string ?? "";
+}
+
+<div class="container-fluid py-4 mb-5">
+    <!-- ส่วนหัว -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary px-3 py-1 rounded-pill">
+                    <i class="bi bi-geo-alt-fill me-1"></i> สาขา@ViewBag.CurrentBranchTh
+                </span>
+                <span class="badge bg-dark rounded-pill px-3 py-1">Front Desk Terminal</span>
+            </div>
+            <h3 class="fw-bold m-0 text-dark">ระบบเช็คอินการจองออนไลน์ (Web Booking Check-in)</h3>
+            <p class="text-muted small mb-0">ค้นหาด้วยรหัสหมายเลขการจอง (Booking Reference) หรือเบอร์โทรศัพท์ เพื่อจัดหมายเลขห้องและมอบกุญแจเข้าพัก</p>
+        </div>
+        <div>
+            <a asp-action="WalkinBooking" class="btn btn-outline-success fw-bold rounded-pill px-3">
+                <i class="bi bi-person-plus-fill me-1"></i> ลูกค้า Walk-in (ไม่มีการจอง)
+            </a>
+        </div>
+    </div>
+
+    <!-- แถบค้นหารหัสการจอง -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4 bg-white p-4">
+        <form asp-action="CheckInDesk" method="get" class="row g-3 align-items-end">
+            <div class="col-lg-8 col-md-7">
+                <label class="form-label fw-bold small text-muted">
+                    <i class="bi bi-upc-scan text-primary me-1"></i> กรอกรหัสหมายเลขการจอง (Booking Reference) หรือเบอร์โทรศัพท์ลูกค้า
+                </label>
+                <div class="input-group input-group-lg">
+                    <span class="input-group-text bg-light border-primary border-opacity-25 text-primary">
+                        <i class="bi bi-search"></i>
+                    </span>
+                    <input type="text" name="bookingRef" class="form-control border-primary border-opacity-25 fw-bold font-monospace"
+                           placeholder="เช่น ES-25691116054635 หรือ 0812345678"
+                           value="@searchQuery" autofocus required />
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-5">
+                <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold shadow-sm">
+                    <i class="bi bi-search me-1"></i> ค้นหาข้อมูลการจอง
+                </button>
+            </div>
+        </form>
+
+        @if (ViewBag.SearchError != null)
+        {
+            <div class="alert alert-warning border-0 rounded-3 mt-3 mb-0 small">
+                <i class="bi bi-exclamation-triangle-fill me-2 text-warning"></i> @ViewBag.SearchError
+            </div>
+        }
+    </div>
+
+    <div class="row g-4">
+        <!-- ฝั่งซ้าย: ข้อมูลการจองและการจัดห้อง (เมื่อค้นพบ) -->
+        <div class="col-lg-7">
+            @if (targetBooking != null)
+            {
+                var payment = targetBooking.Payments.OrderByDescending(p => p.PaymentId).FirstOrDefault();
+                int nights = targetBooking.CheckOutDate.DayNumber - targetBooking.CheckInDate.DayNumber;
+                if (nights <= 0) nights = 1;
+
+                <div class="card border-0 shadow-sm rounded-4 bg-white overflow-hidden">
+                    <div class="card-header bg-primary text-white p-3 d-flex justify-content-between align-items-center">
+                        <span class="fw-bold"><i class="bi bi-file-earmark-person-fill me-2"></i>ข้อมูลการจอง: @targetBooking.BookingRef</span>
+                        <span class="badge @(targetBooking.BookingStatus == "CheckIn" ? "bg-success" : "bg-warning text-dark") rounded-pill px-3 py-1">
+                            สถานะ: @targetBooking.BookingStatus
+                        </span>
+                    </div>
+
+                    <div class="card-body p-4">
+                        <!-- รายละเอียดแขกและห้อง -->
+                        <div class="row g-3 mb-4">
+                            <div class="col-sm-6">
+                                <span class="text-muted small d-block">ชื่อผู้เข้าพัก</span>
+                                <h5 class="fw-bold text-dark mb-1">@(targetBooking.GuestName ?? targetBooking.User?.FullName ?? "ไม่ระบุ")</h5>
+                                <div class="small text-muted"><i class="bi bi-telephone me-1"></i> @(targetBooking.User?.Phone ?? "-")</div>
+                                <div class="small text-muted"><i class="bi bi-envelope me-1"></i> @(targetBooking.User?.Email ?? "-")</div>
+                            </div>
+                            <div class="col-sm-6 text-sm-end">
+                                <span class="text-muted small d-block">ประเภทห้องที่ลูกค้าจองมา</span>
+                                <span class="badge bg-primary fs-6 px-3 py-2 rounded-pill mt-1">
+                                    <i class="bi bi-door-closed me-1"></i> @(targetBooking.Room?.RoomType?.TypeName ?? "Standard Room")
+                                </span>
+                                <div class="mt-2 text-muted small">
+                                    ราคาเริ่มต้น: ฿@(targetBooking.Room?.RoomType?.BasePrice.ToString("N0") ?? "0")/คืน
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- แถบวันที่เข้าพัก -->
+                        <div class="bg-light p-3 rounded-3 mb-4 row g-0">
+                            <div class="col-6 border-end pe-3">
+                                <span class="text-muted small d-block">วันที่เช็คอิน</span>
+                                <strong class="text-dark"><i class="bi bi-calendar-event text-primary me-1"></i> @targetBooking.CheckInDate.ToString("dd MMM yyyy")</strong>
+                            </div>
+                            <div class="col-6 ps-3">
+                                <span class="text-muted small d-block">วันที่เช็คเอาท์ (@nights คืน)</span>
+                                <strong class="text-dark"><i class="bi bi-calendar-check text-primary me-1"></i> @targetBooking.CheckOutDate.ToString("dd MMM yyyy")</strong>
+                            </div>
+                        </div>
+
+                        <!-- การชำระเงิน -->
+                        <div class="d-flex justify-content-between align-items-center mb-4 p-3 border rounded-3">
+                            <div>
+                                <span class="text-muted small d-block">ยอดเงินรวม</span>
+                                <h4 class="fw-bold text-success mb-0">฿@targetBooking.TotalPrice.ToString("N2")</h4>
+                            </div>
+                            <div class="text-end">
+                                <span class="badge @(payment?.PaymentStatus == "Paid" ? "bg-success" : "bg-warning text-dark") px-3 py-2 rounded-pill">
+                                    การชำระเงิน: @(payment?.PaymentStatus ?? "รอตรวจสอบ") (@(payment?.PaymentMethod ?? "PromptPay"))
+                                </span>
+                                @if (!string.IsNullOrEmpty(payment?.SlipImageUrl))
+                                {
+                                    <div class="mt-1">
+                                        <a href="@payment.SlipImageUrl" target="_blank" class="small text-primary fw-bold text-decoration-none">
+                                            <i class="bi bi-image me-1"></i> ดูสลิปหลักฐานโอน
+                                        </a>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+
+                        <!-- ฟอร์มเลือกหมายเลขห้องและกดยืนยันเช็คอิน -->
+                        <form asp-action="ProcessCheckIn" method="post" class="border-top pt-4">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="bookingId" value="@targetBooking.BookingId" />
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold text-dark">
+                                    <i class="bi bi-key-fill text-primary me-1"></i> เลือกหมายเลขห้องพักจริง (Room Number) ให้ลูกค้า *
+                                </label>
+                                <select name="roomId" class="form-select form-select-lg border-primary" required>
+                                    <option value="">-- กรุณาเลือกหมายเลขห้องที่พร้อมเข้าพัก --</option>
+                                    @foreach (var r in availableRooms)
+                                    {
+                                        bool isOriginalRoom = targetBooking.RoomId == r.RoomId;
+                                        bool isSameType = targetBooking.Room?.RoomTypeId == r.RoomTypeId;
+                                        <option value="@r.RoomId" selected="@isOriginalRoom">
+                                            ห้อง @r.RoomNo - @(r.RoomType?.TypeName) @(isSameType ? "(ตรงประเภทที่จอง)" : "(อัปเกรด/ต่างประเภท)") - สถานะ: @r.Status
+                                        </option>
+                                    }
+                                </select>
+                                <small class="text-muted mt-1 d-block">
+                                    * ระบบจะแสดงเฉพาะห้องที่สถานะว่างในสาขา@ViewBag.CurrentBranchTh เพื่อให้พนักงานจัดห้องได้อย่างถูกต้อง
+                                </small>
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="form-label small fw-bold text-muted">หมายเหตุเพิ่มเติม (ถ้ามี)</label>
+                                <input type="text" name="notes" class="form-control" placeholder="เช่น มอบคีย์การ์ด 2 ใบ, ขอเตียงเสริมเพิ่ม" />
+                            </div>
+
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-success btn-lg fw-bold shadow-sm py-3" onclick="return confirm('ยืนยันการเช็คอินและเปิดห้องให้ลูกค้า?');">
+                                    <i class="bi bi-check2-circle me-1"></i> ยืนยันการเช็คอิน & มอบกุญแจห้อง
+                                </button>
+                                <a asp-action="BookingReceipt" asp-route-id="@targetBooking.BookingId" class="btn btn-outline-secondary">
+                                    <i class="bi bi-printer me-1"></i> ดู/พิมพ์ใบเสร็จล่วงหน้า
+                                </a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="card border-0 shadow-sm rounded-4 bg-white p-5 text-center">
+                    <i class="bi bi-upc-scan display-1 text-primary opacity-25 mb-3"></i>
+                    <h5 class="fw-bold text-dark mb-2">กรุณากรอกรหัสการจองเพื่อเริ่มต้นเช็คอิน</h5>
+                    <p class="text-muted small mx-auto" style="max-width: 450px;">
+                        เมื่อลูกค้าเดินทางมาถึงหน้าเคาน์เตอร์ ให้ขอรหัสการจอง (เช่น ES-2569...) หรือเบอร์โทรศัพท์ แล้วกดค้นหาเพื่อเลือกหมายเลขห้องที่ว่างและยืนยันการเช็คอิน
+                    </p>
+                </div>
+            }
+        </div>
+
+        <!-- ฝั่งขวา: รายการจองที่รอเช็คอินในวันนี้ (Today's Pending Arrivals) -->
+        <div class="col-lg-5">
+            <div class="card border-0 shadow-sm rounded-4 bg-white overflow-hidden">
+                <div class="card-header bg-white border-bottom p-3 d-flex justify-content-between align-items-center">
+                    <h6 class="fw-bold m-0 text-dark">
+                        <i class="bi bi-clock-history text-primary me-2"></i>รอเช็คอินวันนี้ (@pendingArrivals.Count)
+                    </h6>
+                    <small class="text-muted">คลิกเพื่อเลือกทันที</small>
+                </div>
+
+                <div class="list-group list-group-flush">
+                    @if (pendingArrivals.Any())
+                    {
+                        foreach (var item in pendingArrivals)
+                        {
+                            <a asp-action="CheckInDesk" asp-route-bookingRef="@item.BookingRef"
+                               class="list-group-item list-group-item-action p-3 @(targetBooking?.BookingId == item.BookingId ? "active bg-primary bg-opacity-10 border-primary" : "")">
+                                <div class="d-flex justify-content-between align-items-start mb-1">
+                                    <span class="fw-bold font-monospace text-primary">@item.BookingRef</span>
+                                    <span class="badge bg-warning text-dark rounded-pill">รอเช็คอิน</span>
+                                </div>
+                                <div class="fw-bold text-dark">@(item.GuestName ?? item.User?.FullName ?? "ไม่ระบุ")</div>
+                                <div class="d-flex justify-content-between align-items-center mt-2 small text-muted">
+                                    <span><i class="bi bi-door-closed me-1"></i> @(item.Room?.RoomType?.TypeName)</span>
+                                    <span class="fw-bold text-success">฿@item.TotalPrice.ToString("N0")</span>
+                                </div>
+                            </a>
+                        }
+                    }
+                    else
+                    {
+                        <div class="p-4 text-center text-muted small">
+                            <i class="bi bi-check-circle fs-3 text-success d-block mb-2"></i>
+                            ไม่มีรายการรอเช็คอินค้างอยู่ในวันนี้
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

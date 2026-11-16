@@ -1,51 +1,214 @@
+@using Microsoft.AspNetCore.Http
+@inject IHttpContextAccessor HttpContextAccessor
+
+@{
+    // ดึงข้อมูลชื่อและตำแหน่งจาก Session ของผู้ที่ล็อกอินอยู่
+    var userFullName = HttpContextAccessor.HttpContext?.Session.GetString("FullName") ?? "ไม่พบชื่อพนักงาน";
+    var userRole = HttpContextAccessor.HttpContext?.Session.GetString("Role") ?? "พนักงาน";
+    
+    // ดึงชื่อ Controller และ Action ปัจจุบัน เพื่อนำไปเช็คทำเมนูแบบ Active
+    var currentController = ViewContext.RouteData.Values["Controller"]?.ToString();
+    var currentAction = ViewContext.RouteData.Values["Action"]?.ToString();
+}
+
 <!DOCTYPE html>
 <html lang="th">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@ViewData["Title"] - Easy Stay Staff Console</title>
+    
+    <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css"/>
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true">
+    
+    <!-- นำเข้า Bootstrap Icons และ Google Fonts (Kanit) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- สไตล์ CSS สำหรับ ธีม Staff -->
+    <style>
+        body {
+            font-family: 'Kanit', sans-serif;
+            background-color: #f8f9fa; 
+        }
+        
+        /* แถบเมนูด้านข้าง (Sidebar) */
+        .sidebar {
+            background-color: #1a202c; 
+            width: 260px;
+            min-height: 100vh;
+            border-right: 1px solid #2d3748;
+        }
+
+        /* กล่องข้อมูลผู้ใช้งานใน Sidebar */
+        .user-profile-box {
+            background-color: #2d3748;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        /* เมนูลิงก์ */
+        .sidebar-link {
+            color: #a0aec0;
+            text-decoration: none;
+            padding: 12px 15px;
+            border-radius: 8px;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            font-weight: 400;
+            transition: all 0.2s ease;
+        }
+
+        .sidebar-link i {
+            margin-right: 12px;
+            font-size: 1.1rem;
+        }
+
+        .sidebar-link:hover, .sidebar-link.active {
+            background-color: #2b6cb0;
+            color: #ffffff;
+            font-weight: 500;
+        }
+
+        /* ปุ่มออกจากระบบ */
+        .logout-link {
+            color: #fc8181;
+            text-decoration: none;
+            padding: 12px 15px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            transition: all 0.2s ease;
+        }
+
+        .logout-link:hover {
+            background-color: rgba(252, 129, 129, 0.1);
+            color: #f56565;
+        }
+    </style>
 </head>
 <body>
-    <div class="d-flex" style="min-height: 100vh;">
-        <div class="bg-dark text-white p-3" style="width: 250;">
-            <h4 class="text-center text-info mb-4">East Stay<br><small class="text-light fs-6">STAFF CONSOLE</small></h4>
-            <hr/>
-            <ul class="nav flex-column">
-                <li class="nav-item mb-2">
-                    <a class="nav-link text-white" href="#">ภาพรวมระบบ (Overview)</a>
-                </li>
-                <li class="nav-item mb-2">
-    <a class="nav-link text-white" asp-controller="Staff" asp-action="BookingList">รายชื่อผู้เข้าพัก (Booking List)</a>
-                </li>
-                <li class="nav-item mb-2">
-                    <a  class="nav-link text-white" asp--controller="Staff" asp-action="WalkinBooking">จองแบบ Walk-in</a>
-                </li>
-                <li class="nav-item mb-2">
-                    <a class="nav-link text-info fw0bold" asp-controller="Staff" asp-action="Index">จัดการห้องพัก (Room Status)</a>
-                </li>
-
-                <li class="nav-item mb-2">
-                    <a class="nav-link" text-white href="#">การคืนเงิน (Refunds)</a>
-                </li>
-            </ul>
-        </div>
-        <div class="flex-grow-1 bg-light">
-            <div class="bg-white p-3 shadow-sm d-flex justify-content-between align-item-center mb-4">
-                <h5 class="m-0 text-primary">ระบบจัดการห้องพักและซ่อมบำรุง</h5>
+    <div class="d-flex">
+        
+        <!-- Sidebar -->
+        <div class="sidebar text-white d-flex flex-column p-3 sticky-top" style="height: 100vh;">
+            
+            <!-- โลโก้และชื่อระบบ -->
+            <div class="d-flex align-items-center mb-4 mt-2 px-2">
+                <div class="bg-primary text-white rounded p-2 me-2 d-flex align-items-center justify-content-center" style="width: 35px; height: 35px;">
+                    <i class="bi bi-building"></i>
+                </div>
                 <div>
-                    <span class="me-3">พนักงานต้อนรับ</span>
-                    <a href="#" class="btn btn-sm btn-outline-danger">ออกจากระบบ (Logout)</a>
-
+                    <h5 class="m-0 fw-bold">Easy Stay</h5>
+                    <small class="text-info" style="font-size: 0.75rem; letter-spacing: 1px;">STAFF CONSOLE</small>
                 </div>
             </div>
-            <div class="container-fluid px-4">
-                @RenderBody()
+
+            <!-- กล่องข้อมูลพนักงาน ดึงจาก Session -->
+            <div class="user-profile-box">
+                <div class="fw-bold text-white mb-1 text-truncate" title="คุณ @userFullName">
+                    คุณ @userFullName
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <small style="color: #a0aec0;">สิทธิ์: @userRole</small>
+                    <span class="badge bg-success rounded-pill" style="font-size: 0.6rem;"><i class="bi bi-circle-fill me-1"></i>ออนไลน์</span>
+                </div>
+            </div>
+
+            <!-- เมนูนำทาง (Navigation) พร้อมระบบ Active Menu -->
+            <ul class="nav flex-column flex-grow-1">
+                <li class="nav-item">
+                    <a class="sidebar-link @(currentAction == "DailyOverview" ? "active" : "")" 
+                       asp-controller="Staff" asp-action="DailyOverview">
+                        <i class="bi bi-calendar2-day-fill"></i> ภาพรวมรายวัน (Overview)
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="sidebar-link @(currentAction == "CheckInDesk" ? "active" : "")" 
+                       asp-controller="Staff" asp-action="CheckInDesk">
+                        <i class="bi bi-key-fill"></i> เช็คอินออนไลน์ (Check-in)
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="sidebar-link @(currentAction == "WalkinBooking" ? "active" : "")" 
+                       asp-controller="Staff" asp-action="WalkinBooking">
+                        <i class="bi bi-person-plus-fill"></i> จองแบบ Walk-in
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="sidebar-link @(currentAction == "BookingList" ? "active" : "")" 
+                       asp-controller="Staff" asp-action="BookingList">
+                        <i class="bi bi-card-list"></i> รายชื่อผู้เข้าพัก (Bookings)
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="sidebar-link @(currentAction == "Index" ? "active" : "")" 
+                       asp-controller="Staff" asp-action="Index">
+                        <i class="bi bi-door-open-fill"></i> จัดการสถานะห้อง (Rooms)
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="sidebar-link @(currentAction == "AccountingFeedback" ? "active" : "")" 
+                       asp-controller="Staff" asp-action="AccountingFeedback">
+                        <i class="bi bi-chat-left-text-fill"></i> ส่ง Feedback ถึงฝ่ายบัญชี
+                    </a>
+                </li>
+
+                <!-- ลิงก์พิเศษสำหรับผู้ดูแลระบบ (Admin) หรือกลับหน้าแรก -->
+                @if (userRole == "Admin" || userRole == "SuperAdmin")
+                {
+                    <li class="nav-item mt-3 pt-2 border-top" style="border-color: #2d3748 !important;">
+                        <a class="sidebar-link text-warning fw-bold" asp-controller="Admin" asp-action="Dashboard">
+                            <i class="bi bi-speedometer2 text-warning"></i> ระบบแอดมิน (Admin Console)
+                        </a>
+                    </li>
+                }
+                <li class="nav-item mt-1">
+                    <a class="sidebar-link text-white-50" asp-controller="Home" asp-action="Index">
+                        <i class="bi bi-house-door-fill"></i> หน้าแรกเว็บไซต์
+                    </a>
+                </li>
+            </ul>
+
+            <!-- ปุ่มออกจากระบบ -->
+            <div class="mt-auto pt-3 border-top" style="border-color: #2d3748 !important;">
+                <a asp-controller="Account" asp-action="Logout" class="logout-link fw-bold">
+                    <i class="bi bi-box-arrow-right me-2"></i> ออกจากระบบ (Logout)
+                </a>
             </div>
         </div>
+
+        <!-- Main Content Area -->
+        <div class="flex-grow-1 d-flex flex-column" style="width: calc(100% - 260px);">
+            @if (TempData["ErrorMessage"] != null)
+            {
+                <div class="p-3 pb-0">
+                    <div class="alert alert-danger alert-dismissible fade show shadow-sm rounded-3 mb-0" role="alert">
+                        <i class="bi bi-shield-exclamation me-2 fs-5"></i> @TempData["ErrorMessage"]
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                </div>
+            }
+            @if (TempData["SuccessMessage"] != null)
+            {
+                <div class="p-3 pb-0">
+                    <div class="alert alert-success alert-dismissible fade show shadow-sm rounded-3 mb-0" role="alert">
+                        <i class="bi bi-check-circle-fill me-2 fs-5 text-success"></i> @TempData["SuccessMessage"]
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                </div>
+            }
+            @RenderBody()
+        </div>
+
     </div>
+
+    <!-- Scripts -->
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

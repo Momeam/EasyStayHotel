@@ -1,60 +1,306 @@
-@using Microsoft.EntityFrameworkCore.Metadata.Internal
-@model EasyStayHotel.Models.Booking
+@model EasyStayHotel.Models.ViewModels.WalkinViewModel
 @{
     Layout = "~/Views/Shared/_StaffLayout.cshtml";
-    ViewData["Title"] = "จองห้องพัก (Walk-in)";
+    ViewData["Title"] = "สร้างการจองใหม่หน้าเคาน์เตอร์ (Walk-in Booking)";
+    var availableRooms = ViewBag.AvailableRooms as List<EasyStayHotel.Models.Room> ?? new List<EasyStayHotel.Models.Room>();
+    var roomTypes = ViewBag.RoomTypes as List<EasyStayHotel.Models.Roomtype> ?? new List<EasyStayHotel.Models.Roomtype>();
+    int? preselectedRoomId = ViewBag.PreselectedRoomId as int?;
 }
 
-<div class="card shadow-sm border-0 mt4">
-    <div class="card-header bg-success text-white">
-        <h5 class="card-title m-0">สร้างการจองใหม่ (Walk-in Booking)</h5>
-    </div>
-    <div class="card-body p-4">
-        <form asp-controller="Staff" asp-action="WalkinBooking" method="post">
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label asp-for="GuestName" class="form-label fw-bold">ชื่อลูกค้า (Customer Name)</label>
-                    <input asp-for="GuestName"  type="text" class="form-control"
-                           placeholder="ระบุชื่อผู้เข้าพัก" required />
-                </div>
+<div class="container-fluid py-4 mb-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary px-3 py-1 rounded-pill">
+                    <i class="bi bi-geo-alt-fill me-1"></i> สาขา@ViewBag.CurrentBranchTh
+                </span>
+                <span class="badge bg-success rounded-pill px-3 py-1">Direct Walk-in Desk</span>
             </div>
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label asp-for="CheckInDate" class="form-label fw-bold">วันที่เข้าพัก (CheckIn)</label>
-                    <input asp-for="CheckInDate" type="date" class="form-control" required />
-                </div>
-                <div class="col-md-6 mb-3">
-                    <label asp-for="CheckOutDate" class="form-label fw-bold">วันที่ออก (Check-out)</label>
-                    <input asp-for="CheckOutDate" type="date" class="form-control" required />
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-md-6 mb-4">
-                    <label asp-for="RoomId" class="form-label fw-bold">เลือกห้องพักที่ว่าง(Available Rooms)</label>
-                    <select asp-for="RoomId" class="form-select border-success" required>
-                        <option value="">-- กรุณาเลือกห้องพัก --</option>
-                        @if (ViewBag.AvailableRooms != null)
-                        {
-                            foreach (var room in ViewBag.AvailableRooms)
-                            {
-                                <option value="@room.RoomId">ห้อง @room.RoomNo</option>
-                            }
-                        }
-                    </select>
-                </div>
-                <div class="col-md6 mb-4">
-                    <label asp-for="TotalPrice" class="form-label fw-bold">ราคารวม (Total Price)</label>
-                    <input asp-for="TotalPrice" type="number" step="0.01" class="form-contor" placeholder="ระบุราคาห้อง"
-                           required />
-                </div>
-            </div>
-            <hr />
-            <div class="d-flex justify-content-end">
-                <a asp-controller="Staff" asp-action="Index" class="btn btn-secondary me-2">ยกเลิก</a>
-                <button type="submit" class="btn btn-success">ยืนยันการจองห้องพัก</button>
-
-            </div>
-        </form>
+            <h3 class="fw-bold m-0 text-dark">สร้างการจองใหม่หน้าเคาน์เตอร์ (Walk-in Booking)</h3>
+            <p class="text-muted small mb-0">ลงทะเบียนผู้เข้าพักหน้าเคาน์เตอร์ เลือกห้องว่าง เลือกบริการเสริม และรับชำระเงินพร้อมเปิดห้องทันที</p>
+        </div>
+        <div>
+            <a asp-action="CheckInDesk" class="btn btn-outline-primary fw-bold rounded-pill px-3">
+                <i class="bi bi-upc-scan me-1"></i> เช็คอินลูกค้าที่มีรหัสการจองออนไลน์
+            </a>
+        </div>
     </div>
 
+    <form asp-controller="Staff" asp-action="WalkinBooking" method="post" id="walkinForm">
+        @Html.AntiForgeryToken()
+
+        <div class="row g-4">
+            <!-- คอลัมน์ซ้าย: ข้อมูลลูกค้าและห้องพัก -->
+            <div class="col-lg-8">
+
+                <!-- 1. ข้อมูลผู้เข้าพัก -->
+                <div class="card shadow-sm border-0 mb-4 rounded-4 bg-white">
+                    <div class="card-header bg-white border-bottom py-3">
+                        <h6 class="m-0 fw-bold text-primary">
+                            <i class="bi bi-person-vcard-fill me-2"></i>1. ข้อมูลผู้เข้าพัก (Guest Information)
+                        </h6>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label asp-for="GuestName" class="form-label fw-bold small text-dark">ชื่อ-นามสกุล ผู้เข้าพัก *</label>
+                                <input asp-for="GuestName" type="text" class="form-control form-control-lg" placeholder="เช่น นายสมชาย ใจดี" required />
+                                <span asp-validation-for="GuestName" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="Phone" class="form-label fw-bold small text-dark">เบอร์โทรศัพท์ติดต่อ *</label>
+                                <input asp-for="Phone" type="tel" class="form-control form-control-lg" placeholder="เช่น 0812345678" required />
+                                <span asp-validation-for="Phone" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="IdCardOrPassport" class="form-label fw-bold small text-dark">เลขบัตรประชาชน / Passport *</label>
+                                <input asp-for="IdCardOrPassport" type="text" class="form-control" placeholder="13 หลัก หรือเลขพาสปอร์ต" required />
+                                <span asp-validation-for="IdCardOrPassport" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="Email" class="form-label fw-bold small text-dark">อีเมล (ถ้ามี เพื่อส่งใบเสร็จ)</label>
+                                <input asp-for="Email" type="email" class="form-control" placeholder="customer@email.com" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. วันที่เข้าพักและเลือกห้องพัก -->
+                <div class="card shadow-sm border-0 mb-4 rounded-4 bg-white">
+                    <div class="card-header bg-white border-bottom py-3">
+                        <h6 class="m-0 fw-bold text-primary">
+                            <i class="bi bi-calendar-check-fill me-2"></i>2. รายละเอียดการเข้าพักและห้องพัก (Room & Dates)
+                        </h6>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-4">
+                                <label asp-for="CheckInDate" class="form-label fw-bold small text-dark">วันที่เช็คอิน (Check-in) *</label>
+                                <input asp-for="CheckInDate" type="date" class="form-control form-control-lg" id="checkInDate" required />
+                            </div>
+                            <div class="col-md-4">
+                                <label asp-for="CheckOutDate" class="form-label fw-bold small text-dark">วันที่เช็คเอาท์ (Check-out) *</label>
+                                <input asp-for="CheckOutDate" type="date" class="form-control form-control-lg" id="checkOutDate" required />
+                            </div>
+                            <div class="col-md-4">
+                                <label asp-for="NumberOfGuests" class="form-label fw-bold small text-dark">จำนวนผู้เข้าพัก *</label>
+                                <input asp-for="NumberOfGuests" type="number" min="1" max="6" class="form-control form-control-lg text-center" id="guestsCount" required />
+                            </div>
+                        </div>
+
+                        <!-- ตัวกรองประเภทห้องพัก -->
+                        <div class="row g-3">
+                            <div class="col-md-12">
+                                <label class="form-label fw-bold small text-dark">
+                                    <i class="bi bi-door-open-fill text-primary me-1"></i> เลือกห้องพักว่างในสาขา@ViewBag.CurrentBranchTh *
+                                </label>
+                                <select asp-for="RoomId" class="form-select form-select-lg border-primary" id="roomSelect" required>
+                                    <option value="" data-price="0" data-type="0">-- กรุณาเลือกห้องพักที่ว่าง --</option>
+                                    @if (availableRooms.Any())
+                                    {
+                                        foreach (var room in availableRooms)
+                                        {
+                                            decimal price = room.RoomType?.BasePrice ?? 1200;
+                                            bool isSelected = preselectedRoomId.HasValue && preselectedRoomId.Value == room.RoomId;
+                                            <option value="@room.RoomId"
+                                                    data-price="@price"
+                                                    data-type="@(room.RoomTypeId ?? 0)"
+                                                    selected="@isSelected">
+                                                ห้อง @room.RoomNo - @(room.RoomType?.TypeName) (฿@price.ToString("N0")/คืน) • ว่างพร้อมเข้าพัก
+                                            </option>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <option value="" disabled>ไม่มีห้องว่างในสาขานี้ขณะนี้</option>
+                                    }
+                                </select>
+                                <span asp-validation-for="RoomId" class="text-danger small"></span>
+                                <small class="text-muted mt-1 d-block">
+                                    * มีห้องว่างพร้อมขายทั้งหมด @availableRooms.Count ห้องในสาขานี้
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- คอลัมน์ขวา: บริการเสริม (Add-ons) และการชำระเงิน -->
+            <div class="col-lg-4">
+                <div class="card shadow-sm border-0 mb-4 rounded-4 bg-white overflow-hidden sticky-top" style="top: 20px;">
+                    <div class="card-header bg-dark text-white py-3">
+                        <h6 class="m-0 fw-bold text-warning">
+                            <i class="bi bi-cart-check-fill me-2"></i>3. บริการเสริมและสรุปชำระเงิน
+                        </h6>
+                    </div>
+                    <div class="card-body p-4">
+                        <!-- รายการ Add-ons -->
+                        <p class="fw-bold small text-muted text-uppercase mb-3">เลือกบริการเสริม (Add-ons)</p>
+
+                        <div class="form-check p-3 rounded-3 border mb-2 bg-light">
+                            <input class="form-check-input addon-checkbox" type="checkbox" asp-for="AddBreakfast" id="addonBreakfast">
+                            <label class="form-check-label d-flex justify-content-between align-items-center w-100 ps-2" for="addonBreakfast">
+                                <span><i class="bi bi-cup-hot-fill text-warning me-1"></i> บุฟเฟต์อาหารเช้า</span>
+                                <strong class="text-primary">+฿300/คืน</strong>
+                            </label>
+                        </div>
+
+                        <div class="form-check p-3 rounded-3 border mb-2 bg-light">
+                            <input class="form-check-input addon-checkbox" type="checkbox" asp-for="AddExtraBed" id="addonBed">
+                            <label class="form-check-label d-flex justify-content-between align-items-center w-100 ps-2" for="addonBed">
+                                <span><i class="bi bi-lamp-fill text-info me-1"></i> เตียงเสริมพับได้</span>
+                                <strong class="text-primary">+฿500/คืน</strong>
+                            </label>
+                        </div>
+
+                        <div class="form-check p-3 rounded-3 border mb-2 bg-light">
+                            <input class="form-check-input addon-checkbox" type="checkbox" asp-for="AddAirportTransfer" id="addonTransfer">
+                            <label class="form-check-label d-flex justify-content-between align-items-center w-100 ps-2" for="addonTransfer">
+                                <span><i class="bi bi-car-front-fill text-success me-1"></i> รถรับ-ส่งสนามบิน</span>
+                                <strong class="text-primary">+฿800/เที่ยว</strong>
+                            </label>
+                        </div>
+
+                        <div class="form-check p-3 rounded-3 border mb-4 bg-light">
+                            <input class="form-check-input addon-checkbox" type="checkbox" asp-for="AddLateCheckout" id="addonLate">
+                            <label class="form-check-label d-flex justify-content-between align-items-center w-100 ps-2" for="addonLate">
+                                <span><i class="bi bi-clock-fill text-danger me-1"></i> เลทเช็คเอาท์ (14:00 น.)</span>
+                                <strong class="text-primary">+฿300</strong>
+                            </label>
+                        </div>
+
+                        <!-- ช่องทางการชำระเงิน -->
+                        <p class="fw-bold small text-muted text-uppercase mb-2">ช่องทางชำระเงินหน้าเคาน์เตอร์ *</p>
+                        <select asp-for="PaymentMethod" class="form-select form-select-lg mb-3 border-success" id="paymentMethodSelect">
+                            <option value="Cash">💵 เงินสด (Cash)</option>
+                            <option value="PromptPay">📱 พร้อมเพย์ QR Code (PromptPay)</option>
+                            <option value="CreditCard">💳 บัตรเครดิต/เดบิต (Credit/Debit Card)</option>
+                        </select>
+
+                        <!-- ส่วน QR Code พร้อมเพย์ -->
+                        <div id="promptPaySection" style="display: none;" class="mb-3 text-center p-3 border rounded-3 bg-light">
+                            <h6 class="fw-bold text-primary mb-2"><i class="bi bi-qr-code-scan"></i> สแกนพร้อมเพย์</h6>
+                            <img id="promptPayQR" src="https://promptpay.io/0983813674/0.png" class="img-fluid border p-2 mb-2 bg-white rounded shadow-sm" style="max-width: 170px;" alt="PromptPay QR" />
+                            <p class="small text-muted mb-0">บัญชี: บริษัท อีซี่ สเตย์ จำกัด</p>
+                        </div>
+
+                        <hr class="my-3" />
+
+                        <!-- สรุปยอดเงิน -->
+                        <div class="bg-light p-3 rounded-3 mb-3">
+                            <div class="d-flex justify-content-between small mb-2">
+                                <span id="summaryRoomNights" class="text-muted">ค่าห้องพัก (1 คืน)</span>
+                                <strong id="summaryRoomPrice">฿0</strong>
+                            </div>
+                            <div class="d-flex justify-content-between small mb-2">
+                                <span class="text-muted">ค่าบริการเสริม (Add-ons)</span>
+                                <strong id="summaryAddonPrice">฿0</strong>
+                            </div>
+                            <hr class="opacity-25 my-2" />
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="fw-bold text-dark">ยอดชำระสุทธิ</span>
+                                <h3 class="fw-bold text-success m-0" id="summaryTotalNet">฿0</h3>
+                            </div>
+                        </div>
+
+                        <!-- ตัวแปรส่งค่าราคากลับ -->
+                        <input type="hidden" asp-for="TotalPrice" id="hiddenTotalPrice" value="0" />
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg fw-bold shadow py-3" id="submitBtn">
+                                <i class="bi bi-check2-circle me-1"></i> ยืนยันการจอง & เช็คอินทันที
+                            </button>
+                            <a asp-action="Index" class="btn btn-outline-secondary">ยกเลิก</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
 </div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // วันที่เริ่มต้น
+            const today = new Date().toISOString().split('T')[0];
+            const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+
+            if (!$('#checkInDate').val()) $('#checkInDate').val(today);
+            if (!$('#checkOutDate').val()) $('#checkOutDate').val(tomorrow);
+
+            // คำนวณยอดเงินรวมแบบ Real-time
+            function calculateTotal() {
+                const checkInVal = $('#checkInDate').val();
+                const checkOutVal = $('#checkOutDate').val();
+
+                if (!checkInVal || !checkOutVal) return;
+
+                const checkIn = new Date(checkInVal);
+                const checkOut = new Date(checkOutVal);
+
+                let nights = 0;
+                if (checkOut > checkIn) {
+                    const diffTime = Math.abs(checkOut - checkIn);
+                    nights = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                } else {
+                    $('#summaryTotalNet').text("วันที่ไม่ถูกต้อง");
+                    return;
+                }
+
+                const selectedRoom = $('#roomSelect').find(':selected');
+                const roomPrice = parseFloat(selectedRoom.data('price')) || 0;
+                const totalRoomPrice = roomPrice * nights;
+
+                let totalAddonPrice = 0;
+                if ($('#addonBreakfast').is(':checked')) totalAddonPrice += (300 * nights);
+                if ($('#addonBed').is(':checked')) totalAddonPrice += (500 * nights);
+                if ($('#addonTransfer').is(':checked')) totalAddonPrice += 800;
+                if ($('#addonLate').is(':checked')) totalAddonPrice += 300;
+
+                const grandTotal = totalRoomPrice + totalAddonPrice;
+
+                $('#summaryRoomNights').text(`ค่าห้องพัก (${nights} คืน x ฿${roomPrice.toLocaleString()})`);
+                $('#summaryRoomPrice').text(`฿${totalRoomPrice.toLocaleString()}`);
+                $('#summaryAddonPrice').text(`฿${totalAddonPrice.toLocaleString()}`);
+                $('#summaryTotalNet').text(`฿${grandTotal.toLocaleString()}`);
+
+                $('#hiddenTotalPrice').val(grandTotal);
+
+                // อัปเดต QR พร้อมเพย์
+                $('#promptPayQR').attr('src', `https://promptpay.io/0983813674/${grandTotal}.png`);
+            }
+
+            // ผูก Event การคำนวณ
+            $('#roomSelect, #checkInDate, #checkOutDate, .addon-checkbox').on('change input', function () {
+                calculateTotal();
+            });
+
+            // ตรวจสอบวันที่เช็คเอาท์ต้องมากกว่าเช็คอิน
+            $('#checkInDate').on('change', function () {
+                const inVal = $(this).val();
+                if (inVal) {
+                    const nextDay = new Date(inVal);
+                    nextDay.setDate(nextDay.getDate() + 1);
+                    const minOut = nextDay.toISOString().split('T')[0];
+                    $('#checkOutDate').attr('min', minOut);
+                    if ($('#checkOutDate').val() <= inVal) {
+                        $('#checkOutDate').val(minOut);
+                    }
+                }
+                calculateTotal();
+            });
+
+            // ซ่อน/แสดง PromptPay
+            $('#paymentMethodSelect').on('change', function () {
+                if ($(this).val() === 'PromptPay') {
+                    $('#promptPaySection').slideDown();
+                } else {
+                    $('#promptPaySection').slideUp();
+                }
+            });
+
+            calculateTotal();
+        });
+    </script>
+}

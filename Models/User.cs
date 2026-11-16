@@ -12,5 +12,7 @@ public partial class User
     public string? Phone { get; set; }
     public string? IdCardOrPassport { get; set; }
     public string? Role { get; set; }
+    public string? Branch { get; set; }
+    public DateOnly? DateOfBirth { get; set; }
     public virtual ICollection<Booking> Bookings { get; set; } = new List<Booking>();
 }

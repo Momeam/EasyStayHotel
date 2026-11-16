@@ -1,34 +1,40 @@
 using EasyStayHotel.Models;
+using EasyStayHotel.Services;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// 1. เพิ่มบริการ MVC
 builder.Services.AddControllersWithViews();
 
-// 1. เพิ่มบริการ Session
+// 2. เพิ่มบริการ Session
 builder.Services.AddSession(options => {
     options.IdleTimeout = TimeSpan.FromMinutes(60); // ล็อกอินอยู่ได้ 60 นาที
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
 });
 
-
-
-
-// Add services to the container.
-builder.Services.AddControllersWithViews();
-
-// -----------------------------------------------------
-
+// 3. ตั้งค่าการเชื่อมต่อฐานข้อมูล MySQL
 builder.Services.AddDbContext<EasystaydbContext>(options =>
     options.UseMySql("server=localhost;port=3306;database=easystaydb;user=root;password=1234;",
     ServerVersion.AutoDetect("server=localhost;port=3306;database=easystaydb;user=root;password=1234;")));
-// -----------------------------------------------------
 
+// 4. เพิ่มการเรียกใช้ HttpContextAccessor เพื่อให้เข้าถึง Session จากหน้า View ได้
+builder.Services.AddHttpContextAccessor();
+
+// 5. เพิ่มบริการส่งอีเมลและยืนยัน OTP
+builder.Services.AddScoped<IEmailService, EmailService>();
 
 var app = builder.Build();
 
+// ตรวจสอบและเตรียมห้องพักสถานะว่างสำหรับสาขา Chonburi และ Phuket
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<EasystaydbContext>();
+    DatabaseInitializer.EnsureBranchRooms(context);
+}
 
+// Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
@@ -37,9 +43,11 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseRouting();
-app.UseSession();
+
+// UseSession ต้องอยู่ก่อน UseAuthorization เสมอ
+app.UseSession(); 
 app.UseAuthorization();
-app.UseAuthorization();
+
 app.MapStaticAssets();
 app.MapControllerRoute(
     name: "default",

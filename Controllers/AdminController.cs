@@ -52,44 +52,118 @@ namespace EasyStayHotel.Controllers
         }
         // หน้าจัดการผู้ใช้งาน (User Management)
 
-        // ฟังก์ชันนี้จะทำงาน "ก่อน" ที่ทุกหน้าใน Admin จะถูกเปิด
+        // ฟังก์ชันนี้จะทำงาน "ก่อน" ที่ทุกหน้าใน Admin จะถูกเปิด เพื่อตรวจสอบสิทธิ์การเข้าถึง
         public override void OnActionExecuting(ActionExecutingContext context)
         {
+            var userId = HttpContext.Session.GetInt32("UserId");
             var role = HttpContext.Session.GetString("Role");
 
-            // ถ้าไม่ใช่ทั้ง Admin และไม่ใช่ทั้ง SuperAdmin ให้เตะกลับไปหน้า Login
-            if (string.IsNullOrEmpty(role) || (role != "Admin" && role != "SuperAdmin"))
+            // 1. ยังไม่ได้เข้าสู่ระบบ -> ส่งไปหน้า Login
+            if (userId == null || string.IsNullOrEmpty(role))
             {
-                context.Result = new RedirectToActionResult("Login", "Account", null);
+                TempData["ErrorMessage"] = "กรุณาเข้าสู่ระบบก่อนเข้าใช้งานหน้าระบบผู้ดูแลระบบ (Admin)";
+                string returnUrl = context.HttpContext.Request.Path + context.HttpContext.Request.QueryString;
+                context.Result = new RedirectToActionResult("Login", "Account", new { returnUrl });
+                return;
+            }
+
+            // 2. พนักงานทั่วไป (Staff) พยายามเข้าหน้า Admin -> ส่งกลับหน้าพนักงาน
+            if (role == "Staff")
+            {
+                TempData["ErrorMessage"] = "คุณไม่มีสิทธิ์เข้าถึงหน้าระบบผู้ดูแลระบบ (Admin) สงวนสิทธิ์เฉพาะแอดมินเท่านั้น";
+                context.Result = new RedirectToActionResult("BookingList", "Staff", null);
+                return;
+            }
+
+            // 3. ฝ่ายบัญชี (Accounting) พยายามเข้าหน้า Admin -> ส่งกลับหน้ารายงานบัญชี
+            if (role == "Accounting")
+            {
+                TempData["ErrorMessage"] = "คุณไม่มีสิทธิ์เข้าถึงหน้าระบบผู้ดูแลระบบ (Admin) สงวนสิทธิ์เฉพาะแอดมินเท่านั้น";
+                context.Result = new RedirectToActionResult("RevenueReport", "Accounting", null);
+                return;
+            }
+
+            // 4. ผู้ใช้งานทั่วไป (Customer) หรือบทบาทอื่นที่ไม่ใช่ Admin หรือ SuperAdmin -> ส่งกลับหน้าหลัก
+            if (role != "Admin" && role != "SuperAdmin")
+            {
+                TempData["ErrorMessage"] = "คุณไม่มีสิทธิ์เข้าถึงหน้าระบบผู้ดูแลระบบ (Admin) เฉพาะแอดมินเท่านั้น";
+                context.Result = new RedirectToActionResult("Index", "Home", null);
+                return;
             }
 
             base.OnActionExecuting(context);
         }
       
        // GET: Admin/Dashboard
-        public async Task<IActionResult> Dashboard()
-        {
-            // 1. นับจำนวนผู้ใช้งานทั้งหมด
-            int totalUsers = await _context.Users.CountAsync();
+       
+       public async Task<IActionResult> Dashboard()
+{
+    // 1. ตั้งค่าวันที่ปัจจุบันและย้อนหลัง 7 วัน
+    var today = DateOnly.FromDateTime(DateTime.Now);
+    var sevenDaysAgo = today.AddDays(-6);
+
+    // 2. คำนวณสถิติ 4 การ์ดด้านบน
+    var todayRevenue = await _context.Bookings
+        .Where(b => b.CheckInDate == today && b.BookingStatus != "Pending")
+        .SumAsync(b => b.TotalPrice);
+
+    int totalRooms = await _context.Rooms.CountAsync();
+    int availableRooms = await _context.Rooms.CountAsync(r => r.Status == "Available");
+    int occupiedRooms = totalRooms - availableRooms;
+    double occupancyRate = totalRooms > 0 ? Math.Round(((double)occupiedRooms / totalRooms) * 100, 1) : 0;
+
+    int activeBookings = await _context.Bookings
+        .Where(b => b.BookingStatus == "CheckIn" || b.BookingStatus == "CheckedIn")
+        .CountAsync();
+
+    ViewBag.TodayRevenue = todayRevenue;
+    ViewBag.AvailableRooms = availableRooms;
+    ViewBag.TotalRooms = totalRooms;
+    ViewBag.OccupancyRate = occupancyRate;
+    ViewBag.ActiveBookings = activeBookings;
+
+    // 3. เตรียมข้อมูลกราฟแท่ง (รายรับย้อนหลัง 7 วัน)
+    var last7DaysBookings = await _context.Bookings
+        .Where(b => b.CheckInDate >= sevenDaysAgo && b.CheckInDate <= today)
+        .ToListAsync();
+
+    var revenueLabels = new List<string>();
+    var revenueData = new List<decimal>();
+
+    for (int i = 6; i >= 0; i--)
+    {
+        var targetDate = today.AddDays(-i);
+        revenueLabels.Add(targetDate.ToString("dd MMM")); // เช่น 15 พ.ย.
+        
+        var dailyRev = last7DaysBookings
+            .Where(b => b.CheckInDate == targetDate && b.BookingStatus != "Pending")
+            .Sum(b => b.TotalPrice);
             
-            // 2. นับจำนวนห้องพักทั้งหมด
-            int totalRooms = await _context.Rooms.CountAsync();
-            
-            // 3. นับจำนวนห้องพักที่ว่างอยู่ (Status == "Available")
-            int availableRooms = await _context.Rooms.CountAsync(r => r.Status == "Available");
+        revenueData.Add(dailyRev);
+    }
+    ViewBag.RevenueLabels = revenueLabels;
+    ViewBag.RevenueData = revenueData;
 
-            // 4. นับจำนวนการจองทั้งหมดในระบบ
-            int totalBookings = await _context.Bookings.CountAsync();
+    // 4. เตรียมข้อมูลกราฟโดนัท (สัดส่วนห้องพักที่ถูกจองแยกตามประเภท)
+    var roomStats = await _context.Rooms
+        .Include(r => r.RoomType)
+        .Where(r => r.Status != "Available") // นับเฉพาะห้องที่ไม่ว่าง
+        .GroupBy(r => r.RoomType.TypeName)
+        .Select(g => new { TypeName = g.Key, Count = g.Count() })
+        .ToListAsync();
 
-            // ส่งข้อมูลไปยัง View ผ่าน ViewBag
-            ViewBag.TotalUsers = totalUsers;
-            ViewBag.TotalRooms = totalRooms;
-            ViewBag.AvailableRooms = availableRooms;
-            ViewBag.TotalBookings = totalBookings;
+    ViewBag.RoomTypeLabels = roomStats.Select(r => r.TypeName ?? "ไม่ระบุ").ToList();
+    ViewBag.RoomTypeData = roomStats.Select(r => r.Count).ToList();
 
-            return View();
-        }
+    // 5. ตารางการจองล่าสุด
+    var recentBookings = await _context.Bookings
+        .Include(b => b.Room)
+        .OrderByDescending(b => b.BookingId)
+        .Take(5)
+        .ToListAsync();
 
+    return View(recentBookings);
+}
         //AddUser(Admin,Staff,Accounting)
 
         public IActionResult AddUser()

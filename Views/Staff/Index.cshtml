@@ -1,65 +1,244 @@
 @model IEnumerable<EasyStayHotel.Models.Room>
 @{
     Layout = "~/Views/Shared/_StaffLayout.cshtml";
-    ViewData["Title"] = "Room Status";
+    ViewData["Title"] = "ระบบจัดการสถานะห้องพัก";
+    var activeBookings = ViewBag.ActiveBookings as Dictionary<int, EasyStayHotel.Models.Booking> ?? new Dictionary<int, EasyStayHotel.Models.Booking>();
+    string filterStatus = ViewBag.FilterStatus as string ?? "ALL";
 }
-<div class="card shadow-sm border-0">
-    <div class="card-body">
-        <div class="d-flex justify-content-between align-item-center mb-3">
-            <h5 class="card-title m-0">รายการห้องพักทั้งหมด</h5>
-            <div>
-                <span class="badge bg-success me-2">ว่าง(Available)</span>
-                <span class="badge bg-danger me-2">ไม่ว่าง(Occupied)</span>
-                <span class="badge bg-warning text-dark me-2">รอทำความสะอาด(Cleaning)</span>
-                <span class="badge bg-secondary ">ซ่อมบำรุง(Maintenance)</span>
+
+@functions {
+    public string GetStatusColor(string? status)
+    {
+        return status switch
+        {
+            "Available" => "success",       // เขียว
+            "Occupied" => "danger",         // แดง
+            "Cleaning" => "warning",        // เหลือง
+            "Maintenance" => "secondary",   // เทา
+            "Reserved" => "primary",        // น้ำเงิน
+            _ => "dark"
+        };
+    }
+
+    public string GetStatusLabel(string? status)
+    {
+        return status switch
+        {
+            "Available" => "ว่างพร้อมใช้",
+            "Occupied" => "มีแขกเข้าพัก",
+            "Cleaning" => "รอทำความสะอาด",
+            "Maintenance" => "ซ่อมบำรุง",
+            "Reserved" => "รอเช็คอินวันนี้",
+            _ => status ?? "-"
+        };
+    }
+}
+
+<div class="container-fluid py-4 mb-5">
+    <!-- ส่วนหัว -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary px-3 py-1 rounded-pill">
+                    <i class="bi bi-geo-alt-fill me-1"></i> สาขา@ViewBag.CurrentBranchTh
+                </span>
+                <span class="badge bg-dark rounded-pill px-3 py-1">Room Control Board</span>
+            </div>
+            <h3 class="fw-bold m-0 text-dark">ระบบจัดการสถานะห้องพัก (Room Status Management)</h3>
+            <p class="text-muted small mb-0">ตรวจสอบห้องว่าง จัดการทำความสะอาด และเช็คอิน/เช็คเอาท์ได้โดยตรงจากการ์ดห้องพัก</p>
+        </div>
+
+        <div class="d-flex flex-wrap gap-2">
+            <a asp-action="WalkinBooking" class="btn btn-success fw-bold rounded-pill px-3 shadow-sm">
+                <i class="bi bi-person-plus-fill me-1"></i> จองแบบ Walk-in
+            </a>
+            <a asp-action="DailyOverview" class="btn btn-outline-primary fw-medium rounded-pill px-3 bg-white shadow-sm">
+                <i class="bi bi-calendar2-day-fill me-1"></i> ภาพรวมรายวัน
+            </a>
+        </div>
+    </div>
+
+    <!-- แถบสถิติและตัวกรองสถานะห้อง (Status Filter Pills) -->
+    <div class="card shadow-sm border-0 mb-4 rounded-4 bg-white p-3">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div class="d-flex flex-wrap gap-2">
+                <a asp-action="Index" asp-route-filterStatus="ALL"
+                   class="btn btn-sm rounded-pill px-3 fw-medium @(filterStatus == "ALL" ? "btn-dark text-white" : "btn-outline-secondary")">
+                    ทั้งหมด (@ViewBag.CountTotal)
+                </a>
+                <a asp-action="Index" asp-route-filterStatus="Available"
+                   class="btn btn-sm rounded-pill px-3 fw-medium @(filterStatus == "Available" ? "btn-success text-white" : "btn-outline-success")">
+                    <i class="bi bi-door-open-fill me-1"></i> ว่างพร้อมใช้ (@ViewBag.CountAvailable)
+                </a>
+                <a asp-action="Index" asp-route-filterStatus="Occupied"
+                   class="btn btn-sm rounded-pill px-3 fw-medium @(filterStatus == "Occupied" ? "btn-danger text-white" : "btn-outline-danger")">
+                    <i class="bi bi-people-fill me-1"></i> มีแขกเข้าพัก (@ViewBag.CountOccupied)
+                </a>
+                <a asp-action="Index" asp-route-filterStatus="Cleaning"
+                   class="btn btn-sm rounded-pill px-3 fw-medium @(filterStatus == "Cleaning" ? "btn-warning text-dark" : "btn-outline-warning text-dark")">
+                    <i class="bi bi-stars me-1"></i> รอทำความสะอาด (@ViewBag.CountCleaning)
+                </a>
+                <a asp-action="Index" asp-route-filterStatus="Maintenance"
+                   class="btn btn-sm rounded-pill px-3 fw-medium @(filterStatus == "Maintenance" ? "btn-secondary text-white" : "btn-outline-secondary")">
+                    <i class="bi bi-tools me-1"></i> ซ่อมบำรุง (@ViewBag.CountMaintenance)
+                </a>
+            </div>
+
+            <div class="text-muted small">
+                <i class="bi bi-info-circle me-1"></i> คลิกปุ่มบนการ์ดห้องเพื่อเปลี่ยนสถานะได้ทันที
             </div>
         </div>
-        <table class="table table-hover table-bordered">
-            <thead class="table-light">
-                <tr>
-                    <th>เลขห้อง</th>
-                    <th>ประเภทห้อง</th>
-                    <th>สถานะปัจจุบัน</th>
-                    <th>จัดการ</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var room in Model)
-                {
-                    <tr>
-                        <td class="fw-bold fs-5">@room.RoomNo</td>
-                        <td>@(room.RoomType != null ? room.RoomType.TypeName : "ไม่มีข้อมูล")</td>
-                        <td>
-                            @if (room.Status == "Available")
-                            {
-                                <span class="badge bg-success">ว่าง พร้อมใช้งาน</span>
-                            }
-                            else if (room.Status == "Occupied")
-                            {
-
-                                <span class="badge bg-danger">มีแขกเข้าพักอยู่</span>
-                            }
-                            else if (room.Status == "Cleaning")
-                            {
-
-                                <span
-                                class="badge bg-warning text-dark">รอทำความสะอาด</span>
-                            }
-                            else
-                            {
-
-                                <span class="badge bg-secondary">@room.Status</span>
-                            }
-                        </td>
-                        <td>
-                            <a asp-controller="Staff" asp-action="EditRoom" asp-route-id="@room.RoomId"
-                               class="btn btn-sm btn-primary">เปลี่ยนสถานะ</a>
-
-                            <a asp-controller="Staff" asp-action="DeleteRoom" asp-route-id="@room.RoomId" class="btn btn-sm btn-danger ms-1" onclick="return confirm('คุณแน่ใจว่าต้องการลบห้อง @room.RoomNo อย่างถาว?');">ลบ</a>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
     </div>
+
+    <!-- กริดห้องพัก จัดกลุ่มตามประเภทห้องพัก (Room Type) -->
+    @{
+        var groupedRooms = Model.GroupBy(r => r.RoomType?.TypeName ?? "ไม่ระบุประเภท").OrderBy(g => g.Key);
+    }
+
+    @if (Model.Any())
+    {
+        @foreach (var group in groupedRooms)
+        {
+            <div class="mb-4">
+                <div class="d-flex align-items-center gap-2 mb-3">
+                    <h5 class="fw-bold m-0 text-dark">ประเภทห้อง: @group.Key</h5>
+                    <span class="badge bg-light text-muted border rounded-pill px-2">@group.Count() ห้อง</span>
+                </div>
+
+                <div class="row g-3">
+                    @foreach (var room in group)
+                    {
+                        var colorClass = GetStatusColor(room.Status);
+                        var labelText = GetStatusLabel(room.Status);
+                        activeBookings.TryGetValue(room.RoomId, out var currentBooking);
+
+                        <div class="col-xl-3 col-lg-4 col-md-6">
+                            <div class="card h-100 shadow-sm border-0 rounded-4 bg-white overflow-hidden room-card"
+                                 style="border-left: 6px solid var(--bs-@colorClass) !important;">
+                                <div class="card-body p-4 d-flex flex-column">
+
+                                    <!-- ส่วนบน: หมายเลขห้อง + ป้ายสถานะ -->
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <div>
+                                            <h2 class="fw-bold text-dark m-0">@room.RoomNo</h2>
+                                            <small class="text-muted">@group.Key</small>
+                                        </div>
+                                        <span class="badge bg-@colorClass @(colorClass == "warning" ? "text-dark" : "text-white") px-3 py-2 rounded-pill shadow-sm">
+                                            @labelText
+                                        </span>
+                                    </div>
+
+                                    <hr class="opacity-25 my-2" />
+
+                                    <!-- ข้อมูลสถานะและผู้เข้าพัก -->
+                                    <div class="my-2 flex-grow-1">
+                                        @if (room.Status == "Occupied" && currentBooking != null)
+                                        {
+                                            <div class="p-2 rounded-3 bg-danger bg-opacity-10 border border-danger border-opacity-25 small mb-2">
+                                                <div class="fw-bold text-danger text-truncate">
+                                                    <i class="bi bi-person-fill me-1"></i> @(currentBooking.GuestName ?? "แขกเข้าพัก")
+                                                </div>
+                                                <div class="text-muted" style="font-size: 0.75rem;">
+                                                    ออก: @currentBooking.CheckOutDate.ToString("dd/MM/yyyy") (รหัส: @currentBooking.BookingRef)
+                                                </div>
+                                            </div>
+                                        }
+                                        else if (room.Status == "Cleaning")
+                                        {
+                                            <div class="p-2 rounded-3 bg-warning bg-opacity-10 border border-warning border-opacity-25 small mb-2 text-dark">
+                                                <i class="bi bi-stars me-1 text-warning"></i> กำลังรอแม่บ้านทำความสะอาด
+                                            </div>
+                                        }
+                                        else if (room.Status == "Maintenance")
+                                        {
+                                            <div class="p-2 rounded-3 bg-secondary bg-opacity-10 border border-secondary border-opacity-25 small mb-2 text-muted">
+                                                <i class="bi bi-wrench-adjustable me-1"></i> อยู่ระหว่างปิดซ่อมบำรุง
+                                            </div>
+                                        }
+                                        else if (room.Status == "Available")
+                                        {
+                                            <div class="p-2 rounded-3 bg-success bg-opacity-10 border border-success border-opacity-25 small mb-2 text-success">
+                                                <i class="bi bi-check-circle-fill me-1"></i> พร้อมเปิดห้องต้อนรับแขก
+                                            </div>
+                                        }
+                                    </div>
+
+                                    <!-- ปุ่มปฏิบัติการด่วนบนการ์ดห้อง -->
+                                    <div class="mt-auto pt-2 border-top">
+                                        @if (room.Status == "Occupied" && currentBooking != null)
+                                        {
+                                            <form asp-action="CheckOutBooking" method="post" class="d-grid" onsubmit="return confirm('ยืนยันการเช็คเอาท์ห้อง @room.RoomNo? ห้องจะถูกเปลี่ยนเป็นสถานะ: รอทำความสะอาด');">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="id" value="@currentBooking.BookingId" />
+                                                <button type="submit" class="btn btn-danger btn-sm fw-bold rounded-pill shadow-sm">
+                                                    <i class="bi bi-box-arrow-right me-1"></i> เช็คเอาท์ห้องนี้
+                                                </button>
+                                            </form>
+                                        }
+                                        else if (room.Status == "Cleaning")
+                                        {
+                                            <form asp-action="QuickUpdateRoomStatus" method="post" class="d-grid">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="roomId" value="@room.RoomId" />
+                                                <input type="hidden" name="newStatus" value="Available" />
+                                                <button type="submit" class="btn btn-success btn-sm fw-bold rounded-pill shadow-sm">
+                                                    <i class="bi bi-check2-circle me-1"></i> ทำความสะอาดเสร็จแล้ว (ตั้งเป็นว่าง)
+                                                </button>
+                                            </form>
+                                        }
+                                        else if (room.Status == "Maintenance")
+                                        {
+                                            <form asp-action="QuickUpdateRoomStatus" method="post" class="d-grid">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="roomId" value="@room.RoomId" />
+                                                <input type="hidden" name="newStatus" value="Available" />
+                                                <button type="submit" class="btn btn-outline-success btn-sm fw-bold rounded-pill">
+                                                    <i class="bi bi-tools me-1"></i> ซ่อมบำรุงเสร็จสิ้น (ตั้งเป็นว่าง)
+                                                </button>
+                                            </form>
+                                        }
+                                        else if (room.Status == "Available")
+                                        {
+                                            <div class="d-flex gap-1">
+                                                <a asp-action="WalkinBooking" asp-route-preselectedRoomId="@room.RoomId"
+                                                   class="btn btn-primary btn-sm fw-bold rounded-pill flex-grow-1 shadow-sm">
+                                                    <i class="bi bi-person-plus-fill me-1"></i> Walk-in ห้องนี้
+                                                </a>
+                                                <form asp-action="QuickUpdateRoomStatus" method="post" class="d-inline">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="roomId" value="@room.RoomId" />
+                                                    <input type="hidden" name="newStatus" value="Maintenance" />
+                                                    <button type="submit" class="btn btn-outline-secondary btn-sm rounded-pill" title="ส่งซ่อมบำรุง">
+                                                        <i class="bi bi-tools"></i>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    }
+    else
+    {
+        <div class="card border-0 shadow-sm rounded-4 bg-white p-5 text-center">
+            <i class="bi bi-door-closed display-1 text-muted opacity-25 mb-3"></i>
+            <h5 class="fw-bold text-dark">ไม่พบห้องพักตามเงื่อนไขที่เลือก</h5>
+            <p class="text-muted small mb-0">กรุณาลองเปลี่ยนตัวกรองสถานะ หรือเพิ่มห้องพักใหม่ในสาขานี้</p>
+        </div>
+    }
 </div>
+
+<style>
+    .room-card {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .room-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08) !important;
+    }
+</style>
