@@ -3,8 +3,15 @@ using System.Collections.Generic;
 
 namespace EasyStayHotel.Services
 {
+    /// <summary>
+    /// คลาสผู้ช่วย RoomPreviewHelper: สำหรับจัดการข้อมูลการแสดงผลห้องพักในหน้าเว็บไซต์ (UI Presentation Helper)
+    /// หน้าที่: จัดเตรียมชื่อสาขาภาษาไทย รูปภาพแกลเลอรี ขนาดห้อง ชนิดเตียงนอน ป้ายไฮไลท์ และสิ่งอำนวยความสะดวก (Amenities)
+    /// </summary>
     public static class RoomPreviewHelper
     {
+        /// <summary>
+        /// แปลงรหัสสาขาภาษาอังกฤษเป็นชื่อภาษาไทยที่เข้าใจง่าย เช่น "Bangkok" -> "กรุงเทพมหานคร"
+        /// </summary>
         public static string GetBranchNameTh(string? branch)
         {
             return branch switch
@@ -16,16 +23,23 @@ namespace EasyStayHotel.Services
             };
         }
 
+        /// <summary>
+        /// ดึงรูปภาพหลัก (Main Image) ของห้องพักเพื่อใช้เป็นภาพปกในการแสดงผล
+        /// </summary>
         public static string GetMainImage(string? typeName, int roomTypeId = 0)
         {
             var gallery = GetGalleryImages(typeName, roomTypeId);
             return gallery[0];
         }
 
+        /// <summary>
+        /// ดึงรายการรูปภาพในแกลเลอรี (Gallery Images) ตามประเภทของห้องพัก
+        /// </summary>
         public static List<string> GetGalleryImages(string? typeName, int roomTypeId = 0)
         {
             string name = (typeName ?? "").ToLower();
 
+            // สำหรับห้อง Suite (ห้องสวีท) หรือ VIP
             if (name.Contains("suite") || name.Contains("สวีท") || name.Contains("vip") || name.Contains("總統") || roomTypeId == 3)
             {
                 return new List<string>
@@ -36,6 +50,7 @@ namespace EasyStayHotel.Services
                 };
             }
 
+            // สำหรับห้อง Deluxe (ดีลักซ์) หรือ Superior
             if (name.Contains("deluxe") || name.Contains("ดีลักซ์") || name.Contains("superior") || roomTypeId == 2)
             {
                 return new List<string>
@@ -46,6 +61,7 @@ namespace EasyStayHotel.Services
                 };
             }
 
+            // สำหรับห้อง Family หรือ Villa
             if (name.Contains("family") || name.Contains("ครอบครัว") || name.Contains("villa") || name.Contains("วิลล่า"))
             {
                 return new List<string>
@@ -56,7 +72,7 @@ namespace EasyStayHotel.Services
                 };
             }
 
-            // Default / Standard Room
+            // ห้องมาตรฐานเริ่มต้น (Standard Room)
             return new List<string>
             {
                 "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?auto=format&fit=crop&w=1000&q=80",
@@ -65,6 +81,9 @@ namespace EasyStayHotel.Services
             };
         }
 
+        /// <summary>
+        /// คืนค่าขนาดพื้นที่ใช้สอยของห้องพัก (ตร.ม.)
+        /// </summary>
         public static string GetRoomSize(string? typeName, int roomTypeId = 0)
         {
             string name = (typeName ?? "").ToLower();
@@ -74,6 +93,9 @@ namespace EasyStayHotel.Services
             return "30 ตร.ม.";
         }
 
+        /// <summary>
+        /// คืนค่าชนิดและขนาดของเตียงนอนในห้องพัก
+        /// </summary>
         public static string GetBedType(string? typeName, int roomTypeId = 0)
         {
             string name = (typeName ?? "").ToLower();
@@ -86,16 +108,22 @@ namespace EasyStayHotel.Services
             return "1 เตียงควีนไซส์ หรือ 2 เตียงเดี่ยว (Twin)";
         }
 
+        /// <summary>
+        /// คืนค่าป้ายไฮไลท์และคลาสสีสไตล์ Bootstrap (Label & BadgeClass) สำหรับตกแต่งการ์ดห้องพัก
+        /// </summary>
         public static (string Label, string BadgeClass) GetHighlightBadge(string? typeName, int roomTypeId = 0)
         {
             string name = (typeName ?? "").ToLower();
             if (name.Contains("suite") || name.Contains("สวีท") || roomTypeId == 3)
-                return ("✨ ลักชัวรีพรีเมียม", "bg-warning text-dark");
+                return ("ลักชัวรีพรีเมียม", "bg-warning text-dark");
             if (name.Contains("deluxe") || name.Contains("ดีลักซ์") || roomTypeId == 2)
-                return ("🔥 ยอดนิยมอันดับ 1", "bg-danger text-white");
-            return ("💎 คุ้มค่าราคาดีที่สุด", "bg-primary text-white");
+                return ("ยอดนิยมอันดับ 1", "bg-danger text-white");
+            return ("คุ้มค่าราคาดีที่สุด", "bg-primary text-white");
         }
 
+        /// <summary>
+        /// คืนค่าคำอธิบายห้องพัก หากในฐานข้อมูลว่างเปล่า จะสร้างคำอธิบายมาตรฐานระดับโรงแรม 5 ดาวให้อัตโนมัติ
+        /// </summary>
         public static string GetDefaultDescription(string? typeName, string? dbDescription, int roomTypeId = 0)
         {
             if (!string.IsNullOrWhiteSpace(dbDescription))
@@ -111,6 +139,9 @@ namespace EasyStayHotel.Services
             return "ห้องพักมาตรฐานตกแต่งสไตล์โมเดิร์นอบอุ่น สะอาดปลอดภัย เตียงนอนนุ่มสบาย พร้อมสมาร์ททีวีและอินเทอร์เน็ตความเร็วสูง";
         }
 
+        /// <summary>
+        /// คืนค่ารายการสิ่งอำนวยความสะดวกและไอคอน Bootstrap Icons สำหรับแสดงในหน้ารายละเอียดห้องพัก
+        /// </summary>
         public static List<(string Icon, string Text)> GetAmenities(string? typeName, int roomTypeId = 0)
         {
             var list = new List<(string Icon, string Text)>

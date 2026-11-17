@@ -7,12 +7,23 @@ using EasyStayHotel.Models;
 
 namespace EasyStayHotel.Services
 {
+    /// <summary>
+    /// เซอร์วิส HousekeepingService: จัดการระบบสั่งงานและติดตามงานทำความสะอาดห้องพักของแม่บ้าน (Housekeeping Operations)
+    /// รูปแบบการทำงานและวงจรชีวิตของงาน (Workflow Lifecycle):
+    /// 1. เมื่อแขกเช็คเอาท์ (Check-out) -> ระบบสร้าง Task อัตโนมัติ สถานะ "Pending" (รอแม่บ้านมารับงาน)
+    /// 2. แม่บ้านกด "เริ่มทำความสะอาด" -> เปลี่ยนสถานะเป็น "InProgress" และบันทึกเวลาเริ่ม
+    /// 3. แม่บ้านตรวจเช็คตาม Checklist และกดยืนยันทำความสะอาดเสร็จ -> เปลี่ยนเป็น "Completed" 
+    ///    พร้อมเปลี่ยนสถานะห้องพักในฐานข้อมูล MySQL เป็น "Available" เพื่อให้ขึ้นหน้าเว็บพร้อมขายให้ลูกค้าทันที
+    /// </summary>
     public static class HousekeepingService
     {
         private static readonly object _lock = new object();
         private static readonly string _dataDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "data");
         private static readonly string _filePath = Path.Combine(_dataDir, "housekeeping_tasks.json");
 
+        /// <summary>
+        /// ตรวจสอบการมีอยู่ของไฟล์ข้อมูล หากยังไม่มี จะสร้างโฟลเดอร์และไฟล์พร้อมตัวอย่างข้อมูลตั้งต้น
+        /// </summary>
         private static void EnsureFileExists()
         {
             if (!Directory.Exists(_dataDir))
@@ -95,6 +106,9 @@ namespace EasyStayHotel.Services
             }
         }
 
+        /// <summary>
+        /// ดึงรายการงานทำความสะอาดทั้งหมด กรองตามสาขาและสถานะ โดยงานด่วน (Urgent) จะแสดงขึ้นมาก่อนเสมอ
+        /// </summary>
         public static List<HousekeepingTask> GetAllTasks(string? branch = null, string? status = null)
         {
             lock (_lock)
@@ -127,6 +141,9 @@ namespace EasyStayHotel.Services
             }
         }
 
+        /// <summary>
+        /// ค้นหางานทำความสะอาดจากรหัส TaskId
+        /// </summary>
         public static HousekeepingTask? GetTaskById(string id)
         {
             lock (_lock)
@@ -145,6 +162,10 @@ namespace EasyStayHotel.Services
             }
         }
 
+        /// <summary>
+        /// สร้างใบสั่งงานทำความสะอาดใหม่ (เช่น เมื่อแขกเช็คเอาท์ หรือพนักงานต้อนรับแจ้งขอทำความสะอาด)
+        /// หากมีงานของห้องนี้ที่ยังไม่เสร็จอยู่แล้ว จะทำการอัปเดตคำขอเดิมแทนการสร้างซ้ำ
+        /// </summary>
         public static HousekeepingTask CreateTask(
             int roomId,
             string roomNo,
@@ -166,7 +187,6 @@ namespace EasyStayHotel.Services
                 var existingTask = list.FirstOrDefault(t => t.RoomId == roomId && t.Branch == branch && t.Status != "Completed");
                 if (existingTask != null)
                 {
-                    // อัปเดตข้อมูลคำขอเดิม
                     existingTask.Priority = priority;
                     if (!string.IsNullOrEmpty(notes))
                     {
@@ -180,7 +200,7 @@ namespace EasyStayHotel.Services
                     return existingTask;
                 }
 
-                // คำนวณชั้นจากเลขห้อง เช่น 101 -> 1, 204 -> 2
+                // คำนวณชั้นจากเลขห้อง เช่น ห้อง 101 คือชั้น 1, ห้อง 204 คือชั้น 2
                 int floor = 1;
                 if (!string.IsNullOrEmpty(roomNo) && char.IsDigit(roomNo[0]))
                 {
@@ -213,6 +233,9 @@ namespace EasyStayHotel.Services
             }
         }
 
+        /// <summary>
+        /// แม่บ้านเริ่มลงมือปฏิบัติงานทำความสะอาด (เปลี่ยนสถานะเป็น InProgress พร้อมบันทึกเวลาเริ่ม)
+        /// </summary>
         public static bool StartCleaning(string taskId, string housekeeperName)
         {
             lock (_lock)
@@ -241,6 +264,9 @@ namespace EasyStayHotel.Services
             }
         }
 
+        /// <summary>
+        /// แม่บ้านส่งมอบงานทำความสะอาดเสร็จสมบูรณ์ (เปลี่ยนสถานะเป็น Completed และบันทึก Checklist)
+        /// </summary>
         public static bool CompleteCleaning(
             string taskId,
             string housekeeperName,
@@ -291,7 +317,9 @@ namespace EasyStayHotel.Services
             }
         }
 
-        // ซิงค์ห้องพักในฐานข้อมูลที่มีสถานะ Cleaning เข้ามาเป็น Task ในกรณีที่ถูกตั้งสถานะ Cleaning จากช่องทางอื่น
+        /// <summary>
+        /// ตรวจสอบและซิงค์ห้องพักในฐานข้อมูล MySQL ที่มีสถานะ "Cleaning" ให้เข้ามาอยู่ในรายการงานของแม่บ้านโดยอัตโนมัติ
+        /// </summary>
         public static void SyncWithRooms(List<Room> rooms, string branch, string staffName = "ระบบอัตโนมัติ")
         {
             lock (_lock)

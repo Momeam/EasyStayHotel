@@ -10,21 +10,38 @@ using Microsoft.AspNetCore.Mvc.Filters;
 
 namespace EasyStayHotel.Controllers;
 
+/// <summary>
+/// คอนโทรลเลอร์ AccountingController: ดูแลระบบบัญชี การเงิน และการจัดการเงินคืนของโรงแรม (Accounting & Finance)
+/// 
+/// บทบาทหน้าที่สำคัญ (Key Responsibilities):
+/// 1. รายงานสรุปรายได้ (Revenue Dashboard): คำนวณรายรับรวม แยกเงินสด (Cash) กับเงินโอน (PromptPay/Credit Card)
+/// 2. วิเคราะห์รายได้ 3 สาขา (Bangkok, Chonburi, Phuket) และสร้างข้อมูลกราฟแนวโน้ม (Daily, Weekly, Monthly)
+/// 3. ตรวจสอบการส่งยอดเงินประจำกะ (Shift Handover) จากพนักงานต้อนรับหน้าร้าน
+/// 4. ตรวจสอบและอนุมัติ/ปฏิเสธคำร้องขอคืนเงิน (Refund Requests) ตามเงื่อนไข 7 วันและโอนคืนภายใน 3 วันทำการ
+/// 5. จัดทำรายงานทางการเงินส่งต่อให้ผู้บริหาร (Admin / General Manager) ตรวจรับทราบและอนุมัติ
+/// </summary>
 public class AccountingController : Controller
 {
     private readonly EasystaydbContext _context;
+
+    /// <summary>
+    /// Constructor รับ EasystaydbContext ผ่าน Dependency Injection
+    /// </summary>
     public AccountingController(EasystaydbContext context)
     {
         _context = context;
     }
 
-    // ตรวจสอบสิทธิ์การเข้าถึงระบบบัญชี (Accounting, Admin, SuperAdmin)
+    /// <summary>
+    /// ตรวจสอบสิทธิ์การเข้าถึงระบบบัญชี: อนุญาตเฉพาะ Role: Accounting, Admin, SuperAdmin
+    /// หากเป็นผู้ใช้กลุ่มอื่น จะถูกดีดกลับไปยังหน้าที่เหมาะสมกับบทบาทของตนเอง
+    /// </summary>
     public override void OnActionExecuting(ActionExecutingContext context)
     {
         var userId = HttpContext.Session.GetInt32("UserId");
         var role = HttpContext.Session.GetString("Role");
 
-        // 1. ยังไม่ได้เข้าสู่ระบบ
+        // 1. ตรวจสอบว่าเข้าสู่ระบบหรือยัง
         if (userId == null || string.IsNullOrEmpty(role))
         {
             TempData["ErrorMessage"] = "กรุณาเข้าสู่ระบบก่อนเข้าใช้งานหน้าระบบบัญชี";
@@ -33,7 +50,7 @@ public class AccountingController : Controller
             return;
         }
 
-        // 2. ผู้ไม่มีสิทธิ์ (Customer หรือ Staff ทั่วไป)
+        // 2. ปฏิเสธสิทธิ์ผู้ใช้ทั่วไปที่ไม่ใช่ฝ่ายบัญชีหรือผู้บริหาร
         if (role != "Accounting" && role != "Admin" && role != "SuperAdmin")
         {
             TempData["ErrorMessage"] = "คุณไม่มีสิทธิ์เข้าถึงหน้าระบบบัญชี";
@@ -55,12 +72,21 @@ public class AccountingController : Controller
         base.OnActionExecuting(context);
     }
 
+    // =========================================================================
+    // 1. แดชบอร์ดรายงานรายได้และการเงิน (Revenue Report Dashboard)
+    // =========================================================================
+    /// <summary>
+    /// แสดงหน้ารายงานรายได้ สถิติช่องทางชำระเงิน กราฟแนวโน้ม และรายการขอคืนเงิน
+    /// </summary>
+    /// <param name="branch">ตัวกรองสาขา (ALL, Bangkok, Chonburi, Phuket)</param>
+    /// <param name="period">ตัวกรองรอบเวลา (Daily = 7 วัน, Weekly = 6 สัปดาห์, Monthly = 6 เดือน)</param>
     [HttpGet]
     public IActionResult RevenueReport(string? branch = "ALL", string? period = "Daily")
     {
         branch = string.IsNullOrEmpty(branch) ? "ALL" : branch;
         period = string.IsNullOrEmpty(period) ? "Daily" : period;
 
+        // ดึงรายการธุรกรรมการชำระเงินทั้งหมด พร้อม Eager Loading ข้อมูลการจอง ห้องพัก และผู้ใช้
         var allPayments = _context.Payments
             .Include(p => p.Booking)
                 .ThenInclude(b => b!.Room)
@@ -69,7 +95,7 @@ public class AccountingController : Controller
             .OrderByDescending(p => p.PaymentId)
             .ToList();
 
-        // กรองตามสาขา
+        // กรองตามสาขาที่เลือก
         var payments = allPayments;
         if (branch != "ALL")
         {
@@ -77,28 +103,29 @@ public class AccountingController : Controller
         }
 
         var today = DateTime.Today;
+        // กรองเฉพาะรายการที่ชำระเงินเรียบร้อยแล้ว (Paid / Confirmed / Approved)
         var validPaidPayments = payments.Where(p => p.PaymentStatus == "Paid" || p.PaymentStatus == "Confirmed" || p.PaymentStatus == "Approved").ToList();
 
-        // สรุปยอดรายได้หลัก
+        // 1. คำนวณสรุปยอดรายได้หลักตามช่องทางชำระเงิน
         decimal totalRevenue = validPaidPayments.Sum(p => p.Amount);
         decimal cashTotal = validPaidPayments.Where(p => p.PaymentMethod == "Cash").Sum(p => p.Amount);
         decimal promptpayTotal = validPaidPayments.Where(p => p.PaymentMethod == "PromptPay").Sum(p => p.Amount);
         decimal cardTotal = validPaidPayments.Where(p => p.PaymentMethod == "CreditCard").Sum(p => p.Amount);
         decimal transferTotal = promptpayTotal + cardTotal;
 
-        // สรุปยอดแยก 3 สาขา
+        // 2. คำนวณสัดส่วนรายได้แยกตาม 3 สาขา
         var allValidPaid = allPayments.Where(p => p.PaymentStatus == "Paid" || p.PaymentStatus == "Confirmed" || p.PaymentStatus == "Approved").ToList();
         decimal bkkTotal = allValidPaid.Where(p => p.Booking?.Room?.Branch == "Bangkok").Sum(p => p.Amount);
         decimal chonTotal = allValidPaid.Where(p => p.Booking?.Room?.Branch == "Chonburi").Sum(p => p.Amount);
         decimal phuketTotal = allValidPaid.Where(p => p.Booking?.Room?.Branch == "Phuket").Sum(p => p.Amount);
 
-        // เตรียมข้อมูลกราฟแนวโน้มตาม Period (Daily / Weekly / Monthly)
+        // 3. เตรียมชุดข้อมูลแกน X (Labels) และแกน Y (Data) สำหรับแสดงผลบน Chart.js
         var trendLabels = new List<string>();
         var trendData = new List<decimal>();
 
         if (period == "Weekly")
         {
-            // 6 สัปดาห์ย้อนหลัง
+            // คำนวณสรุปย้อนหลัง 6 สัปดาห์
             for (int i = 5; i >= 0; i--)
             {
                 var startOfWeek = today.AddDays(-((int)today.DayOfWeek == 0 ? 6 : (int)today.DayOfWeek - 1)).AddDays(-i * 7);
@@ -116,7 +143,7 @@ public class AccountingController : Controller
         }
         else if (period == "Monthly")
         {
-            // 6 เดือนย้อนหลัง
+            // คำนวณสรุปย้อนหลัง 6 เดือน
             for (int i = 5; i >= 0; i--)
             {
                 var monthDate = today.AddMonths(-i);
@@ -135,7 +162,7 @@ public class AccountingController : Controller
         }
         else // Daily
         {
-            // 7 วันย้อนหลัง
+            // คำนวณสรุปย้อนหลัง 7 วัน
             for (int i = 6; i >= 0; i--)
             {
                 var targetDate = today.AddDays(-i);
@@ -150,6 +177,7 @@ public class AccountingController : Controller
 
         var allRefunds = RefundService.GetAll(branch == "ALL" ? null : branch);
 
+        // ส่งตัวแปรสถิติทั้งหมดไปยัง View ผ่าน ViewBag
         ViewBag.TotalRevenue = totalRevenue;
         ViewBag.CashTotal = cashTotal;
         ViewBag.TransferTotal = transferTotal;
@@ -175,15 +203,19 @@ public class AccountingController : Controller
         return View(payments);
     }
 
-    // POST: /Accounting/SendReportToAdmin
-    // ฝ่ายบัญชีส่งรายงานสรุปภาพรวมการเงินไปยัง Admin / ผู้จัดการ
+    // =========================================================================
+    // 2. ส่งรายงานสรุปทางการเงินไปยังผู้บริหาร (Send Financial Report to Admin)
+    // =========================================================================
+    /// <summary>
+    /// ฝ่ายบัญชีรวบรวมตัวเลขสรุปรายได้ เงินสด เงินโอน ยอดขอคืนเงิน และส่งรายงานไปยังแดชบอร์ดของผู้จัดการ
+    /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     public IActionResult SendReportToAdmin(string periodType, string branch, string periodLabel, string? notes)
     {
         string userName = HttpContext.Session.GetString("FullName") ?? "ฝ่ายบัญชีและการเงิน";
 
-        // คำนวณตัวเลขตามเงื่อนไขที่เลือก
+        // รวบรวมตัวเลขการชำระเงินที่ผ่านการตรวจสอบแล้ว
         var allPayments = _context.Payments
             .Include(p => p.Booking)
                 .ThenInclude(b => b!.Room)
@@ -208,6 +240,7 @@ public class AccountingController : Controller
         var refunds = RefundService.GetAll(branch == "ALL" ? null : branch);
         decimal refundAmount = refunds.Where(r => r.Status == "Approved").Sum(r => r.Amount);
 
+        // สร้างรายงานทางการเงินใหม่
         var report = new FinancialReport
         {
             CreatedAt = DateTime.Now,
@@ -240,6 +273,12 @@ public class AccountingController : Controller
         return RedirectToAction(nameof(RevenueReport), new { branch = branch, period = periodType });
     }
 
+    // =========================================================================
+    // 3. รับทราบรายงานปิดกะจากพนักงานต้อนรับ (Acknowledge Staff Feedback)
+    // =========================================================================
+    /// <summary>
+    /// ฝ่ายบัญชีกดรับทราบยอดเงินส่งกะ (Cash & Transfer Handover) จากพนักงานหน้าร้าน
+    /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     public IActionResult AcknowledgeFeedback(string id)
@@ -253,8 +292,15 @@ public class AccountingController : Controller
         return RedirectToAction(nameof(RevenueReport));
     }
 
-    // POST: /Accounting/ApproveRefund
-    // พนักงานฝ่ายบัญชีตรวจสอบข้อมูลและอนุมัติการโอนเงินคืนธนาคาร (ภายใน 3 วัน)
+    // =========================================================================
+    // 4. อนุมัติการคืนเงินให้ลูกค้า (Approve Refund Request)
+    // =========================================================================
+    /// <summary>
+    /// ฝ่ายบัญชีตรวจสอบและอนุมัติการโอนเงินคืนธนาคารให้แก่ลูกค้า:
+    /// 1. บันทึกสถานะคำร้องเป็น Approved
+    /// 2. เปลี่ยนสถานะการจองเป็น "Refunded"
+    /// 3. ปลดล็อกห้องพักกลับเป็น "Available" เพื่อให้ผู้อื่นสามารถจองต่อได้
+    /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     public IActionResult ApproveRefund(string refundId, string? adminNote, string? slipUrl)
@@ -270,7 +316,7 @@ public class AccountingController : Controller
         bool success = RefundService.Approve(refundId, userName, adminNote, slipUrl);
         if (success)
         {
-            // อัปเดตสถานะการจองในฐานข้อมูล
+            // อัปเดตสถานะการจองในฐานข้อมูล MySQL
             var booking = _context.Bookings
                 .Include(b => b.Room)
                 .Include(b => b.Payments)
@@ -287,7 +333,7 @@ public class AccountingController : Controller
                     latestPayment.PaymentStatus = "Refunded";
                 }
 
-                // คืนสถานะห้องพักกลับเป็น Available
+                // คืนสถานะห้องพักกลับเป็น Available (ถ้าห้องไม่ได้อยู่ระหว่างทำความสะอาด)
                 if (booking.Room != null && booking.Room.Status != "Cleaning")
                 {
                     booking.Room.Status = "Available";
@@ -306,8 +352,13 @@ public class AccountingController : Controller
         return RedirectToAction(nameof(RevenueReport));
     }
 
-    // POST: /Accounting/RejectRefund
-    // พนักงานฝ่ายบัญชีปฏิเสธคำขอคืนเงินพร้อมระบุเหตุผล
+    // =========================================================================
+    // 5. ปฏิเสธคำร้องขอคืนเงิน (Reject Refund Request)
+    // =========================================================================
+    /// <summary>
+    /// ฝ่ายบัญชีปฏิเสธคำร้องขอคืนเงิน (เช่น ขอยื่นเกิน 7 วัน หรือเข้าพักแล้ว) พร้อมระบุเหตุผล
+    /// และปรับสถานะการจองกลับมาเป็น "Confirmed" ตามเดิม
+    /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     public IActionResult RejectRefund(string refundId, string rejectionReason)

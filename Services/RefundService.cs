@@ -8,12 +8,22 @@ using EasyStayHotel.Models;
 
 namespace EasyStayHotel.Services
 {
+    /// <summary>
+    /// เซอร์วิส RefundService: จัดการระบบยื่นคำร้องขอยกเลิกการจองและขอคืนเงินของลูกค้า (Refund Management)
+    /// นโยบายของโรงแรม (Hotel Refund Policy):
+    /// 1. ลูกค้ามีสิทธิ์ยื่นคำร้องขอเงินคืนได้ "ภายใน 7 วัน" นับจากวันที่ทำการจอง
+    /// 2. หากลูกค้าเข้าพักแล้ว (Check-in) หรือรายการจองถูกยกเลิกไปแล้ว จะไม่สามารถขอเงินคืนได้
+    /// 3. เมื่อลูกค้ายื่นคำร้อง ฝ่ายบัญชีจะตรวจสอบและดำเนินการโอนเงินคืนภายใน 3 วันทำการ (Refund Deadline)
+    /// </summary>
     public static class RefundService
     {
         private static readonly object _lock = new object();
         private static readonly string _dataDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "data");
         private static readonly string _filePath = Path.Combine(_dataDir, "refund_requests.json");
 
+        /// <summary>
+        /// ตรวจสอบการมีอยู่ของไฟล์ข้อมูล หากยังไม่มี จะสร้างโฟลเดอร์และไฟล์ JSON เปล่าขึ้นมา
+        /// </summary>
         private static void EnsureFileExists()
         {
             if (!Directory.Exists(_dataDir))
@@ -29,6 +39,9 @@ namespace EasyStayHotel.Services
             }
         }
 
+        /// <summary>
+        /// ดึงรายการคำร้องขอคืนเงินทั้งหมด กรองตามสาขาและสถานะ เรียงจากคำขอล่าสุดไปหาเก่าสุด
+        /// </summary>
         public static List<RefundRequest> GetAll(string? branch = null, string? status = null)
         {
             lock (_lock)
@@ -58,6 +71,9 @@ namespace EasyStayHotel.Services
             }
         }
 
+        /// <summary>
+        /// ค้นหาคำร้องขอคืนเงินจาก RefundId
+        /// </summary>
         public static RefundRequest? GetById(string refundId)
         {
             lock (_lock)
@@ -76,6 +92,9 @@ namespace EasyStayHotel.Services
             }
         }
 
+        /// <summary>
+        /// ค้นหาคำร้องขอคืนเงินจากรหัสการจอง (BookingId) เพื่อตรวจสอบสถานะคำร้องของรายการนั้น
+        /// </summary>
         public static RefundRequest? GetByBookingId(int bookingId)
         {
             lock (_lock)
@@ -94,6 +113,9 @@ namespace EasyStayHotel.Services
             }
         }
 
+        /// <summary>
+        /// สร้างคำร้องขอคืนเงินใหม่จากลูกค้า พร้อมตั้งสถานะเป็น "Pending" และกำหนด Deadline คืนเงิน 3 วันทำการ
+        /// </summary>
         public static bool CreateRequest(RefundRequest request)
         {
             lock (_lock)
@@ -132,6 +154,9 @@ namespace EasyStayHotel.Services
             }
         }
 
+        /// <summary>
+        /// เจ้าหน้าที่ฝ่ายบัญชีอนุมัติคำร้องขอคืนเงิน พร้อมแนบหลักฐานสลิปการโอนเงินคืน (Approved)
+        /// </summary>
         public static bool Approve(string refundId, string adminName, string? adminNote = null, string? slipUrl = null)
         {
             lock (_lock)
@@ -162,6 +187,9 @@ namespace EasyStayHotel.Services
             }
         }
 
+        /// <summary>
+        /// เจ้าหน้าที่ฝ่ายบัญชีปฏิเสธคำร้องขอคืนเงิน พร้อมระบุเหตุผล (Rejected)
+        /// </summary>
         public static bool Reject(string refundId, string adminName, string rejectionReason)
         {
             lock (_lock)
@@ -191,7 +219,9 @@ namespace EasyStayHotel.Services
             }
         }
 
-        // คำนวณวันที่ทำรายการจอง (Booking Date)
+        /// <summary>
+        /// คำนวณหาวันที่ลูกค้าทำรายการจอง (Booking Date) จากประวัติการชำระเงิน หรือ BookingRef
+        /// </summary>
         public static DateTime GetBookingDate(Booking booking)
         {
             // 1. ตรวจสอบจาก TransferDate ในตาราง Payment
@@ -212,11 +242,17 @@ namespace EasyStayHotel.Services
                 }
             }
 
-            // 3. Fallback เป็นวันเช็คอิน หรือ เวลาปัจจุบัน
+            // 3. Fallback เป็นวันเช็คอิน
             return booking.CheckInDate.ToDateTime(TimeOnly.MinValue);
         }
 
-        // ตรวจสอบเงื่อนไขว่าสามารถขอคืนเงินได้หรือไม่ (เงื่อนไข ภายใน 7 วันหลังจากการจอง)
+        /// <summary>
+        /// ตรวจสอบสิทธิ์และเงื่อนไขว่ารายการจองนี้สามารถขอคืนเงินได้หรือไม่ (เงื่อนไข 7 วัน)
+        /// </summary>
+        /// <param name="booking">ข้อมูลการจอง</param>
+        /// <param name="reason">เหตุผลผลลัพธ์การตรวจสอบ</param>
+        /// <param name="daysRemaining">จำนวนวันที่เหลือที่สามารถขอยื่นเรื่องได้</param>
+        /// <returns>true หากสามารถยื่นขอคืนเงินได้, false หากไม่ตรงตามเงื่อนไข</returns>
         public static bool IsEligibleForRefund(Booking booking, out string reason, out int daysRemaining)
         {
             daysRemaining = 0;

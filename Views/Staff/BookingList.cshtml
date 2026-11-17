@@ -104,13 +104,13 @@
                         <li class="nav-item">
                             <a asp-action="BookingList" asp-route-tab="Pending" asp-route-search="@searchText"
                                class="nav-link rounded-pill px-3 py-1 small fw-medium @(activeTab == "Pending" ? "active bg-warning text-dark" : "text-dark bg-white border")">
-                                🟡 รอเช็คอิน (@ViewBag.CountPending)
+                                <i class="bi bi-clock-history text-warning me-1"></i> รอเช็คอิน (@ViewBag.CountPending)
                             </a>
                         </li>
                         <li class="nav-item">
                             <a asp-action="BookingList" asp-route-tab="InHouse" asp-route-search="@searchText"
                                class="nav-link rounded-pill px-3 py-1 small fw-medium @(activeTab == "InHouse" ? "active bg-success text-white" : "text-dark bg-white border")">
-                                🟢 กำลังพักอยู่ (@ViewBag.CountInHouse)
+                                <i class="bi bi-check-circle-fill text-success me-1"></i> กำลังพักอยู่ (@ViewBag.CountInHouse)
                             </a>
                         </li>
                         <li class="nav-item">

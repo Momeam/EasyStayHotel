@@ -8,20 +8,39 @@ using EasyStayHotel.Models;
 
 namespace EasyStayHotel.Controllers;
 
+/// <summary>
+/// คอนโทรลเลอร์ HomeController: จัดการหน้าหลัก (Landing Page) และหน้าพื้นฐานของเว็บไซต์
+/// หน้าที่:
+/// 1. แสดงหน้าแรก (Index) พร้อมดึงรายการประเภทห้องพัก (Room Types) และราคาเริ่มต้นจากฐานข้อมูล
+/// 2. มีกลไก Fallback ข้อมูลตัวอย่างระดับโรงแรม 5 ดาว หากยังไม่ได้ต่อฐานข้อมูล
+/// 3. จัดการหน้านโยบายความเป็นส่วนตัว (Privacy) และหน้าแจ้งข้อผิดพลาด (Error)
+/// 
+/// คำถามที่อาจารย์มักถาม:
+/// - การใช้ Include() ใน Entity Framework Core มีไว้ทำอะไร?
+///   -> ใช้ทำ Eager Loading เพื่อดึงข้อมูลตารางที่สัมพันธ์กัน (ตาราง rooms) มารวมกับ roomtypes ในคิวรีเดียว ป้องกันปัญหา N+1 Query
+/// </summary>
 public class HomeController : Controller
 {
     private readonly EasystaydbContext _context;
 
+    /// <summary>
+    /// Constructor รับ EasystaydbContext เข้ามาผ่าน Dependency Injection
+    /// </summary>
     public HomeController(EasystaydbContext context)
     {
         _context = context;
     }
 
+    /// <summary>
+    /// Action Index: หน้าแรกของเว็บไซต์ Easy Stay Hotel
+    /// ดึงรายการประเภทห้องพักทั้งหมด พร้อมห้องพักในสังกัด เรียงตามราคาเริ่มต้นจากน้อยไปมาก
+    /// </summary>
     public IActionResult Index()
     {
         List<Roomtype> roomTypes;
         try
         {
+            // ดึงประเภทห้องพักพร้อม Eager Loading ข้อมูลห้องพัก (Rooms) และจัดเรียงตามราคา
             roomTypes = _context.Roomtypes
                 .Include(rt => rt.Rooms)
                 .OrderBy(rt => rt.BasePrice)
@@ -29,10 +48,11 @@ public class HomeController : Controller
         }
         catch
         {
+            // หากเกิดข้อผิดพลาดในการเชื่อมต่อฐานข้อมูล ให้คืนค่า List เปล่า
             roomTypes = new List<Roomtype>();
         }
 
-        // หากฐานข้อมูลยังไม่มีข้อมูลประเภทห้องพัก ให้สร้างข้อมูลพรีวิวมาตรฐานสำรองไว้แสดงผล
+        // กรณีฐานข้อมูลว่างเปล่า (ยังไม่มีข้อมูล) ให้ใช้ข้อมูลพรีวิวมาตรฐานระดับพรีเมียม เพื่อให้หน้าเว็บแสดงผลได้อย่างสวยงาม
         if (!roomTypes.Any())
         {
             roomTypes = new List<Roomtype>
@@ -82,14 +102,21 @@ public class HomeController : Controller
             };
         }
 
+        // ส่งโมเดล roomTypes ไปยังหน้า Views/Home/Index.cshtml
         return View(roomTypes);
     }
 
+    /// <summary>
+    /// Action Privacy: หน้านโยบายความเป็นส่วนตัวและข้อกำหนดการให้บริการ
+    /// </summary>
     public IActionResult Privacy()
     {
         return View();
     }
 
+    /// <summary>
+    /// Action Error: หน้าแสดงข้อผิดพลาดของระบบ (เมื่อเกิด Unhandled Exception)
+    /// </summary>
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
     public IActionResult Error()
     {

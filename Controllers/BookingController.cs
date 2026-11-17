@@ -9,19 +9,43 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.IO;
+using System.Threading.Tasks;
 
 namespace EasyStayHotel.Controllers
 {
+    /// <summary>
+    /// คอนโทรลเลอร์ BookingController: หัวใจหลักของระบบการจองห้องพักออนไลน์สำหรับลูกค้า (Customer Booking Portal)
+    /// 
+    /// วงจรการทำงานหลัก (Booking Lifecycle):
+    /// 1. ค้นหาห้องพัก (Search): กรองห้องพักว่างตามสาขา (Bangkok, Chonburi, Phuket), วันที่เข้าพัก, ช่วงราคา และประเภทห้อง
+    /// 2. หน้ายืนยันและชำระเงิน (Checkout): คำนวณราคารวมตามจำนวนคืน/ห้อง แสดงบริการเสริม (Add-ons)
+    /// 3. คำนวณโปรโมชั่น (CalculateDiscount): AJAX API ตรวจสอบเงื่อนไขโปรโมชั่น 5 รูปแบบ และคูปองส่วนลดแบบไดนามิก
+    /// 4. ยืนยันการจอง (ConfirmBooking): อัปโหลดสลิปโอนเงิน บันทึกการจอง เปลี่ยนสถานะห้องเป็น Reserved และส่งอีเมลยืนยันอัตโนมัติ
+    /// 5. ใบยืนยันการจอง (BookingVoucher): เอกสาร Voucher สำหรับลูกค้าพิมพ์หรือแสดงต่อพนักงานในวันเข้าพัก
+    /// 6. ตรวจสอบประวัติการจอง (MyBookings): ดูสถานะการจอง และยื่นคำร้องขอคืนเงิน (ภายใน 7 วัน)
+    /// 7. ระบบรีวิวและให้คะแนน (SubmitReview): ลูกค้าที่เช็คเอาท์แล้วส่งคะแนนดาวและความประทับใจ
+    /// </summary>
     public class BookingController : Controller
     {
         private readonly EasystaydbContext _context;
+        private readonly IEmailService _emailService;
 
-        public BookingController(EasystaydbContext context)
+        /// <summary>
+        /// Constructor รับ DbContext และ EmailService ผ่าน Dependency Injection
+        /// </summary>
+        public BookingController(EasystaydbContext context, IEmailService emailService)
         {
             _context = context;
+            _emailService = emailService;
         }
 
-        // GET: /Booking/Search
+        // =========================================================================
+        // 1. ระบบค้นหาห้องพักว่าง (Search Available Rooms)
+        // =========================================================================
+        /// <summary>
+        /// ค้นหาห้องพักที่ว่างพร้อมขาย (Status = "Available") ตามเงื่อนไขสาขา วันที่เข้าพัก และช่วงราคา
+        /// พร้อมจัดกลุ่มตามประเภทห้องพัก (Room Type) เพื่อแสดงจำนวนห้องว่างที่เหลือ
+        /// </summary>
         [HttpGet]
         public IActionResult Search(
             string? branch,
@@ -33,7 +57,7 @@ namespace EasyStayHotel.Controllers
             decimal? minPrice = null,
             decimal? maxPrice = null)
         {
-            // กำหนดค่าเริ่มต้นหากผู้ใช้กดเข้ามาจากปุ่มจองด่วนหรือเมนูโดยตรง
+            // กำหนดสาขาเริ่มต้นหากผู้ใช้ไม่ได้เลือก
             if (string.IsNullOrEmpty(branch))
             {
                 branch = "Bangkok";
@@ -42,6 +66,7 @@ namespace EasyStayHotel.Controllers
             DateTime actualCheckIn = checkIn == null || checkIn == default ? DateTime.Today : checkIn.Value;
             DateTime actualCheckOut = checkOut == null || checkOut == default ? actualCheckIn.AddDays(1) : checkOut.Value;
 
+            // ตรวจสอบเงื่อนไขความถูกต้องของวันที่ (วันเช็คเอาท์ต้องมากกว่าวันเช็คอินอย่างน้อย 1 คืน)
             if (actualCheckIn >= actualCheckOut)
             {
                 TempData["ErrorMessage"] = "วันที่เช็คเอาท์ต้องหลังจากวันที่เช็คอินอย่างน้อย 1 คืน";
@@ -51,14 +76,15 @@ namespace EasyStayHotel.Controllers
             if (rooms < 1) rooms = 1;
             if (guests < 1) guests = 1;
 
-            // ดึงประเภทห้องพักทั้งหมดสำหรับแสดงในตัวกรองด้านซ้าย
+            // ดึงประเภทห้องพักทั้งหมดสำหรับแสดงในแถบตัวกรอง
             var allRoomTypes = _context.Roomtypes.OrderBy(rt => rt.BasePrice).ToList();
 
-            // ดึงข้อมูลห้องพักที่ "ว่าง" และ "ตรงกับสาขาที่เลือก"
+            // คิวรีดึงห้องพักที่มีสถานะ "Available" ตรงกับสาขาที่เลือก
             var query = _context.Rooms
                 .Include(r => r.RoomType)
                 .Where(r => r.Branch == branch && r.Status == "Available" && r.RoomType != null);
 
+            // กรองตามช่วงราคาต่ำสุดและสูงสุด
             if (minPrice.HasValue)
             {
                 query = query.Where(r => r.RoomType!.BasePrice >= minPrice.Value);
@@ -71,7 +97,7 @@ namespace EasyStayHotel.Controllers
 
             var availableRooms = query.ToList();
 
-            // จัดกลุ่มตามประเภทห้องพัก (RoomType)
+            // จัดกลุ่มห้องพักว่างตามประเภท (Group By RoomType) เพื่อแสดงการ์ดห้องพักพร้อมจำนวนห้องว่างที่เหลือ
             var groupedRoomTypes = availableRooms
                 .Where(r => r.RoomType != null)
                 .GroupBy(r => r.RoomType!)
@@ -98,7 +124,7 @@ namespace EasyStayHotel.Controllers
             ViewBag.AllRoomTypes = allRoomTypes;
             ViewBag.TotalFound = groupedRoomTypes.Count;
 
-            // จำนวนห้องว่างในสาขาต่างๆ เพื่อให้ลูกค้ากดสลับดูและจองสาขาอื่นได้สะดวก
+            // สถิติจำนวนห้องว่างในสาขาอื่นๆ เพื่ออำนวยความสะดวกให้ลูกค้าเลือกสลับดูสาขาอื่น
             ViewBag.AvailBkk = _context.Rooms.Count(r => r.Branch == "Bangkok" && r.Status == "Available");
             ViewBag.AvailChon = _context.Rooms.Count(r => r.Branch == "Chonburi" && r.Status == "Available");
             ViewBag.AvailPhuket = _context.Rooms.Count(r => r.Branch == "Phuket" && r.Status == "Available");
@@ -106,7 +132,12 @@ namespace EasyStayHotel.Controllers
             return View(groupedRoomTypes);
         }
 
-        // GET: /Booking/Checkout
+        // =========================================================================
+        // 2. หน้าสรุปรายการและชำระเงิน (Checkout)
+        // =========================================================================
+        /// <summary>
+        /// แสดงหน้าจอชำระเงิน: ดึงข้อมูลห้องพัก คำนวณราคาตามจำนวนคืน และดึงข้อมูลผู้ใช้จาก Session มาเติมให้อัตโนมัติ
+        /// </summary>
         [HttpGet]
         public IActionResult Checkout(int roomId, string checkIn, string checkOut, int guests = 2, int rooms = 1)
         {
@@ -150,7 +181,7 @@ namespace EasyStayHotel.Controllers
                 TotalPrice = basePrice * nights * (rooms > 0 ? rooms : 1)
             };
 
-            // หากลูกค้าล็อกอินอยู่ ดึงข้อมูลชื่อ อีเมล เบอร์โทรมาเติมให้อัตโนมัติ
+            // หากลูกค้าล็อกอินอยู่แล้ว ดึงข้อมูลชื่อ อีเมล และเบอร์โทรศัพท์มาใส่ในฟอร์มให้อัตโนมัติ
             int? sessionUserId = HttpContext.Session.GetInt32("UserId");
             if (sessionUserId.HasValue)
             {
@@ -173,13 +204,18 @@ namespace EasyStayHotel.Controllers
             return View(model);
         }
 
-        // POST: /Booking/CalculateDiscount
+        // =========================================================================
+        // 3. AJAX API คำนวณส่วนลดโปรโมชั่น (Calculate Discount API)
+        // =========================================================================
+        /// <summary>
+        /// คำนวณส่วนลดตามกฎ 5 โปรโมชั่น และรหัสคูปองส่วนลดแบบ Real-time โดยไม่ต้องรีเฟรชหน้าเว็บ
+        /// </summary>
         [HttpPost]
         public IActionResult CalculateDiscount([FromBody] PromoRequestData data)
         {
             var promoService = new PromotionService();
 
-            // ดึงวันเกิดลูกค้าจาก Session (ถ้าล็อกอินอยู่) หรือจากอีเมลที่กรอก
+            // ดึงข้อมูลวันเกิดของลูกค้าจากฐานข้อมูลเพื่อใช้ตรวจสอบโปรโมชั่นวันเกิด
             DateTime? guestDob = null;
             int? sessionUserId = HttpContext.Session.GetInt32("UserId");
             if (sessionUserId.HasValue)
@@ -211,13 +247,15 @@ namespace EasyStayHotel.Controllers
             int roomCount = data.Rooms > 0 ? data.Rooms : 1;
             int nightsCount = data.Nights > 0 ? data.Nights : 1;
 
+            // เรียกใช้ PromotionService ในการคำนวณส่วนลด
             var result = promoService.CalculateDiscount(
                 data.BasePrice,
                 nightsCount,
                 roomCount,
                 checkInDate,
                 guestDob,
-                data.CouponCode
+                data.CouponCode,
+                data.RoomTypeName
             );
 
             return Json(new
@@ -229,14 +267,25 @@ namespace EasyStayHotel.Controllers
             });
         }
 
-        // POST: /Booking/ConfirmBooking
+        // =========================================================================
+        // 4. บันทึกและยืนยันการจองห้องพัก (Confirm Booking)
+        // =========================================================================
+        /// <summary>
+        /// ประมวลผลการจองห้องพัก:
+        /// 1. บันทึกรูปภาพสลิปโอนเงินลงในโฟลเดอร์ wwwroot/uploads/slips/
+        /// 2. สร้างหรือจับคู่บัญชีลูกค้าในตาราง users
+        /// 3. สร้างรายการจองในตาราง bookings ด้วยสถานะ "Pending" (รอตรวจสอบการชำระเงิน)
+        /// 4. สร้างรายการธุรกรรมในตาราง payments
+        /// 5. ปรับสถานะห้องพักในตาราง rooms เป็น "Reserved"
+        /// 6. ส่งอีเมลยืนยันการจองพร้อมลิงก์ Voucher ให้ลูกค้าอัตโนมัติผ่าน EmailService
+        /// </summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult ConfirmBooking(CustomerCheckoutViewModel model)
+        public async Task<IActionResult> ConfirmBooking(CustomerCheckoutViewModel model)
         {
             if (ModelState.IsValid)
             {
-                // 1. จัดการอัปโหลดไฟล์สลิป (Payment Slip)
+                // 1. จัดการอัปโหลดไฟล์สลิปหลักฐานการโอนเงิน (Payment Slip Upload)
                 string? slipFileName = null;
                 if (model.PaymentSlip != null && model.PaymentSlip.Length > 0)
                 {
@@ -246,6 +295,7 @@ namespace EasyStayHotel.Controllers
                         Directory.CreateDirectory(uploadsFolder);
                     }
 
+                    // สร้างชื่อไฟล์ที่ไม่ซ้ำกันด้วย GUID เพื่อป้องกันชื่อไฟล์ชนกัน
                     slipFileName = Guid.NewGuid().ToString() + "_" + Path.GetFileName(model.PaymentSlip.FileName);
                     string filePath = Path.Combine(uploadsFolder, slipFileName);
 
@@ -255,7 +305,7 @@ namespace EasyStayHotel.Controllers
                     }
                 }
 
-                // 2. จัดการข้อมูลลูกค้า (Guest) ค้นหาจาก Session หรืออีเมล
+                // 2. จัดการข้อมูลลูกค้า (Guest Account): หากไม่มีบัญชีจะสร้างบัญชีผู้ใช้ใหม่ให้อัตโนมัติ
                 User? guest = null;
                 int? sessionUserId = HttpContext.Session.GetInt32("UserId");
                 if (sessionUserId.HasValue)
@@ -282,7 +332,7 @@ namespace EasyStayHotel.Controllers
                     _context.SaveChanges();
                 }
 
-                // 3. สร้างข้อมูลการจอง (Booking)
+                // 3. สร้างข้อมูลการจองในตาราง bookings
                 var newBooking = new Booking
                 {
                     BookingRef = "ES-" + DateTime.Now.ToString("yyyyMMddHHmmss"),
@@ -297,7 +347,7 @@ namespace EasyStayHotel.Controllers
                 _context.Bookings.Add(newBooking);
                 _context.SaveChanges();
 
-                // 4. บันทึกข้อมูลการชำระเงิน (Payment) พร้อมแนบสลิป
+                // 4. บันทึกข้อมูลการชำระเงินในตาราง payments พร้อมผูก BookingId และรูปสลิป
                 var newPayment = new Payment
                 {
                     BookingId = newBooking.BookingId,
@@ -309,7 +359,7 @@ namespace EasyStayHotel.Controllers
                 };
                 _context.Payments.Add(newPayment);
 
-                // 5. เปลี่ยนสถานะห้องพักเป็นจองแล้ว
+                // 5. เปลี่ยนสถานะห้องพักเป็น Reserved
                 var room = _context.Rooms.Find(model.RoomId);
                 if (room != null)
                 {
@@ -318,10 +368,33 @@ namespace EasyStayHotel.Controllers
 
                 _context.SaveChanges();
 
+                // 6. ส่งอีเมลยืนยันการจองพร้อม Voucher ลิงก์ไปยังอีเมลของลูกค้าอัตโนมัติ
+                try
+                {
+                    string branchName = room?.Branch ?? "Bangkok";
+                    string roomTypeName = room?.RoomType?.TypeName ?? model.RoomTypeName ?? "ห้องพักมาตรฐาน";
+                    string voucherUrl = Url.Action("BookingVoucher", "Booking", new { bookingRef = newBooking.BookingRef }, Request.Scheme) ?? "";
+
+                    await _emailService.SendBookingConfirmationEmailAsync(
+                        guest.Email,
+                        newBooking.GuestName,
+                        newBooking.BookingRef,
+                        roomTypeName,
+                        branchName,
+                        newBooking.CheckInDate.ToString("dd/MM/yyyy"),
+                        newBooking.CheckOutDate.ToString("dd/MM/yyyy"),
+                        newBooking.TotalPrice,
+                        voucherUrl
+                    );
+                }
+                catch
+                {
+                    // Fail-safe: หากเครือข่ายอีเมลขัดข้อง การจองของลูกค้ายังคงสำเร็จสมบูรณ์
+                }
+
                 return RedirectToAction("BookingSuccess", new { bookingRef = newBooking.BookingRef });
             }
 
-            // กรณี ModelState ไม่ผ่าน ดึงข้อมูลประกอบของห้องกลับมาแสดงผล
             var selectedRoom = _context.Rooms.Include(r => r.RoomType).FirstOrDefault(r => r.RoomId == model.RoomId);
             if (selectedRoom != null)
             {
@@ -335,15 +408,22 @@ namespace EasyStayHotel.Controllers
             return View("Checkout", model);
         }
 
-        // GET: /Booking/BookingSuccess
+        /// <summary>
+        /// แสดงหน้าจอสำเร็จการจองห้องพัก
+        /// </summary>
+        [HttpGet]
         public IActionResult BookingSuccess(string bookingRef)
         {
             ViewBag.BookingRef = bookingRef;
             return View();
         }
 
-        // GET: /Booking/BookingVoucher
-        // เอกสารยืนยันการจองห้องพัก (Booking Confirmation Voucher) สำหรับลูกค้าพิมพ์/ดาวน์โหลดไปแสดงต่อพนักงานในวันเข้าพัก
+        // =========================================================================
+        // 5. ใบเสร็จและเอกสารยืนยันการจอง (Booking Confirmation Voucher)
+        // =========================================================================
+        /// <summary>
+        /// แสดงเอกสารใบยืนยันการจองห้องพัก (Voucher) สำหรับให้ลูกค้าพิมพ์เป็น PDF หรือแสดงต่อพนักงานเคาน์เตอร์โรงแรม
+        /// </summary>
         [HttpGet]
         public IActionResult BookingVoucher(string? bookingRef, int? id)
         {
@@ -383,8 +463,12 @@ namespace EasyStayHotel.Controllers
             return View(booking);
         }
 
-        // GET: /Booking/MyBookings
-        // หน้าตรวจสอบสถานะการจองและประวัติการจองของลูกค้า
+        // =========================================================================
+        // 6. ประวัติการจองและค้นหาการจอง (My Bookings)
+        // =========================================================================
+        /// <summary>
+        /// หน้าดูประวัติการจองของลูกค้า หรือค้นหาการจองด้วยหมายเลข BookingRef / เบอร์โทรศัพท์ / อีเมล
+        /// </summary>
         [HttpGet]
         public IActionResult MyBookings(string? bookingRef, string? contact)
         {
@@ -424,7 +508,6 @@ namespace EasyStayHotel.Controllers
             }
             else
             {
-                // ถ้ายังไม่ล็อกอินและยังไม่ได้กรอกค้นหา ให้ส่งรายการว่างไปแสดงหน้าค้นหาก่อน
                 ViewBag.RefundRequests = new Dictionary<int, RefundRequest>();
                 return View(new List<Booking>());
             }
@@ -440,8 +523,12 @@ namespace EasyStayHotel.Controllers
             return View(bookings);
         }
 
-        // POST: /Booking/RequestRefund
-        // ลูกค้ายื่นเรื่องขอคืนเงิน (ภายใน 7 วันหลังจากการจอง โดยส่งเรื่องให้ฝ่ายบัญชีตรวจสอบและโอนคืนภายใน 3 วันทำการ)
+        // =========================================================================
+        // 7. ลูกค้ายื่นคำร้องขอคืนเงิน (Request Refund)
+        // =========================================================================
+        /// <summary>
+        /// ลูกค้ายื่นคำร้องขอคืนเงิน: ตรวจสอบเงื่อนไข 7 วัน บันทึกข้อมูลบัญชีธนาคาร และส่งการแจ้งเตือนไปยังฝ่ายบัญชี
+        /// </summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult RequestRefund(RefundRequestViewModel model)
@@ -464,7 +551,7 @@ namespace EasyStayHotel.Controllers
                 return RedirectToAction(nameof(MyBookings));
             }
 
-            // ตรวจสอบเงื่อนไข 7 วันและสถานะสิทธิ์การขอคืนเงิน
+            // ตรวจสอบเงื่อนไข 7 วันนับจากวันที่จองผ่าน RefundService
             if (!RefundService.IsEligibleForRefund(booking, out string eligibilityReason, out int daysRemaining))
             {
                 TempData["ErrorMessage"] = eligibilityReason;
@@ -498,11 +585,11 @@ namespace EasyStayHotel.Controllers
             bool created = RefundService.CreateRequest(refundReq);
             if (created)
             {
-                // อัปเดตสถานะการจองเป็น RefundRequested
+                // เปลี่ยนสถานะการจองเป็น RefundRequested
                 booking.BookingStatus = "RefundRequested";
                 _context.SaveChanges();
 
-                // ส่งการแจ้งเตือนอัตโนมัติไปยังฝ่ายบัญชี
+                // ส่งการแจ้งเตือนไปยังฝ่ายบัญชีโดยอัตโนมัติ
                 var accFeedback = new AccountingFeedback
                 {
                     CreatedAt = DateTime.Now,
@@ -526,9 +613,58 @@ namespace EasyStayHotel.Controllers
 
             return RedirectToAction(nameof(MyBookings), new { bookingRef = booking.BookingRef });
         }
+
+        // =========================================================================
+        // 8. ลูกค้าเขียนรีวิวและให้คะแนนความพึงพอใจ (Submit Guest Review)
+        // =========================================================================
+        /// <summary>
+        /// ลูกค้าส่งรีวิวและให้คะแนนดาว (ความสะอาด, การบริการ, ทำเล) สำหรับการจองที่เช็คเอาท์แล้ว
+        /// </summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult SubmitReview(int bookingId, int rating, int cleanlinessRating, int serviceRating, int locationRating, string? title, string comment)
+        {
+            var booking = _context.Bookings
+                .Include(b => b.Room)
+                    .ThenInclude(r => r!.RoomType)
+                .FirstOrDefault(b => b.BookingId == bookingId);
+
+            if (booking == null)
+            {
+                TempData["ErrorMessage"] = "ไม่พบข้อมูลการจองที่ต้องการรีวิว";
+                return RedirectToAction(nameof(MyBookings));
+            }
+
+            string guestName = HttpContext.Session.GetString("UserName") ?? booking.GuestName ?? "ลูกค้า Easy Stay";
+            string guestEmail = HttpContext.Session.GetString("UserEmail") ?? "";
+
+            var review = new GuestReview
+            {
+                BookingId = booking.BookingId,
+                BookingRef = booking.BookingRef,
+                GuestName = guestName,
+                GuestEmail = guestEmail,
+                Branch = booking.Room?.Branch ?? "Bangkok",
+                RoomTypeName = booking.Room?.RoomType?.TypeName ?? "ห้องพักมาตรฐาน",
+                Rating = rating < 1 ? 5 : (rating > 5 ? 5 : rating),
+                CleanlinessRating = cleanlinessRating < 1 ? 5 : (cleanlinessRating > 5 ? 5 : cleanlinessRating),
+                ServiceRating = serviceRating < 1 ? 5 : (serviceRating > 5 ? 5 : serviceRating),
+                LocationRating = locationRating < 1 ? 5 : (locationRating > 5 ? 5 : locationRating),
+                Title = string.IsNullOrWhiteSpace(title) ? "รีวิวความประทับใจการเข้าพัก" : title.Trim(),
+                Comment = string.IsNullOrWhiteSpace(comment) ? "ห้องพักสะอาด กว้างขวาง การบริการดีมาก มีโอกาสจะกลับมาพักอีกแน่นอนครับ" : comment.Trim(),
+                CreatedAt = DateTime.Now,
+                IsVerifiedStay = true
+            };
+
+            ReviewService.AddReview(review);
+            TempData["SuccessMessage"] = "ขอบคุณสำหรับการรีวิว! ความคิดเห็นอันมีค่าของคุณช่วยให้ Easy Stay พัฒนาการบริการได้อย่างดียิ่งขึ้น";
+            return RedirectToAction(nameof(MyBookings), new { bookingRef = booking.BookingRef });
+        }
     }
 
-    // คลาสตัวแทนสำหรับรับข้อมูล JSON จากหน้าเว็บ
+    /// <summary>
+    /// คลาสแบบจำลองข้อมูลรับค่า JSON สำหรับ AJAX คำนวณโปรโมชั่น
+    /// </summary>
     public class PromoRequestData
     {
         public decimal BasePrice { get; set; }
@@ -537,5 +673,6 @@ namespace EasyStayHotel.Controllers
         public string? CheckInDate { get; set; }
         public string? CouponCode { get; set; }
         public string? Email { get; set; }
+        public string? RoomTypeName { get; set; }
     }
 }

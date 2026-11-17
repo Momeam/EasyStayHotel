@@ -4,23 +4,203 @@ using Microsoft.AspNetCore.Mvc;
 using EasyStayHotel.Models;
 using EasyStayHotel.Services;
 using Microsoft.EntityFrameworkCore;
+using System;
+using System.Collections.Generic;
 using System.Linq;
-
+using System.Threading.Tasks;
 
 namespace EasyStayHotel.Controllers
 {
+    /// <summary>
+    /// คอนโทรลเลอร์ AdminController: จัดการระบบบริหารงานส่วนกลางของผู้ดูแลระบบและผู้บริหารระดับสูง (Administration)
+    /// 
+    /// วงจรการทำงานหลัก (Core Responsibilities):
+    /// 1. ตรวจสอบสิทธิ์ (RBAC Filter): อนุญาตเฉพาะ Role "Admin" และ "SuperAdmin" เท่านั้น
+    /// 2. ภาพรวมสถิติ (Admin Dashboard): รายได้วันนี้, อัตราการเข้าพัก (Occupancy Rate), กราฟแท่งรายรับ 7 วัน, กราฟโดนัทประเภทห้องพัก
+    /// 3. จัดการผู้ใช้งาน (User Management): แบ่งแท็บชัดเจนระหว่าง พนักงาน (Staff & Personnel) กับ ลูกค้า (Customers) 
+    ///    พร้อมระบบป้องกันความปลอดภัย (ห้ามลบ SuperAdmin, แอดมินลบแอดมินด้วยกันเองไม่ได้)
+    /// 4. จัดการห้องพัก (Room Management): เพิ่ม ลบ แก้ไขห้องพัก พร้อมระบุสาขา (Bangkok, Chonburi, Phuket)
+    /// 5. ตรวจรับทราบและอนุมัติรายงานการเงิน (Financial Report Acknowledgment) จากฝ่ายบัญชี
+    /// </summary>
     public class AdminController : Controller
     {
         private readonly EasystaydbContext _context;
 
+        /// <summary>
+        /// Constructor รับ EasystaydbContext ผ่าน Dependency Injection
+        /// </summary>
         public AdminController(EasystaydbContext context)
         {
             _context = context;
         }
 
+        /// <summary>
+        /// ตัวกรองความปลอดภัยส่วนกลาง (Action Filter) ตรวจสอบสิทธิ์ Admin/SuperAdmin ก่อนทำงานทุก Action
+        /// </summary>
+        public override void OnActionExecuting(ActionExecutingContext context)
+        {
+            var userId = HttpContext.Session.GetInt32("UserId");
+            var role = HttpContext.Session.GetString("Role");
 
-        // GET: Admin/UserManagement
-        // หน้ารายการแยกบัญชีผู้ใช้งานทั่วไป (ลูกค้า) และ พนักงานทุกบทบาท (Staff & Personnel)
+            // 1. ยังไม่ได้เข้าสู่ระบบ -> ส่งไปหน้า Login
+            if (userId == null || string.IsNullOrEmpty(role))
+            {
+                TempData["ErrorMessage"] = "กรุณาเข้าสู่ระบบก่อนเข้าใช้งานหน้าระบบผู้ดูแลระบบ (Admin)";
+                string returnUrl = context.HttpContext.Request.Path + context.HttpContext.Request.QueryString;
+                context.Result = new RedirectToActionResult("Login", "Account", new { returnUrl });
+                return;
+            }
+
+            // 2. พนักงานต้อนรับ (Staff) พยายามเข้าหน้า Admin -> ส่งกลับหน้ารายการจองของพนักงาน
+            if (role == "Staff")
+            {
+                TempData["ErrorMessage"] = "คุณไม่มีสิทธิ์เข้าถึงหน้าระบบผู้ดูแลระบบ (Admin) สงวนสิทธิ์เฉพาะแอดมินเท่านั้น";
+                context.Result = new RedirectToActionResult("BookingList", "Staff", null);
+                return;
+            }
+
+            // 3. ฝ่ายบัญชี (Accounting) พยายามเข้าหน้า Admin -> ส่งกลับหน้ารายงานบัญชี
+            if (role == "Accounting")
+            {
+                TempData["ErrorMessage"] = "คุณไม่มีสิทธิ์เข้าถึงหน้าระบบผู้ดูแลระบบ (Admin) สงวนสิทธิ์เฉพาะแอดมินเท่านั้น";
+                context.Result = new RedirectToActionResult("RevenueReport", "Accounting", null);
+                return;
+            }
+
+            // 4. พนักงานแม่บ้าน (Housekeeper) พยายามเข้าหน้า Admin -> ส่งกลับหน้าแดชบอร์ดแม่บ้าน
+            if (role == "Housekeeper" || role == "Maid")
+            {
+                TempData["ErrorMessage"] = "คุณไม่มีสิทธิ์เข้าถึงหน้าระบบผู้ดูแลระบบ (Admin) สงวนสิทธิ์เฉพาะแอดมินเท่านั้น";
+                context.Result = new RedirectToActionResult("Dashboard", "Housekeeper", null);
+                return;
+            }
+
+            // 5. ผู้ใช้งานทั่วไป (Customer) หรือบทบาทอื่นที่ไม่ใช่ Admin หรือ SuperAdmin -> ส่งกลับหน้าหลัก
+            if (role != "Admin" && role != "SuperAdmin")
+            {
+                TempData["ErrorMessage"] = "คุณไม่มีสิทธิ์เข้าถึงหน้าระบบผู้ดูแลระบบ (Admin) เฉพาะแอดมินเท่านั้น";
+                context.Result = new RedirectToActionResult("Index", "Home", null);
+                return;
+            }
+
+            base.OnActionExecuting(context);
+        }
+
+        // =========================================================================
+        // 1. แดชบอร์ดผู้ดูแลระบบ (Admin Dashboard)
+        // =========================================================================
+        /// <summary>
+        /// แดชบอร์ดสรุปภาพรวมธุรกิจโรงแรมสำหรับผู้บริหาร:
+        /// - 4 การ์ดสรุปสถิติ: รายได้วันนี้, ห้องว่าง, ห้องทั้งหมด, อัตราเข้าพัก (Occupancy Rate)
+        /// - กราฟแท่งแนวโน้มรายรับ 7 วันย้อนหลัง
+        /// - กราฟวงกลม/โดนัท สัดส่วนประเภทห้องพักที่ถูกจอง
+        /// - รายการการจองล่าสุด 5 รายการ
+        /// - รายการรายงานสรุปการเงินจากฝ่ายบัญชีที่รอการตรวจรับทราบ/อนุมัติ
+        /// </summary>
+        [HttpGet]
+        public async Task<IActionResult> Dashboard()
+        {
+            // 1. กำหนดช่วงเวลาย้อนหลัง 7 วัน
+            var today = DateOnly.FromDateTime(DateTime.Now);
+            var sevenDaysAgo = today.AddDays(-6);
+
+            // 2. คำนวณสถิติ 4 การ์ดด้านบน
+            var todayRevenue = await _context.Bookings
+                .Where(b => b.CheckInDate == today && b.BookingStatus != "Pending")
+                .SumAsync(b => b.TotalPrice);
+
+            int totalRooms = await _context.Rooms.CountAsync();
+            int availableRooms = await _context.Rooms.CountAsync(r => r.Status == "Available");
+            int occupiedRooms = totalRooms - availableRooms;
+            double occupancyRate = totalRooms > 0 ? Math.Round(((double)occupiedRooms / totalRooms) * 100, 1) : 0;
+
+            int activeBookings = await _context.Bookings
+                .Where(b => b.BookingStatus == "CheckIn" || b.BookingStatus == "CheckedIn")
+                .CountAsync();
+
+            ViewBag.TodayRevenue = todayRevenue;
+            ViewBag.AvailableRooms = availableRooms;
+            ViewBag.TotalRooms = totalRooms;
+            ViewBag.OccupancyRate = occupancyRate;
+            ViewBag.ActiveBookings = activeBookings;
+
+            // 3. เตรียมชุดข้อมูลกราฟแท่ง (รายรับย้อนหลัง 7 วัน)
+            var last7DaysBookings = await _context.Bookings
+                .Where(b => b.CheckInDate >= sevenDaysAgo && b.CheckInDate <= today)
+                .ToListAsync();
+
+            var revenueLabels = new List<string>();
+            var revenueData = new List<decimal>();
+
+            for (int i = 6; i >= 0; i--)
+            {
+                var targetDate = today.AddDays(-i);
+                revenueLabels.Add(targetDate.ToString("dd MMM"));
+                
+                var dailyRev = last7DaysBookings
+                    .Where(b => b.CheckInDate == targetDate && b.BookingStatus != "Pending")
+                    .Sum(b => b.TotalPrice);
+                    
+                revenueData.Add(dailyRev);
+            }
+            ViewBag.RevenueLabels = revenueLabels;
+            ViewBag.RevenueData = revenueData;
+
+            // 4. เตรียมชุดข้อมูลกราฟโดนัท (สัดส่วนห้องพักที่ถูกจองแยกตามประเภท)
+            var roomStats = await _context.Rooms
+                .Include(r => r.RoomType)
+                .Where(r => r.Status != "Available" && r.RoomType != null)
+                .GroupBy(r => r.RoomType!.TypeName)
+                .Select(g => new { TypeName = g.Key, Count = g.Count() })
+                .ToListAsync();
+
+            ViewBag.RoomTypeLabels = roomStats.Select(r => r.TypeName ?? "ไม่ระบุ").ToList();
+            ViewBag.RoomTypeData = roomStats.Select(r => r.Count).ToList();
+
+            // 5. รายการประวัติการจองล่าสุด 5 รายการ
+            var recentBookings = await _context.Bookings
+                .Include(b => b.Room)
+                .OrderByDescending(b => b.BookingId)
+                .Take(5)
+                .ToListAsync();
+
+            // 6. ดึงรายการรายงานทางการเงินที่ฝ่ายบัญชีส่งมาให้ผู้บริหารอนุมัติ
+            var financialReports = FinancialReportService.GetAll();
+            ViewBag.FinancialReports = financialReports;
+            ViewBag.PendingFinancialReportsCount = financialReports.Count(r => r.Status == "Pending");
+
+            return View(recentBookings);
+        }
+
+        /// <summary>
+        /// ผู้จัดการตรวจรับทราบหรืออนุมัติรายงานการเงินจากฝ่ายบัญชี พร้อมลงความเห็นกำกับ
+        /// </summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult AcknowledgeFinancialReport(string reportId, string? managerComment, bool approve = true)
+        {
+            string adminName = HttpContext.Session.GetString("FullName") ?? "ผู้จัดการทั่วไป (Admin)";
+            bool success = FinancialReportService.Acknowledge(reportId, adminName, managerComment, approve);
+            if (success)
+            {
+                TempData["SuccessMessage"] = $"บันทึกการ{(approve ? "อนุมัติ" : "รับทราบ")}รายงานการเงินรหัส {reportId} เรียบร้อยแล้ว";
+            }
+            else
+            {
+                TempData["ErrorMessage"] = "ไม่พบรายงานการเงินที่ระบุ";
+            }
+            return RedirectToAction(nameof(Dashboard));
+        }
+
+        // =========================================================================
+        // 2. ระบบจัดการผู้ใช้งาน (User Management)
+        // =========================================================================
+        /// <summary>
+        /// หน้ารายการผู้ใช้งานระบบ แยกออกเป็น 2 แท็บหลัก:
+        /// - แท็บพนักงาน (Staff): Admin, Receptionist, Accounting, Housekeeper พร้อมตัวกรองตามตำแหน่ง
+        /// - แท็บลูกค้า (Customers): ลูกค้าทั่วไปที่สมัครสมาชิกผ่านเว็บไซต์ พร้อมประวัติการจอง
+        /// </summary>
+        [HttpGet]
         public async Task<IActionResult> UserManagement(string? tab = "staff", string? roleFilter = null, string? searchString = null)
         {
             tab = string.IsNullOrEmpty(tab) ? "staff" : tab.ToLower();
@@ -36,6 +216,7 @@ namespace EasyStayHotel.Controllers
                 .Include(u => u.Bookings)
                 .AsQueryable();
 
+            // ค้นหาตามคำสำคัญ (ชื่อ, อีเมล, เบอร์โทร, ตำแหน่ง, สาขา)
             if (!string.IsNullOrEmpty(cleanSearch))
             {
                 query = query.Where(u => u.FullName.Contains(cleanSearch)
@@ -85,158 +266,19 @@ namespace EasyStayHotel.Controllers
 
             return View();
         }
-        // หน้าจัดการผู้ใช้งาน (User Management)
 
-        // ฟังก์ชันนี้จะทำงาน "ก่อน" ที่ทุกหน้าใน Admin จะถูกเปิด เพื่อตรวจสอบสิทธิ์การเข้าถึง
-        public override void OnActionExecuting(ActionExecutingContext context)
-        {
-            var userId = HttpContext.Session.GetInt32("UserId");
-            var role = HttpContext.Session.GetString("Role");
-
-            // 1. ยังไม่ได้เข้าสู่ระบบ -> ส่งไปหน้า Login
-            if (userId == null || string.IsNullOrEmpty(role))
-            {
-                TempData["ErrorMessage"] = "กรุณาเข้าสู่ระบบก่อนเข้าใช้งานหน้าระบบผู้ดูแลระบบ (Admin)";
-                string returnUrl = context.HttpContext.Request.Path + context.HttpContext.Request.QueryString;
-                context.Result = new RedirectToActionResult("Login", "Account", new { returnUrl });
-                return;
-            }
-
-            // 2. พนักงานทั่วไป (Staff) พยายามเข้าหน้า Admin -> ส่งกลับหน้าพนักงาน
-            if (role == "Staff")
-            {
-                TempData["ErrorMessage"] = "คุณไม่มีสิทธิ์เข้าถึงหน้าระบบผู้ดูแลระบบ (Admin) สงวนสิทธิ์เฉพาะแอดมินเท่านั้น";
-                context.Result = new RedirectToActionResult("BookingList", "Staff", null);
-                return;
-            }
-
-            // 3. ฝ่ายบัญชี (Accounting) พยายามเข้าหน้า Admin -> ส่งกลับหน้ารายงานบัญชี
-            if (role == "Accounting")
-            {
-                TempData["ErrorMessage"] = "คุณไม่มีสิทธิ์เข้าถึงหน้าระบบผู้ดูแลระบบ (Admin) สงวนสิทธิ์เฉพาะแอดมินเท่านั้น";
-                context.Result = new RedirectToActionResult("RevenueReport", "Accounting", null);
-                return;
-            }
-
-            // 4. พนักงานแม่บ้าน (Housekeeper) พยายามเข้าหน้า Admin -> ส่งกลับหน้าแดชบอร์ดแม่บ้าน
-            if (role == "Housekeeper" || role == "Maid")
-            {
-                TempData["ErrorMessage"] = "คุณไม่มีสิทธิ์เข้าถึงหน้าระบบผู้ดูแลระบบ (Admin) สงวนสิทธิ์เฉพาะแอดมินเท่านั้น";
-                context.Result = new RedirectToActionResult("Dashboard", "Housekeeper", null);
-                return;
-            }
-
-            // 5. ผู้ใช้งานทั่วไป (Customer) หรือบทบาทอื่นที่ไม่ใช่ Admin หรือ SuperAdmin -> ส่งกลับหน้าหลัก
-            if (role != "Admin" && role != "SuperAdmin")
-            {
-                TempData["ErrorMessage"] = "คุณไม่มีสิทธิ์เข้าถึงหน้าระบบผู้ดูแลระบบ (Admin) เฉพาะแอดมินเท่านั้น";
-                context.Result = new RedirectToActionResult("Index", "Home", null);
-                return;
-            }
-
-            base.OnActionExecuting(context);
-        }
-      
-       // GET: Admin/Dashboard
-       
-       public async Task<IActionResult> Dashboard()
-{
-    // 1. ตั้งค่าวันที่ปัจจุบันและย้อนหลัง 7 วัน
-    var today = DateOnly.FromDateTime(DateTime.Now);
-    var sevenDaysAgo = today.AddDays(-6);
-
-    // 2. คำนวณสถิติ 4 การ์ดด้านบน
-    var todayRevenue = await _context.Bookings
-        .Where(b => b.CheckInDate == today && b.BookingStatus != "Pending")
-        .SumAsync(b => b.TotalPrice);
-
-    int totalRooms = await _context.Rooms.CountAsync();
-    int availableRooms = await _context.Rooms.CountAsync(r => r.Status == "Available");
-    int occupiedRooms = totalRooms - availableRooms;
-    double occupancyRate = totalRooms > 0 ? Math.Round(((double)occupiedRooms / totalRooms) * 100, 1) : 0;
-
-    int activeBookings = await _context.Bookings
-        .Where(b => b.BookingStatus == "CheckIn" || b.BookingStatus == "CheckedIn")
-        .CountAsync();
-
-    ViewBag.TodayRevenue = todayRevenue;
-    ViewBag.AvailableRooms = availableRooms;
-    ViewBag.TotalRooms = totalRooms;
-    ViewBag.OccupancyRate = occupancyRate;
-    ViewBag.ActiveBookings = activeBookings;
-
-    // 3. เตรียมข้อมูลกราฟแท่ง (รายรับย้อนหลัง 7 วัน)
-    var last7DaysBookings = await _context.Bookings
-        .Where(b => b.CheckInDate >= sevenDaysAgo && b.CheckInDate <= today)
-        .ToListAsync();
-
-    var revenueLabels = new List<string>();
-    var revenueData = new List<decimal>();
-
-    for (int i = 6; i >= 0; i--)
-    {
-        var targetDate = today.AddDays(-i);
-        revenueLabels.Add(targetDate.ToString("dd MMM")); // เช่น 15 พ.ย.
-        
-        var dailyRev = last7DaysBookings
-            .Where(b => b.CheckInDate == targetDate && b.BookingStatus != "Pending")
-            .Sum(b => b.TotalPrice);
-            
-        revenueData.Add(dailyRev);
-    }
-    ViewBag.RevenueLabels = revenueLabels;
-    ViewBag.RevenueData = revenueData;
-
-    // 4. เตรียมข้อมูลกราฟโดนัท (สัดส่วนห้องพักที่ถูกจองแยกตามประเภท)
-    var roomStats = await _context.Rooms
-        .Include(r => r.RoomType)
-        .Where(r => r.Status != "Available" && r.RoomType != null) // นับเฉพาะห้องที่ไม่ว่าง
-        .GroupBy(r => r.RoomType!.TypeName)
-        .Select(g => new { TypeName = g.Key, Count = g.Count() })
-        .ToListAsync();
-
-    ViewBag.RoomTypeLabels = roomStats.Select(r => r.TypeName ?? "ไม่ระบุ").ToList();
-    ViewBag.RoomTypeData = roomStats.Select(r => r.Count).ToList();
-
-    // 5. ตารางการจองล่าสุด
-    var recentBookings = await _context.Bookings
-        .Include(b => b.Room)
-        .OrderByDescending(b => b.BookingId)
-        .Take(5)
-        .ToListAsync();
-
-    // 6. ดึงรายงานสรุปการเงินที่ฝ่ายบัญชีส่งมาให้ผู้จัดการ (Admin)
-    var financialReports = FinancialReportService.GetAll();
-    ViewBag.FinancialReports = financialReports;
-    ViewBag.PendingFinancialReportsCount = financialReports.Count(r => r.Status == "Pending");
-
-    return View(recentBookings);
-}
-
-// POST: /Admin/AcknowledgeFinancialReport
-// ผู้จัดการลงนามรับทราบหรืออนุมัติรายงานการเงินจากฝ่ายบัญชี
-[HttpPost]
-[ValidateAntiForgeryToken]
-public IActionResult AcknowledgeFinancialReport(string reportId, string? managerComment, bool approve = true)
-{
-    string adminName = HttpContext.Session.GetString("FullName") ?? "ผู้จัดการทั่วไป (Admin)";
-    bool success = FinancialReportService.Acknowledge(reportId, adminName, managerComment, approve);
-    if (success)
-    {
-        TempData["SuccessMessage"] = $"บันทึกการ{(approve ? "อนุมัติ" : "รับทราบ")}รายงานการเงินรหัส {reportId} เรียบร้อยแล้ว";
-    }
-    else
-    {
-        TempData["ErrorMessage"] = "ไม่พบรายงานการเงินที่ระบุ";
-    }
-    return RedirectToAction(nameof(Dashboard));
-}
-        //AddUser(Admin,Staff,Accounting)
-
+        /// <summary>
+        /// แสดงฟอร์มเพิ่มบัญชีพนักงานหรือผู้ใช้งานใหม่
+        /// </summary>
+        [HttpGet]
         public IActionResult AddUser()
         {
             return View();
         }
+
+        /// <summary>
+        /// บันทึกบัญชีผู้ใช้งานใหม่ลงฐานข้อมูล
+        /// </summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult AddUser(User newUser)
@@ -252,19 +294,23 @@ public IActionResult AcknowledgeFinancialReport(string reportId, string? manager
                 _context.Users.Add(newUser);
                 _context.SaveChanges();
 
+                TempData["SuccessMessage"] = $"เพิ่มผู้ใช้งาน {newUser.FullName} เรียบร้อยแล้ว";
                 return RedirectToAction("UserManagement");
             }
             return View(newUser);
         }
-        // ==========================================
-        // ระบบ: ลบผู้ใช้งาน (Delete User)
-        // ==========================================
+
+        /// <summary>
+        /// ลบบัญชีผู้ใช้งานออกจากระบบ
+        /// กฎความปลอดภัยที่เคร่งครัด:
+        /// 1. ไม่อนุญาตให้ลบบัญชี SuperAdmin เด็ดขาด
+        /// 2. บัญชี Admin ทั่วไปไม่สามารถลบ Admin ด้วยกันเองได้ (เฉพาะ SuperAdmin เท่านั้นที่ลบ Admin ได้)
+        /// </summary>
         public IActionResult DeleteUser(int id)
         {
             var userToDelete = _context.Users.Find(id);
             if (userToDelete != null)
             {
-                // ดึง Role ของคนที่กำลังกดลบ จาก Session
                 var currentUserRole = HttpContext.Session.GetString("Role");
 
                 // กฎข้อ 1: ห้ามลบ SuperAdmin เด็ดขาด
@@ -281,7 +327,6 @@ public IActionResult AcknowledgeFinancialReport(string reportId, string? manager
                     return RedirectToAction("UserManagement");
                 }
 
-                // ถ้าผ่านเงื่อนไข ให้ลบได้
                 _context.Users.Remove(userToDelete);
                 _context.SaveChanges();
                 TempData["SuccessMessage"] = "ลบผู้ใช้งานออกจากระบบเรียบร้อยแล้ว";
@@ -289,8 +334,10 @@ public IActionResult AcknowledgeFinancialReport(string reportId, string? manager
             return RedirectToAction("UserManagement");
         }
 
-        // GET: Admin/EditUser/5
-        // ดึงข้อมูลผู้ใช้งานเดิมมาแสดงบนฟอร์ม
+        /// <summary>
+        /// ดึงข้อมูลผู้ใช้งานเดิมมาแสดงบนฟอร์มแก้ไข
+        /// </summary>
+        [HttpGet]
         public IActionResult EditUser(int id)
         {
             var user = _context.Users.Find(id);
@@ -301,8 +348,9 @@ public IActionResult AcknowledgeFinancialReport(string reportId, string? manager
             return View(user);
         }
 
-        // POST: Admin/EditUser/5
-        // บันทึกข้อมูลที่ถูกแก้ไขลงฐานข้อมูล
+        /// <summary>
+        /// บันทึกการแก้ไขข้อมูลผู้ใช้งาน
+        /// </summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult EditUser(int id, User updatedUser)
@@ -330,11 +378,13 @@ public IActionResult AcknowledgeFinancialReport(string reportId, string? manager
             return View(updatedUser);
         }
 
-        // ==========================================
-        // ระบบ: จัดการห้องพัก (Room Management)
-        // ==========================================
-
-        // หน้ารายการห้องพักทั้งหมด
+        // =========================================================================
+        // 3. ระบบจัดการห้องพัก (Room Management)
+        // =========================================================================
+        /// <summary>
+        /// หน้ารายการห้องพักทั้งหมดในระบบ รองรับการกรองตามสาขา (Branch) และสถานะ (Status)
+        /// </summary>
+        [HttpGet]
         public IActionResult RoomManagement(string? status = null, string? branch = null)
         {
             var query = _context.Rooms.Include(r => r.RoomType).AsQueryable();
@@ -361,13 +411,19 @@ public IActionResult AcknowledgeFinancialReport(string reportId, string? manager
             return View(rooms);
         }
 
+        /// <summary>
+        /// แสดงฟอร์มสร้างห้องพักใหม่ พร้อมรายการประเภทห้องพักให้เลือก
+        /// </summary>
+        [HttpGet]
         public IActionResult CreateRoom()
         {
             ViewBag.RoomTypes = _context.Roomtypes.OrderBy(rt => rt.BasePrice).ToList();
             return View();
         }
 
-        // 2. รับข้อมูลห้องพักมาบันทึก
+        /// <summary>
+        /// บันทึกห้องพักใหม่ลงในสาขาที่เลือก (Bangkok, Chonburi, Phuket)
+        /// </summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult CreateRoom(Room newRoom)
@@ -389,8 +445,10 @@ public IActionResult AcknowledgeFinancialReport(string reportId, string? manager
             return View(newRoom);
         }
 
-        // GET: Admin/EditRoom/5
-        // ดึงข้อมูลห้องพักเดิมมาแสดงในฟอร์ม
+        /// <summary>
+        /// ดึงข้อมูลห้องพักเดิมมาแสดงในฟอร์มแก้ไข
+        /// </summary>
+        [HttpGet]
         public IActionResult EditRoom(int id)
         {
             var room = _context.Rooms.Include(r => r.RoomType).FirstOrDefault(r => r.RoomId == id);
@@ -402,8 +460,9 @@ public IActionResult AcknowledgeFinancialReport(string reportId, string? manager
             return View(room);
         }
 
-        // POST: Admin/EditRoom/5
-        // บันทึกการแก้ไขห้องพัก
+        /// <summary>
+        /// บันทึกการแก้ไขข้อมูลห้องพัก (หมายเลขห้อง, ประเภท, สถานะ, สาขา)
+        /// </summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult EditRoom(int id, Room updatedRoom)
@@ -420,7 +479,6 @@ public IActionResult AcknowledgeFinancialReport(string reportId, string? manager
                     var roomInDb = _context.Rooms.Find(id);
                     if (roomInDb != null)
                     {
-                        // อัปเดตข้อมูล
                         roomInDb.RoomNo = updatedRoom.RoomNo;
                         roomInDb.RoomTypeId = updatedRoom.RoomTypeId;
                         roomInDb.Status = updatedRoom.Status;
@@ -443,8 +501,9 @@ public IActionResult AcknowledgeFinancialReport(string reportId, string? manager
             return View(updatedRoom);
         }
 
-        // GET: Admin/DeleteRoom/5
-        // ระบบลบห้องพัก
+        /// <summary>
+        /// ลบห้องพักออกจากระบบ
+        /// </summary>
         public IActionResult DeleteRoom(int id)
         {
             var room = _context.Rooms.Find(id);

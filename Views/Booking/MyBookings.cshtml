@@ -301,6 +301,27 @@
                                             <i class="bi bi-info-circle me-1"></i>เกิน 7 วันหลังจอง (หมดเขตขอคืนเงิน)
                                         </div>
                                     }
+
+                                    <!-- ส่วนแสดงปุ่มและสถานะการรีวิว (สำหรับผู้ที่เข้าพักเสร็จสมบูรณ์แล้ว) -->
+                                    @if (booking.BookingStatus == "Completed" || booking.BookingStatus == "CheckedOut" || booking.BookingStatus == "CheckOut")
+                                    {
+                                        var existingReview = ReviewService.GetReviewByBookingId(booking.BookingId);
+                                        if (existingReview != null)
+                                        {
+                                            <div class="mt-2 text-center">
+                                                <span class="badge bg-warning bg-opacity-10 text-dark border border-warning rounded-pill px-3 py-2 w-100 d-block">
+                                                    <i class="bi bi-star-fill text-warning me-1"></i> รีวิวแล้ว (@existingReview.Rating/5 ดาว)
+                                                </span>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <button type="button" class="btn btn-warning btn-sm rounded-pill px-3 w-100 mt-2 fw-semibold text-dark shadow-sm"
+                                                    data-bs-toggle="modal" data-bs-target="#reviewModal-@booking.BookingId">
+                                                <i class="bi bi-star-fill me-1"></i> เขียนรีวิว & ให้คะแนน
+                                            </button>
+                                        }
+                                    }
                                 </div>
                             </div>
 
@@ -498,6 +519,86 @@
                                         </button>
                                     </div>
                                 </form>
+                            </div>
+                        </div>
+                    }
+                    <!-- Modal เขียนรีวิวและให้คะแนนความประทับใจ -->
+                    @if (booking.BookingStatus == "Completed" || booking.BookingStatus == "CheckedOut" || booking.BookingStatus == "CheckOut")
+                    {
+                        <div class="modal fade" id="reviewModal-@booking.BookingId" tabindex="-1" aria-hidden="true">
+                            <div class="modal-dialog modal-dialog-centered">
+                                <div class="modal-content rounded-4 border-0 shadow-lg overflow-hidden">
+                                    <div class="modal-header bg-warning bg-opacity-10 border-0 p-4 pb-0">
+                                        <div>
+                                            <h5 class="modal-title fw-bold text-dark mb-1">
+                                                <i class="bi bi-star-fill text-warning me-2"></i>ให้คะแนนและรีวิวการเข้าพัก
+                                            </h5>
+                                            <p class="text-muted small mb-0">รหัสจอง: @booking.BookingRef | สาขา @branchTh</p>
+                                        </div>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <form asp-controller="Booking" asp-action="SubmitReview" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="bookingId" value="@booking.BookingId" />
+                                        <input type="hidden" name="bookingRef" value="@booking.BookingRef" />
+                                        
+                                        <div class="modal-body p-4">
+                                            <div class="text-center mb-4 p-3 bg-light rounded-4">
+                                                <label class="form-label fw-bold text-dark d-block mb-2">ความพึงพอใจโดยรวมในการเข้าพัก</label>
+                                                <select name="rating" class="form-select form-select-lg text-center fw-bold border-warning" required>
+                                                    <option value="5" selected>5 ดาว (ดีเยี่ยม ประทับใจมาก)</option>
+                                                    <option value="4">4 ดาว (ดีมาก น่าพอใจ)</option>
+                                                    <option value="3">3 ดาว (ปานกลาง)</option>
+                                                    <option value="2">2 ดาว (พอใช้)</option>
+                                                    <option value="1">1 ดาว (ควรปรับปรุง)</option>
+                                                </select>
+                                            </div>
+
+                                            <div class="row g-2 mb-3">
+                                                <div class="col-4">
+                                                    <label class="form-label small fw-semibold text-muted">ความสะอาด</label>
+                                                    <select name="cleanlinessRating" class="form-select form-select-sm">
+                                                        <option value="5" selected>5/5 (ดีเยี่ยม)</option>
+                                                        <option value="4">4/5 (ดี)</option>
+                                                        <option value="3">3/5 (ปานกลาง)</option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-4">
+                                                    <label class="form-label small fw-semibold text-muted">การบริการ</label>
+                                                    <select name="serviceRating" class="form-select form-select-sm">
+                                                        <option value="5" selected>5/5 (ดีเยี่ยม)</option>
+                                                        <option value="4">4/5 (ดี)</option>
+                                                        <option value="3">3/5 (ปานกลาง)</option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-4">
+                                                    <label class="form-label small fw-semibold text-muted">ทำเลที่ตั้ง</label>
+                                                    <select name="locationRating" class="form-select form-select-sm">
+                                                        <option value="5" selected>5/5 (ดีเยี่ยม)</option>
+                                                        <option value="4">4/5 (ดี)</option>
+                                                        <option value="3">3/5 (ปานกลาง)</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+
+                                            <div class="mb-3">
+                                                <label class="form-label fw-semibold small text-dark">หัวข้อรีวิวสั้นๆ</label>
+                                                <input type="text" name="title" class="form-control rounded-3" placeholder="เช่น ห้องพักกว้างขวาง วิวสวย เตียงนุ่มสบายมาก" />
+                                            </div>
+
+                                            <div class="mb-2">
+                                                <label class="form-label fw-semibold small text-dark">ข้อความรีวิวและความประทับใจ <span class="text-danger">*</span></label>
+                                                <textarea name="comment" rows="3" class="form-control rounded-3" placeholder="บอกเล่าความรู้สึกและสิ่งที่ท่านประทับใจ เพื่อเป็นข้อมูลให้กับผู้เข้าพักท่านอื่น..." required></textarea>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer border-0 p-4 pt-0">
+                                            <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">ยกเลิก</button>
+                                            <button type="submit" class="btn btn-warning rounded-pill px-4 fw-bold shadow-sm">
+                                                <i class="bi bi-send-fill me-1"></i> ส่งรีวิวของคุณ
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
                             </div>
                         </div>
                     }

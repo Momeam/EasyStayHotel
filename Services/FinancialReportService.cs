@@ -7,12 +7,22 @@ using EasyStayHotel.Models;
 
 namespace EasyStayHotel.Services
 {
+    /// <summary>
+    /// เซอร์วิส FinancialReportService: จัดการรายงานสรุปทางการเงิน รายได้ และการปิดรอบบัญชีของโรงแรม (Financial & Revenue Reporting)
+    /// หน้าที่:
+    /// - จัดเก็บประวัติรายงานการเงินที่ฝ่ายบัญชีสร้างขึ้น (รายวัน, รายสัปดาห์, รายเดือน)
+    /// - นำเสนอข้อมูลให้ผู้จัดการ/ผู้บริหาร (Admin/Manager) ตรวจรับทราบ (Acknowledge) หรืออนุมัติปิดยอด (Approve)
+    /// - จัดเก็บในรูปแบบไฟล์ JSON (wwwroot/data/financial_reports.json) เพื่อความยืดหยุ่นและการทำงานแบบไม่ขึ้นกับโครงสร้างตารางหลัก
+    /// </summary>
     public static class FinancialReportService
     {
         private static readonly object _lock = new object();
         private static readonly string _dataDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "data");
         private static readonly string _filePath = Path.Combine(_dataDir, "financial_reports.json");
 
+        /// <summary>
+        /// ตรวจสอบการมีอยู่ของไฟล์ข้อมูล หากยังไม่มี จะสร้างโฟลเดอร์และใส่ข้อมูลรายงานเริ่มต้น
+        /// </summary>
         private static void EnsureFileExists()
         {
             if (!Directory.Exists(_dataDir))
@@ -52,6 +62,9 @@ namespace EasyStayHotel.Services
             }
         }
 
+        /// <summary>
+        /// ดึงรายการรายงานทางการเงินทั้งหมด กรองตามสาขา และเรียงจากรายงานล่าสุดไปหาเก่าสุด
+        /// </summary>
         public static List<FinancialReport> GetAll(string? branch = null)
         {
             lock (_lock)
@@ -74,6 +87,9 @@ namespace EasyStayHotel.Services
             }
         }
 
+        /// <summary>
+        /// ค้นหารายงานทางการเงินจาก ReportId
+        /// </summary>
         public static FinancialReport? GetById(string reportId)
         {
             lock (_lock)
@@ -92,6 +108,9 @@ namespace EasyStayHotel.Services
             }
         }
 
+        /// <summary>
+        /// บันทึกรายงานทางการเงินฉบับใหม่ที่ฝ่ายบัญชีสร้างขึ้น
+        /// </summary>
         public static bool Create(FinancialReport report)
         {
             lock (_lock)
@@ -113,6 +132,9 @@ namespace EasyStayHotel.Services
             }
         }
 
+        /// <summary>
+        /// ผู้จัดการ/ผู้บริหารตรวจรับทราบหรืออนุมัติรายงานทางการเงิน พร้อมบันทึกความเห็น
+        /// </summary>
         public static bool Acknowledge(string reportId, string adminName, string? managerComment = null, bool approve = true)
         {
             lock (_lock)

@@ -10,22 +10,40 @@ using EasyStayHotel.Services;
 
 namespace EasyStayHotel.Controllers
 {
+    /// <summary>
+    /// คอนโทรลเลอร์ HousekeeperController: จัดการแดชบอร์ดและการปฏิบัติงานของแผนกแม่บ้าน (Housekeeping Management)
+    /// 
+    /// วงจรการทำงานหลัก (Core Workflow):
+    /// 1. ตรวจสอบสิทธิ์ (RBAC): อนุญาตเฉพาะผู้ใช้ Role: Housekeeper, Maid, Admin, SuperAdmin เท่านั้น
+    /// 2. แสดงรายการงานทำความสะอาด (Dashboard): ซิงค์ห้องสถานะ "Cleaning" จาก MySQL เข้าสู่คิวงวดงานของแม่บ้าน
+    /// 3. รับงาน (StartTask): บันทึกเวลาเริ่มงาน เปลี่ยนสถานะเป็น "InProgress"
+    /// 4. ส่งมอบงาน (CompleteTask): บันทึก Checklist ผลการทำความสะอาด และอัปเดตสถานะห้องในตาราง MySQL เป็น "Available" 
+    ///    เพื่อให้ห้องนั้นกลับไปแสดงผลบนหน้าเว็บและพร้อมเปิดให้ลูกค้าจองต่อได้ทันที
+    /// </summary>
     public class HousekeeperController : Controller
     {
         private readonly EasystaydbContext _context;
 
+        /// <summary>
+        /// Constructor รับ EasystaydbContext ผ่าน Dependency Injection
+        /// </summary>
         public HousekeeperController(EasystaydbContext context)
         {
             _context = context;
         }
 
-        // ตรวจสอบสิทธิ์การเข้าถึง (Housekeeper, Maid, Admin, SuperAdmin)
+        /// <summary>
+        /// กรองและตรวจสอบสิทธิ์ก่อนที่ทุก Action ในคอนโทรลเลอร์นี้จะทำงาน (Action Filter)
+        /// คำถามที่อาจารย์มักถาม:
+        /// - ทำไมต้องใช้ OnActionExecuting?
+        ///   -> เพื่อทำหน้าที่เป็น Centralized Access Control ตรวจสอบ Session และ Role ป้องกันไม่ให้ผู้ใช้พิมพ์ URL เข้ามาตรงๆ โดยไม่ได้รับอนุญาต
+        /// </summary>
         public override void OnActionExecuting(ActionExecutingContext context)
         {
             var userId = HttpContext.Session.GetInt32("UserId");
             var role = HttpContext.Session.GetString("Role");
 
-            // 1. ยังไม่ได้เข้าสู่ระบบ
+            // 1. ตรวจสอบว่าผู้ใช้ล็อกอินหรือยัง
             if (userId == null || string.IsNullOrEmpty(role))
             {
                 TempData["ErrorMessage"] = "กรุณาเข้าสู่ระบบก่อนเข้าใช้งานแดชบอร์ดแม่บ้าน";
@@ -34,7 +52,7 @@ namespace EasyStayHotel.Controllers
                 return;
             }
 
-            // 2. ถ้าเป็นพนักงานต้อนรับ (Staff) พยายามเข้าหน้าแม่บ้าน -> ดีดกลับหน้ารายการจองของพนักงาน
+            // 2. ป้องกันไม่ให้พนักงานต้อนรับ (Staff) เข้ามาทำงานข้ามหน้าที่
             if (role == "Staff")
             {
                 TempData["ErrorMessage"] = "คุณไม่มีสิทธิ์เข้าถึงแดชบอร์ดแม่บ้าน สงวนสิทธิ์เฉพาะพนักงานแม่บ้านและผู้ดูแลระบบเท่านั้น เพื่อป้องกันการปฏิบัติงานข้ามหน้าที่";
@@ -53,6 +71,9 @@ namespace EasyStayHotel.Controllers
             base.OnActionExecuting(context);
         }
 
+        /// <summary>
+        /// ดึงและจัดเก็บสาขาปัจจุบันของแม่บ้านลงใน Session และ ViewBag
+        /// </summary>
         private string GetCurrentBranch(string? branch = null)
         {
             string currentBranch = HttpContext.Session.GetString("Branch") ?? "Bangkok";
@@ -66,32 +87,35 @@ namespace EasyStayHotel.Controllers
             return currentBranch;
         }
 
-        // ==========================================
+        // =========================================================================
         // 1. แดชบอร์ดแม่บ้าน (Housekeeper Dashboard)
-        // ==========================================
+        // =========================================================================
+        /// <summary>
+        /// แสดงหน้าแดชบอร์ดแม่บ้าน รายการงานทำความสะอาด สถิติห้องพัก และตัวกรองชั้น/สถานะ
+        /// </summary>
         [HttpGet]
         public IActionResult Dashboard(string? branch = null, string? statusFilter = null, string? floorFilter = null)
         {
             string currentBranch = GetCurrentBranch(branch);
             string staffName = HttpContext.Session.GetString("FullName") ?? "พนักงาน";
 
-            // ดึงข้อมูลห้องพักทั้งหมดของสาขานี้จากฐานข้อมูล
+            // ดึงข้อมูลห้องพักทั้งหมดของสาขาที่สังกัดจากฐานข้อมูล MySQL
             var branchRooms = _context.Rooms
                 .Include(r => r.RoomType)
                 .Where(r => r.Branch == currentBranch)
                 .ToList();
 
-            // ซิงค์ห้องพักในฐานข้อมูลที่มีสถานะ Cleaning เข้ากับ HousekeepingService
+            // ตรวจสอบและซิงค์ห้องพักในฐานข้อมูลที่มีสถานะ Cleaning ให้เข้ามาอยู่ในระบบงานแม่บ้าน
             HousekeepingService.SyncWithRooms(branchRooms, currentBranch, staffName);
 
             // ดึงรายการงานทำความสะอาดทั้งหมดของสาขานี้
             var allTasks = HousekeepingService.GetAllTasks(currentBranch);
 
-            // สถิติต่างๆ สำหรับหัวแดชบอร์ด
+            // คำนวณสถิติสรุปสำหรับแสดงผลบนการ์ดด้านบน (Cards Metrics)
             int pendingCount = allTasks.Count(t => t.Status == "Pending");
             int inProgressCount = allTasks.Count(t => t.Status == "InProgress");
             
-            // งานที่เสร็จสิ้นในวันนี้
+            // จำนวนงานที่ทำความสะอาดเสร็จสิ้นในวันนี้
             var today = DateTime.Today;
             int completedTodayCount = allTasks.Count(t => t.Status == "Completed" && t.CompletedAt.HasValue && t.CompletedAt.Value.Date == today);
             
@@ -105,7 +129,7 @@ namespace EasyStayHotel.Controllers
             ViewBag.AvailableRoomsCount = availableRoomsCount;
             ViewBag.TotalRoomsCount = totalRoomsCount;
 
-            // ตัวกรอง
+            // ตัวกรองสถานะและชั้น
             ViewBag.StatusFilter = statusFilter ?? "ALL";
             ViewBag.FloorFilter = floorFilter ?? "ALL";
 
@@ -124,15 +148,16 @@ namespace EasyStayHotel.Controllers
                 }
             }
 
-            // ส่งข้อมูลห้องพักทั้งหมดให้ View เพื่อใช้ในการตรวจสอบสถานะแบบเรียลไทม์
             ViewBag.BranchRooms = branchRooms;
-
             return View(filteredTasks.ToList());
         }
 
-        // ==========================================
-        // 2. รับงาน / เริ่มทำความสะอาด (Start Cleaning)
-        // ==========================================
+        // =========================================================================
+        // 2. รับงาน / เริ่มทำความสะอาด (Start Cleaning Task)
+        // =========================================================================
+        /// <summary>
+        /// แม่บ้านกดรับงานและเริ่มทำความสะอาดห้องพัก (เปลี่ยนสถานะเป็น InProgress)
+        /// </summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult StartTask(string taskId)
@@ -159,9 +184,14 @@ namespace EasyStayHotel.Controllers
             return RedirectToAction(nameof(Dashboard));
         }
 
-        // ==========================================
+        // =========================================================================
         // 3. ส่งงานทำความสะอาด -> นำห้องไปขายต่อทันที (Complete Cleaning & Ready for Sale)
-        // ==========================================
+        // =========================================================================
+        /// <summary>
+        /// แม่บ้านกดยืนยันทำความสะอาดเสร็จสมบูรณ์:
+        /// 1. บันทึกผล Checklist และเวลาเสร็จ
+        /// 2. อัปเดตสถานะห้องในตาราง rooms ของ MySQL เป็น "Available" เพื่อให้ห้องขึ้นหน้าเว็บพร้อมขายต่อทันที
+        /// </summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult CompleteTask(string taskId, string? completionNotes, string[]? checklist)
@@ -182,10 +212,11 @@ namespace EasyStayHotel.Controllers
             string housekeeperName = HttpContext.Session.GetString("FullName") ?? "แม่บ้าน";
             var checklistList = checklist != null ? checklist.ToList() : new List<string>();
 
-            // 1. บันทึกผลการส่งงานลงใน HousekeepingService
+            // ขั้นตอนที่ 1: บันทึกสถานะงานเป็น Completed ในระบบบริการแม่บ้าน
             HousekeepingService.CompleteCleaning(taskId, housekeeperName, completionNotes, checklistList);
 
-            // 2. สำคัญที่สุด: อัปเดตสถานะห้องในฐานข้อมูล MySQL เป็น "Available" เพื่อนำไปเปิดขายต่อทันที!
+            // ขั้นตอนที่ 2: สำคัญมาก! อัปเดตสถานะห้องพักในฐานข้อมูล MySQL เป็น "Available"
+            // เพื่อให้ระบบหน้าบ้าน (Public Booking) มองเห็นห้องนี้และให้ลูกค้าจองต่อได้ทันที
             var room = _context.Rooms.FirstOrDefault(r => (r.RoomId == task.RoomId) || (r.RoomNo == task.RoomNo && r.Branch == task.Branch));
             if (room != null)
             {
@@ -193,13 +224,16 @@ namespace EasyStayHotel.Controllers
                 _context.SaveChanges();
             }
 
-            TempData["SuccessMessage"] = $"✨ ส่งงานทำความสะอาดห้อง {task.RoomNo} สำเร็จเรียบร้อยแล้ว! สถานะห้องพักเปลี่ยนเป็น 'ว่าง' (Available) พร้อมให้นำไปเปิดขายต่อทันที";
+            TempData["SuccessMessage"] = $"ส่งงานทำความสะอาดห้อง {task.RoomNo} สำเร็จเรียบร้อยแล้ว! สถานะห้องพักเปลี่ยนเป็น 'ว่าง' (Available) พร้อมให้นำไปเปิดขายต่อทันที";
             return RedirectToAction(nameof(Dashboard));
         }
 
-        // ==========================================
+        // =========================================================================
         // 4. ปลดล็อกห้องพักให้พร้อมขายด่วน (Direct Release Room to Available)
-        // ==========================================
+        // =========================================================================
+        /// <summary>
+        /// คำสั่งด่วนสำหรับแม่บ้านหรือผู้ดูแลระบบในการปลดล็อกสถานะห้องเป็น "Available" ทันที
+        /// </summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult DirectReleaseRoom(int roomId)
@@ -210,7 +244,7 @@ namespace EasyStayHotel.Controllers
                 room.Status = "Available";
                 _context.SaveChanges();
 
-                // อัปเดต Task ถ้ามีอยู่
+                // อัปเดตงานทำความสะอาดที่ค้างอยู่ (ถ้ามี) ให้เสร็จสิ้นด้วย
                 var activeTask = HousekeepingService.GetAllTasks(room.Branch)
                     .FirstOrDefault(t => t.RoomId == roomId && t.Status != "Completed");
                 

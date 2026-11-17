@@ -8,7 +8,7 @@
     <div class="col-md-8">
         <div class="card shadow-sm border-0">
             <div class="card-header bg-dark text-warning">
-                <h5 class="m-0">➕ เพิ่มผู้ใช้งานใหม่ในระบบ</h5>
+                <h5 class="m-0"><i class="bi bi-person-plus-fill me-2"></i>เพิ่มผู้ใช้งานใหม่ในระบบ</h5>
             </div>
             <div class="card-body p-4">
                 <form asp-controller="Admin" asp-action="AddUser" method="post">
@@ -60,13 +60,13 @@
                         <label asp-for="Role" class="form-label fw-bold text-primary">กำหนดตำแหน่ง / บทบาท (Role):</label>
                         <select asp-for="Role" class="form-select border-primary" required>
                             <option value="">-- กรุณาเลือกตำแหน่ง --</option>
-                            <optgroup label="👔 พนักงานและบุคลากร">
+                            <optgroup label="พนักงานและบุคลากร">
                                 <option value="Admin">ผู้ดูแลระบบ (Admin)</option>
                                 <option value="Staff">พนักงานต้อนรับ (Staff)</option>
                                 <option value="Housekeeper">พนักงานแม่บ้าน (Housekeeper)</option>
                                 <option value="Accounting">พนักงานบัญชี (Accounting)</option>
                             </optgroup>
-                            <optgroup label="👤 ผู้ใช้งานทั่วไป">
+                            <optgroup label="ผู้ใช้งานทั่วไป">
                                 <option value="Customer">ลูกค้า / สมาชิกทั่วไป (Customer)</option>
                             </optgroup>
                         </select>

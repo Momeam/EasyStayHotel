@@ -209,19 +209,48 @@
                             <h4 class="fw-bold text-success m-0" id="uiGrandTotal">฿@initialRoomPrice.ToString("N0")</h4>
                         </div>
 
-                        <!-- โค้ดส่วนลด -->
-                        <div class="input-group mb-2">
-                            <input asp-for="PromoCode" type="text" class="form-control" placeholder="รหัสส่วนลดโปรโมชั่น" />
-                            <button class="btn btn-outline-primary" type="button" id="btnApplyPromo">ใช้รหัส</button>
+                        <!-- โค้ดส่วนลดและโปรโมชั่น -->
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-muted mb-1">
+                                <i class="bi bi-ticket-perforated text-primary me-1"></i> โค้ดส่วนลด / คูปองโปรโมชั่น
+                            </label>
+                            <div class="input-group mb-2">
+                                <input asp-for="PromoCode" type="text" class="form-control text-uppercase" placeholder="กรอกรหัสคูปอง เช่น GROUP15" />
+                                <button class="btn btn-outline-primary fw-semibold px-3" type="button" id="btnApplyPromo">ใช้คูปอง</button>
+                            </div>
+                            <div class="d-flex flex-wrap gap-1 align-items-center mb-2">
+                                <span class="text-muted small me-1" style="font-size: 0.78rem;">คูปองแนะนำ:</span>
+                                <button type="button" class="badge bg-light text-primary border border-primary border-opacity-25 quick-promo-chip py-1 px-2" data-code="EARLYBIRD" title="จองล่วงหน้า >30 วัน รับส่วนลด 15%">
+                                    EARLYBIRD (-15%)
+                                </button>
+                                <button type="button" class="badge bg-light text-primary border border-primary border-opacity-25 quick-promo-chip py-1 px-2" data-code="LONGSTAY" title="พักต่อเนื่อง 3 คืนขึ้นไป ลด 10% คืนที่ 3">
+                                    LONGSTAY (-10% คืนที่ 3)
+                                </button>
+                                <button type="button" class="badge bg-light text-primary border border-primary border-opacity-25 quick-promo-chip py-1 px-2" data-code="GROUP15" title="จองตั้งแต่ 2 ห้องขึ้นไป รับส่วนลด 15% ทุกห้อง">
+                                    GROUP15 (-15% กลุ่ม)
+                                </button>
+                                <button type="button" class="badge bg-light text-primary border border-primary border-opacity-25 quick-promo-chip py-1 px-2" data-code="BIRTHDAY10" title="เข้าพักในเดือนเกิด รับส่วนลด 10%">
+                                    BIRTHDAY10 (-10% เดือนเกิด)
+                                </button>
+                                <button type="button" class="badge bg-light text-primary border border-primary border-opacity-25 quick-promo-chip py-1 px-2" data-code="WEEKDAY5" title="พักวันธรรมดา จันทร์-พฤหัสฯ Deluxe+ รับส่วนลด 5%">
+                                    WEEKDAY5 (-5% วันธรรมดา)
+                                </button>
+                            </div>
                         </div>
-                        <div class="d-flex flex-wrap gap-1 mb-4">
-                            <span class="text-muted" style="font-size: 0.75rem;">โค้ดแนะนำ:</span>
-                            <button type="button" class="badge bg-light text-primary border border-primary border-opacity-25 text-decoration-none quick-promo-chip" data-code="EARLY30" style="cursor: pointer;">
-                                EARLY30 (-15%)
-                            </button>
-                            <button type="button" class="badge bg-light text-primary border border-primary border-opacity-25 text-decoration-none quick-promo-chip" data-code="GROUP15" style="cursor: pointer;">
-                                GROUP15 (-15%)
-                            </button>
+
+                        <!-- คำอธิบายเงื่อนไขโปรโมชั่นของโรงแรม -->
+                        <div class="card border-0 bg-light p-3 rounded-3 mb-4">
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="bi bi-gift-fill text-warning me-2"></i>
+                                <span class="fw-bold small text-dark">สิทธิพิเศษโปรโมชั่น Easy Stay:</span>
+                            </div>
+                            <ul class="small text-muted mb-0 ps-3" style="font-size: 0.78rem; line-height: 1.6;">
+                                <li><strong>Early Bird:</strong> จองล่วงหน้า > 30 วัน ลด 15% ทันที (อัตโนมัติ / โค้ด <code>EARLYBIRD</code>)</li>
+                                <li><strong>พักยาวคุ้มกว่า:</strong> จอง 3 คืนขึ้นไป ลดราคาคืนที่ 3 ลง 10% (อัตโนมัติ / โค้ด <code>LONGSTAY</code>)</li>
+                                <li><strong>ต้อนรับเดือนเกิด:</strong> พักในเดือนเกิดของตนเอง ลด 10% (อัตโนมัติ / โค้ด <code>BIRTHDAY10</code>)</li>
+                                <li><strong>เข้าพักแบบกลุ่ม:</strong> จองตั้งแต่ 2 ห้องขึ้นไป รับส่วนลด 15% ทุกห้อง (กรอกคูปอง <code>GROUP15</code>)</li>
+                                <li><strong>วันธรรมดาน่าพัก:</strong> พัก จันทร์ - พฤหัสฯ ห้อง Deluxe ขึ้นไป ลดเพิ่ม 5% (อัตโนมัติ / โค้ด <code>WEEKDAY5</code>)</li>
+                            </ul>
                         </div>
 
                         <button type="submit" class="btn btn-primary w-100 py-3 fw-bold rounded-3 shadow-sm">
@@ -288,7 +317,8 @@
                     Rooms: roomsCount,
                     CheckInDate: checkInVal,
                     CouponCode: $('#PromoCode').val() || '',
-                    Email: $('#Email').val() || ''
+                    Email: $('#Email').val() || '',
+                    RoomTypeName: '@Html.Raw(Model.RoomTypeName)'
                 };
 
                 $.ajax({

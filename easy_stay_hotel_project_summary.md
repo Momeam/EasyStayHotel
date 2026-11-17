@@ -1,10 +1,10 @@
-# 🏨 Easy Stay Hotel & Resort - Comprehensive Project Summary & Architecture Manual
+# Easy Stay Hotel & Resort - Comprehensive Project Summary & Architecture Manual
 
 > **เอกสารฉบับสมบูรณ์**: รวบรวมข้อมูลสถาปัตยกรรมระบบ ฟีเจอร์ทั้งหมด โครงสร้างโค้ด ฐานข้อมูล และคู่มือการทดสอบระบบบริหารจัดการโรงแรม Easy Stay Hotel & Resort (CSI 402)
 
 ---
 
-## 📌 1. ภาพรวมโปรเจกต์ (Project Overview & Objectives)
+## 1. ภาพรวมโปรเจกต์ (Project Overview & Objectives)
 
 **Easy Stay Hotel & Resort** เป็นระบบบริหารจัดการโรงแรมแบบครบวงจร (Full-Stack Hotel Property Management System - PMS & Direct Booking Engine) พัฒนาขึ้นเพื่อรองรับการดำเนินงานของเครือโรงแรมและรีสอร์ทมาตรฐาน 5 ดาว ที่มีสาขาให้บริการครอบคลุม 3 จังหวัดท่องเที่ยวหลักของประเทศไทย:
 1. **สาขากรุงเทพมหานคร (Bangkok Branch)** - สาขาหลักใจกลางเมือง
@@ -18,7 +18,7 @@
 
 ---
 
-## 🛠️ 2. เทคโนโลยีที่ใช้ในการพัฒนา (Technology Stack)
+## 2. เทคโนโลยีที่ใช้ในการพัฒนา (Technology Stack)
 
 | ส่วนของระบบ | เทคโนโลยีที่เลือกใช้ | รายละเอียดการใช้งาน |
 | :--- | :--- | :--- |
@@ -35,7 +35,7 @@
 
 ---
 
-## 👥 3. สิทธิ์และบทบาทผู้ใช้งาน (Role-Based Access Control - RBAC)
+## 3. สิทธิ์และบทบาทผู้ใช้งาน (Role-Based Access Control - RBAC)
 
 ระบบควบคุมสิทธิ์ผ่าน `OnActionExecuting` ในทุก Controller โดยแบ่งออกเป็น 5 บทบาทหลัก:
 
@@ -91,9 +91,9 @@
 
 ---
 
-## 🚀 4. โครงสร้างฟังก์ชันและระบบงานทั้งหมดในโปรเจกต์ (System Modules)
+## 4. โครงสร้างฟังก์ชันและระบบงานทั้งหมดในโปรเจกต์ (System Modules)
 
-### 🏨 หมวดที่ 1: ระบบค้นหาและจองห้องพักของลูกค้า (Customer Booking Engine)
+### หมวดที่ 1: ระบบค้นหาและจองห้องพักของลูกค้า (Customer Booking Engine)
 * **หน้าแรกและระบบค้นหาห้องพัก ([Home/Index.cshtml](file:///c:/Users/LENOVO/EasyStayHotel/Views/Home/Index.cshtml) & [Booking/Search.cshtml](file:///c:/Users/LENOVO/EasyStayHotel/Views/Booking/Search.cshtml))**:
   * ตัวกรองสาขา (กรุงเทพฯ, ชลบุรี, ภูเก็ต), วันที่เช็คอิน-เช็คเอาท์, จำนวนห้อง และจำนวนผู้เข้าพัก
   * แสดงพรีวิวห้องพัก 3 ประเภทหลัก:
@@ -138,7 +138,7 @@
 
 ---
 
-### 🛎️ หมวดที่ 2: ระบบเคาน์เตอร์พนักงานต้อนรับ (Staff Front Desk Console)
+### หมวดที่ 2: ระบบเคาน์เตอร์พนักงานต้อนรับ (Staff Front Desk Console)
 * **ภาพรวมการปฏิบัติงานประจำวัน ([Staff/DailyOverview.cshtml](file:///c:/Users/LENOVO/EasyStayHotel/Views/Staff/DailyOverview.cshtml))**:
   * การ์ดสถิติ 6 ช่องประจำวัน: แขกจะเช็คอินวันนี้ (Arrivals), แขกจะเช็คเอาท์วันนี้ (Departures), แขกพักในโรงแรม (In-House), ห้องว่างพร้อมขาย, ห้องรอทำความสะอาด และห้องซ่อมบำรุง
   * สรุปยอดรายรับของสาขาประจำวัน แยกยอดเงินสดและเงินโอน
@@ -183,7 +183,7 @@
 
 ---
 
-### 🧹 หมวดที่ 3: ระบบงานแม่บ้าน (Housekeeping Management Console)
+### หมวดที่ 3: ระบบงานแม่บ้าน (Housekeeping Management Console)
 * **แดชบอร์ดงานทำความสะอาดแบบเรียลไทม์ ([Housekeeper/Dashboard.cshtml](file:///c:/Users/LENOVO/EasyStayHotel/Views/Housekeeper/Dashboard.cshtml))**:
   * สถิติ 4 การ์ดหลัก: งานรอทำความสะอาด (Pending), กำลังทำความสะอาด (InProgress), ทำความสะอาดเสร็จแล้ววันนี้ (Completed) และจำนวนห้องว่างพร้อมขายในระบบ
   * ซิงค์ห้องพักสถานะ Cleaning ในฐานข้อมูลเข้ากับระบบงานทำความสะอาดอัตโนมัติ
@@ -204,7 +204,7 @@
 
 ---
 
-### 📊 หมวดที่ 4: ระบบการเงินและรายงานฝ่ายบัญชี (Accounting Console)
+### หมวดที่ 4: ระบบการเงินและรายงานฝ่ายบัญชี (Accounting Console)
 * **สรุปภาพรวมรายได้และสถานะการเงิน ([Accounting/RevenueReport.cshtml](file:///c:/Users/LENOVO/EasyStayHotel/Views/Accounting/RevenueReport.cshtml))**:
   * ตัวเลข KPI หลัก: รายรับรวมสุทธิ, ยอดเงินสดในมือ (Cash in Hand), ยอดเงินโอนดิจิทัล (PromptPay / บัตรเครดิต) และจำนวนคำขอคืนเงิน
   * ตัวกรอง 3 สาขา: ดูภาพรวมทุกสาขา หรือกรองเฉพาะสาขากรุงเทพฯ, ชลบุรี, ภูเก็ต
@@ -229,7 +229,7 @@
 
 ---
 
-### 🛡️ หมวดที่ 5: ระบบผู้ดูแลระบบและผู้บริหาร (Executive Admin Console)
+### หมวดที่ 5: ระบบผู้ดูแลระบบและผู้บริหาร (Executive Admin Console)
 * **แดชบอร์ดภาพรวมผู้บริหาร ([Admin/Dashboard.cshtml](file:///c:/Users/LENOVO/EasyStayHotel/Views/Admin/Dashboard.cshtml))**:
   * การ์ดสถิติ 4 ช่อง: รายรับรวมวันนี้, จำนวนห้องว่างวันนี้, อัตราการเข้าพักเฉลี่ย (Occupancy Rate %), จำนวนรายการเข้าพักขณะนี้
   * กราฟแท่งรายรับย้อนหลัง 7 วัน และกราฟโดนัทสัดส่วนการเข้าพักตามประเภทห้อง
@@ -242,12 +242,12 @@
   * ปุ่มกด **"ลงนามรับทราบ & อนุมัติรายงาน"** เพื่อปิดรอบรายงานอย่างเป็นทางการ
 * **ระบบจัดการผู้ใช้งานแยกหมวดหมู่เด็ดขาด ([Admin/UserManagement.cshtml](file:///c:/Users/LENOVO/EasyStayHotel/Views/Admin/UserManagement.cshtml))**:
   * สรุปการ์ดตัวเลข KPI: ยอดรวมพนักงานทั้งหมด และยอดรวมลูกค้าทั้งหมด
-  * **แท็บที่ 1: 👔 รายชื่อพนักงานทุกโรล (Staff & Personnel)**:
+  * **แท็บที่ 1:  รายชื่อพนักงานทุกโรล (Staff & Personnel)**:
     * รวมบุคลากรทุกแผนก: ผู้ดูแลระบบ (Admin/SuperAdmin), พนักงานต้อนรับ (Staff), พนักงานแม่บ้าน (Housekeeper/Maid) และพนักงานบัญชี (Accounting)
     * ปุ่ม Filter กรองตามแผนกได้ในคลิกเดียว (ทั้งหมด, แอดมิน, ต้อนรับ, แม่บ้าน, บัญชี)
     * ตารางแสดงรหัสพนักงาน `#EMP-xxxx`, ชื่อ, อีเมล Login, สาขาประจำการ, ป้ายตำแหน่ง และปุ่มแก้ไข/ลบ
     * ระบบความปลอดภัย: ไม่อนุญาตให้ลบบัญชี SuperAdmin และ Admin ลบ Admin ด้วยกันเองไม่ได้
-  * **แท็บที่ 2: 👤 รายชื่อลูกค้า / สมาชิกทั่วไป (Customers & Members)**:
+  * **แท็บที่ 2:  รายชื่อลูกค้า / สมาชิกทั่วไป (Customers & Members)**:
     * รวมบัญชีลูกค้าที่ลงทะเบียนผ่านเว็บไซต์เพื่อจองห้องพัก
     * แสดงรหัสลูกค้า `#CUST-xxxxx`, ชื่อ, อีเมล, เบอร์โทร, ประวัติจำนวนครั้งที่จองห้องพัก, ป้ายสถานะสมาชิก และปุ่มจัดการ
   * ช่องค้นหาอัจฉริยะ ค้นหาชื่อ, อีเมล, เบอร์โทร เฉพาะในแท็บที่กำลังเปิดอยู่
@@ -267,7 +267,7 @@
 
 ---
 
-### 📱 หมวดที่ 6: การออกแบบ Responsive UX/UI รองรับ Laptop & Dual Display
+### หมวดที่ 6: การออกแบบ Responsive UX/UI รองรับ Laptop & Dual Display
 * **การใช้งานบนจอแล็ปท็อป (Laptop Screen Resolution)**:
   * รองรับความละเอียดทั่วไปของโน้ตบุ๊ก (1366x768, 1536x864 ที่อัตราขยาย Display Scaling 125% - 150%)
   * ปรับขนาด Padding และระยะห่างการ์ดให้กะทัดรัด (Compact Design)
@@ -280,7 +280,7 @@
 
 ---
 
-## 🗄️ 5. โครงสร้างฐานข้อมูล (Database Schema & Storage)
+## 5. โครงสร้างฐานข้อมูล (Database Schema & Storage)
 
 ### 1. ฐานข้อมูลหลัก (MySQL Schema - `easystaydb`)
 
@@ -351,7 +351,7 @@
 
 ---
 
-## 📁 6. แผนผังโครงสร้างไฟล์และโค้ดในโปรเจกต์ (Project Structure)
+## 6. แผนผังโครงสร้างไฟล์และโค้ดในโปรเจกต์ (Project Structure)
 
 ```
 c:\Users\LENOVO\EasyStayHotel\
@@ -412,7 +412,7 @@ c:\Users\LENOVO\EasyStayHotel\
 
 ---
 
-## 🔑 7. ข้อมูลบัญชีผู้ใช้สำหรับทดสอบระบบ (Ready-to-Use Test Accounts)
+## 7. ข้อมูลบัญชีผู้ใช้สำหรับทดสอบระบบ (Ready-to-Use Test Accounts)
 
 ระบบมีการเตรียมบัญชีทดสอบเริ่มต้นไว้ใน `DatabaseInitializer.cs` รหัสผ่านเริ่มต้นคือ **`1234`** สำหรับทุกบัญชีพนักงาน:
 
@@ -429,7 +429,7 @@ c:\Users\LENOVO\EasyStayHotel\
 
 ---
 
-## 🧭 8. วงจรการทำงานและคู่มือการทดสอบระบบ (End-to-End Workflow Guide)
+## 8. วงจรการทำงานและคู่มือการทดสอบระบบ (End-to-End Workflow Guide)
 
 สำหรับการทดสอบระบบจริงอย่างเป็นลำดับขั้นตอน แนะนำให้ทดสอบตามวงจรของธุรกิจโรงแรมดังนี้:
 

@@ -213,7 +213,7 @@
                                     <option value="">-- กรุณาเลือกหมายเลขห้องที่พร้อมเข้าพัก --</option>
                                     @if (matchedRooms.Any())
                                     {
-                                        <optgroup label="⭐ ห้องว่างตรงตามประเภทที่จอง (@bookedTypeName) - แนะนำ">
+                                        <optgroup label="ห้องว่างตรงตามประเภทที่จอง (@bookedTypeName) - แนะนำ">
                                             @foreach (var r in matchedRooms)
                                             {
                                                 bool isOriginalRoom = targetBooking.RoomId == r.RoomId;
