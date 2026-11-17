@@ -1,0 +1,544 @@
+@model IEnumerable<EasyStayHotel.Models.HousekeepingTask>
+@{
+    Layout = "~/Views/Shared/_HousekeeperLayout.cshtml";
+    ViewData["Title"] = "แดชบอร์ดงานทำความสะอาด";
+    string currentStatusFilter = ViewBag.StatusFilter as string ?? "ALL";
+    string currentFloorFilter = ViewBag.FloorFilter as string ?? "ALL";
+    string currentBranch = ViewBag.CurrentBranch as string ?? "Bangkok";
+    string currentBranchTh = ViewBag.CurrentBranchTh as string ?? "กรุงเทพฯ";
+    var branchRooms = ViewBag.BranchRooms as List<EasyStayHotel.Models.Room> ?? new List<EasyStayHotel.Models.Room>();
+}
+
+<style>
+    .kpi-card {
+        border-radius: 1.25rem;
+        transition: all 0.25s ease;
+        border: 1px solid rgba(0, 0, 0, 0.05);
+    }
+    .kpi-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08) !important;
+    }
+    .task-card {
+        border-radius: 1.25rem;
+        border: 1px solid #e2e8f0;
+        transition: all 0.2s ease;
+        background-color: #ffffff;
+    }
+    .task-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 25px rgba(13, 148, 136, 0.12) !important;
+        border-color: #99f6e4;
+    }
+    .task-card-urgent {
+        border-left: 6px solid #dc3545 !important;
+    }
+    .task-card-inprogress {
+        border-left: 6px solid #0d6efd !important;
+    }
+    .task-card-completed {
+        border-left: 6px solid #198754 !important;
+    }
+    .task-card-pending {
+        border-left: 6px solid #ffc107 !important;
+    }
+    .room-badge-large {
+        font-size: 1.75rem;
+        font-weight: 800;
+        letter-spacing: -0.5px;
+    }
+    .filter-pill {
+        border-radius: 2rem;
+        padding: 0.5rem 1.25rem;
+        font-weight: 500;
+        font-size: 0.9rem;
+        transition: all 0.2s ease;
+    }
+    .pulse-urgent {
+        animation: pulse-red 2s infinite;
+    }
+    @@keyframes pulse-red {
+        0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.4); }
+        70% { box-shadow: 0 0 0 10px rgba(220, 53, 69, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+    }
+</style>
+
+<div class="container-fluid px-3 px-lg-4 py-4">
+    
+    <!-- แจ้งเตือนข้อความ Success / Error -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm rounded-4 py-3 mb-4" role="alert">
+            <div class="d-flex align-items-center gap-3">
+                <i class="bi bi-check-circle-fill fs-3 text-success"></i>
+                <div>
+                    <h6 class="fw-bold mb-0">ดำเนินการสำเร็จ!</h6>
+                    <div class="small">@TempData["SuccessMessage"]</div>
+                </div>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm rounded-4 py-3 mb-4" role="alert">
+            <div class="d-flex align-items-center gap-3">
+                <i class="bi bi-exclamation-triangle-fill fs-3 text-danger"></i>
+                <div>
+                    <h6 class="fw-bold mb-0">เกิดข้อผิดพลาด</h6>
+                    <div class="small">@TempData["ErrorMessage"]</div>
+                </div>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- ส่วนหัวหน้าจอแดชบอร์ด (Header) -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <span class="badge text-white px-3 py-1 rounded-pill small" style="background-color: #0d9488;">
+                    <i class="bi bi-geo-alt-fill me-1"></i>สาขา @(currentBranchTh)
+                </span>
+                <span class="badge bg-dark rounded-pill px-3 py-1">Housekeeping Real-time Board</span>
+            </div>
+            <h2 class="fw-bold text-dark m-0">
+                <i class="bi bi-stars text-warning me-2"></i>แดชบอร์ดงานแม่บ้าน (Housekeeper Console)
+            </h2>
+            <p class="text-muted small mb-0">
+                ตรวจสอบห้องที่พนักงานต้อนรับส่งมาขอทำความสะอาด เมื่อทำเสร็จแล้วสามารถกด <strong class="text-success">"ส่งงาน"</strong> เพื่อเปลี่ยนสถานะห้องเป็นว่างพร้อมนำไปขายต่อได้ทันที
+            </p>
+        </div>
+
+        <div class="d-flex flex-wrap gap-2 align-items-center">
+            <a asp-action="Dashboard" asp-route-branch="@currentBranch" class="btn btn-white bg-white border rounded-pill px-3 shadow-sm text-dark fw-medium btn-sm">
+                <i class="bi bi-arrow-clockwise me-1 text-primary"></i> รีเฟรชข้อมูล
+            </a>
+            <div class="badge bg-light text-muted border px-3 py-2 rounded-pill small">
+                <i class="bi bi-clock me-1"></i> @DateTime.Now.ToString("dd/MM/yyyy HH:mm น.")
+            </div>
+        </div>
+    </div>
+
+    <!-- แถบสถิติหลัก 4 การ์ด (KPI Summary Cards) -->
+    <div class="row g-3 mb-4">
+        <!-- 1. รอทำความสะอาด -->
+        <div class="col-6 col-lg-3">
+            <div class="card kpi-card bg-white shadow-sm p-3 p-md-4 h-100 border-start border-warning border-4">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-muted small fw-medium">รอทำความสะอาด</span>
+                    <div class="bg-warning bg-opacity-10 text-warning rounded-circle p-2 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                        <i class="bi bi-hourglass-split fs-5"></i>
+                    </div>
+                </div>
+                <div class="d-flex align-items-baseline gap-2">
+                    <h2 class="fw-bold text-dark mb-0">@ViewBag.PendingCount</h2>
+                    <span class="text-muted small">ห้อง</span>
+                </div>
+                <div class="mt-2 text-warning small fw-medium">
+                    <i class="bi bi-bell-fill me-1"></i> พนักงานต้อนรับส่งมา
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. กำลังทำความสะอาด -->
+        <div class="col-6 col-lg-3">
+            <div class="card kpi-card bg-white shadow-sm p-3 p-md-4 h-100 border-start border-primary border-4">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-muted small fw-medium">กำลังทำความสะอาด</span>
+                    <div class="bg-primary bg-opacity-10 text-primary rounded-circle p-2 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                        <i class="bi bi-brush-fill fs-5"></i>
+                    </div>
+                </div>
+                <div class="d-flex align-items-baseline gap-2">
+                    <h2 class="fw-bold text-dark mb-0">@ViewBag.InProgressCount</h2>
+                    <span class="text-muted small">ห้อง</span>
+                </div>
+                <div class="mt-2 text-primary small fw-medium">
+                    <i class="bi bi-play-circle-fill me-1"></i> กำลังอยู่ระหว่างทำ
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. ส่งงานเสร็จวันนี้ -->
+        <div class="col-6 col-lg-3">
+            <div class="card kpi-card bg-white shadow-sm p-3 p-md-4 h-100 border-start border-success border-4">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-muted small fw-medium">ส่งงานแล้ววันนี้</span>
+                    <div class="bg-success bg-opacity-10 text-success rounded-circle p-2 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                        <i class="bi bi-check-circle-fill fs-5"></i>
+                    </div>
+                </div>
+                <div class="d-flex align-items-baseline gap-2">
+                    <h2 class="fw-bold text-success mb-0">@ViewBag.CompletedTodayCount</h2>
+                    <span class="text-muted small">ห้อง</span>
+                </div>
+                <div class="mt-2 text-success small fw-medium">
+                    <i class="bi bi-bag-check-fill me-1"></i> ส่งต่อให้นำไปขายแล้ว
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. ห้องว่างพร้อมขายทั้งหมด -->
+        <div class="col-6 col-lg-3">
+            <div class="card kpi-card bg-white shadow-sm p-3 p-md-4 h-100 border-start border-info border-4">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-muted small fw-medium">ห้องว่างพร้อมขายทั้งหมด</span>
+                    <div class="bg-info bg-opacity-10 text-info rounded-circle p-2 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                        <i class="bi bi-door-open-fill fs-5"></i>
+                    </div>
+                </div>
+                <div class="d-flex align-items-baseline gap-2">
+                    <h2 class="fw-bold text-dark mb-0">@ViewBag.AvailableRoomsCount</h2>
+                    <span class="text-muted small">/ @ViewBag.TotalRoomsCount ห้อง</span>
+                </div>
+                <div class="mt-2 text-info small fw-medium">
+                    <i class="bi bi-cart-check-fill me-1"></i> พร้อมเปิดรับจองทันที
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- แถบตัวกรองสถานะและชั้น (Filters) -->
+    <div class="card border-0 shadow-sm rounded-4 bg-white p-3 mb-4">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+            <!-- แท็บสถานะงาน -->
+            <div class="d-flex flex-wrap gap-2">
+                <a asp-action="Dashboard" asp-route-branch="@currentBranch" asp-route-statusFilter="ALL" asp-route-floorFilter="@currentFloorFilter"
+                   class="btn filter-pill @(currentStatusFilter == "ALL" ? "btn-dark text-white" : "btn-light text-muted border")">
+                    ทั้งหมด (@Model.Count())
+                </a>
+                <a asp-action="Dashboard" asp-route-branch="@currentBranch" asp-route-statusFilter="Pending" asp-route-floorFilter="@currentFloorFilter"
+                   class="btn filter-pill @(currentStatusFilter == "Pending" ? "btn-warning text-dark fw-bold" : "btn-light text-dark border")">
+                    <i class="bi bi-hourglass-split me-1"></i> รอทำความสะอาด (@ViewBag.PendingCount)
+                </a>
+                <a asp-action="Dashboard" asp-route-branch="@currentBranch" asp-route-statusFilter="InProgress" asp-route-floorFilter="@currentFloorFilter"
+                   class="btn filter-pill @(currentStatusFilter == "InProgress" ? "btn-primary text-white fw-bold" : "btn-light text-primary border")">
+                    <i class="bi bi-brush-fill me-1"></i> กำลังทำความสะอาด (@ViewBag.InProgressCount)
+                </a>
+                <a asp-action="Dashboard" asp-route-branch="@currentBranch" asp-route-statusFilter="Completed" asp-route-floorFilter="@currentFloorFilter"
+                   class="btn filter-pill @(currentStatusFilter == "Completed" ? "btn-success text-white fw-bold" : "btn-light text-success border")">
+                    <i class="bi bi-check-circle-fill me-1"></i> ส่งงานแล้ว / พร้อมขายต่อ
+                </a>
+            </div>
+
+            <!-- ตัวกรองชั้น -->
+            <div class="d-flex align-items-center gap-2">
+                <span class="text-muted small fw-medium text-nowrap"><i class="bi bi-layers me-1"></i>เลือกชั้น:</span>
+                <div class="btn-group btn-group-sm" role="group">
+                    <a asp-action="Dashboard" asp-route-branch="@currentBranch" asp-route-statusFilter="@currentStatusFilter" asp-route-floorFilter="ALL"
+                       class="btn @(currentFloorFilter == "ALL" ? "btn-secondary text-white" : "btn-outline-secondary")">ทุกชั้น</a>
+                    <a asp-action="Dashboard" asp-route-branch="@currentBranch" asp-route-statusFilter="@currentStatusFilter" asp-route-floorFilter="1"
+                       class="btn @(currentFloorFilter == "1" ? "btn-secondary text-white" : "btn-outline-secondary")">ชั้น 1</a>
+                    <a asp-action="Dashboard" asp-route-branch="@currentBranch" asp-route-statusFilter="@currentStatusFilter" asp-route-floorFilter="2"
+                       class="btn @(currentFloorFilter == "2" ? "btn-secondary text-white" : "btn-outline-secondary")">ชั้น 2</a>
+                    <a asp-action="Dashboard" asp-route-branch="@currentBranch" asp-route-statusFilter="@currentStatusFilter" asp-route-floorFilter="3"
+                       class="btn @(currentFloorFilter == "3" ? "btn-secondary text-white" : "btn-outline-secondary")">ชั้น 3</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- รายการการ์ดงานทำความสะอาด (Housekeeping Task Cards) -->
+    @if (Model.Any())
+    {
+        <div class="row g-4">
+            @foreach (var task in Model)
+            {
+                string borderClass = task.Priority == "Urgent" && task.Status != "Completed" 
+                    ? "task-card-urgent" 
+                    : (task.Status == "InProgress" ? "task-card-inprogress" : (task.Status == "Completed" ? "task-card-completed" : "task-card-pending"));
+
+                <div class="col-12 col-md-6 col-xl-4 col-xxl-3">
+                    <div class="card task-card @borderClass shadow-sm h-100 p-3 p-xl-4 d-flex flex-column justify-content-between position-relative">
+                        
+                        <div>
+                            <!-- แถบด้านบน: หมายเลขห้อง + ป้ายสถานะ -->
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <div>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="room-badge-large text-dark">ห้อง @task.RoomNo</span>
+                                        <span class="badge bg-light text-muted border">ชั้น @task.Floor</span>
+                                    </div>
+                                    <div class="text-primary fw-medium small">
+                                        <i class="bi bi-tag-fill me-1"></i>@task.RoomTypeName
+                                    </div>
+                                </div>
+
+                                <div class="text-end">
+                                    @if (task.Status == "Pending")
+                                    {
+                                        <span class="badge bg-warning text-dark px-3 py-2 rounded-pill fw-bold">
+                                            <i class="bi bi-hourglass-split me-1"></i>รอทำความสะอาด
+                                        </span>
+                                    }
+                                    else if (task.Status == "InProgress")
+                                    {
+                                        <span class="badge bg-primary text-white px-3 py-2 rounded-pill fw-bold">
+                                            <i class="bi bi-brush me-1"></i>กำลังทำความสะอาด
+                                        </span>
+                                    }
+                                    else if (task.Status == "Completed")
+                                    {
+                                        <span class="badge bg-success text-white px-3 py-2 rounded-pill fw-bold">
+                                            <i class="bi bi-check-circle-fill me-1"></i>พร้อมขายต่อแล้ว
+                                        </span>
+                                    }
+
+                                    @if (task.Priority == "Urgent" && task.Status != "Completed")
+                                    {
+                                        <div class="mt-1">
+                                            <span class="badge bg-danger text-white rounded-pill pulse-urgent">
+                                                <i class="bi bi-lightning-fill me-1"></i>ด่วนพิเศษ
+                                            </span>
+                                        </div>
+                                    }
+                                    else if (task.Priority == "VIP")
+                                    {
+                                        <div class="mt-1">
+                                            <span class="badge text-white rounded-pill" style="background-color: #6f42c1;">
+                                                <i class="bi bi-gem me-1"></i>ห้อง VIP
+                                            </span>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+
+                            <hr class="my-2 border-light">
+
+                            <!-- กล่องข้อมูลคำขอที่ส่งมาจากพนักงานต้อนรับ -->
+                            <div class="p-3 rounded-3 bg-light border mb-3 small">
+                                <div class="d-flex align-items-center justify-content-between mb-1">
+                                    <span class="text-muted">
+                                        <i class="bi bi-person-badge text-primary me-1"></i>ส่งงานโดย:
+                                    </span>
+                                    <strong class="text-dark">@task.RequestedBy</strong>
+                                </div>
+                                <div class="d-flex align-items-center justify-content-between mb-1">
+                                    <span class="text-muted">
+                                        <i class="bi bi-clock-history text-secondary me-1"></i>เวลาที่แจ้ง:
+                                    </span>
+                                    <span class="text-dark">@task.RequestedAt.ToString("dd/MM/yyyy HH:mm น.")</span>
+                                </div>
+                                @if (!string.IsNullOrEmpty(task.GuestName))
+                                {
+                                    <div class="d-flex align-items-center justify-content-between mb-1">
+                                        <span class="text-muted">
+                                            <i class="bi bi-door-closed text-danger me-1"></i>แขกที่เช็คเอาท์:
+                                        </span>
+                                        <span class="text-dark">@task.GuestName</span>
+                                    </div>
+                                }
+                                @if (!string.IsNullOrEmpty(task.Notes))
+                                {
+                                    <div class="mt-2 pt-2 border-top">
+                                        <div class="fw-bold text-danger mb-1">
+                                            <i class="bi bi-chat-quote-fill me-1"></i>หมายเหตุ / คำขอพิเศษ:
+                                        </div>
+                                        <div class="text-dark bg-white p-2 rounded border small">
+                                            @task.Notes
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+
+                            <!-- ข้อมูลการปฏิบัติงาน (ถ้ามี) -->
+                            @if (task.Status == "InProgress")
+                            {
+                                <div class="alert alert-info border-0 rounded-3 p-2 small mb-3">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <i class="bi bi-person-walking fs-5 text-primary"></i>
+                                        <div>
+                                            <div class="fw-bold">@task.HousekeeperName กำลังทำความสะอาด</div>
+                                            <div class="text-muted" style="font-size: 0.75rem;">
+                                                เริ่มเมื่อ: @(task.StartedAt?.ToString("HH:mm น.") ?? "-")
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                            else if (task.Status == "Completed")
+                            {
+                                <div class="alert alert-success border-0 rounded-3 p-2 small mb-3">
+                                    <div class="d-flex align-items-center gap-2 mb-1">
+                                        <i class="bi bi-shield-check fs-5 text-success"></i>
+                                        <div>
+                                            <div class="fw-bold">ส่งงานโดย: @task.HousekeeperName</div>
+                                            <div class="text-muted" style="font-size: 0.75rem;">
+                                                เมื่อ: @(task.CompletedAt?.ToString("dd/MM/yyyy HH:mm น.") ?? "-")
+                                            </div>
+                                        </div>
+                                    </div>
+                                    @if (!string.IsNullOrEmpty(task.CompletionNotes))
+                                    {
+                                        <div class="bg-white p-2 rounded border small text-muted mt-1">
+                                            @task.CompletionNotes
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+
+                        <!-- ส่วนปุ่มกดส่งงานและปฏิบัติการ -->
+                        <div class="pt-3 border-top mt-auto">
+                            @if (task.Status == "Pending")
+                            {
+                                <div class="row g-2">
+                                    <div class="col-6">
+                                        <form asp-action="StartTask" method="post" class="d-grid">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="taskId" value="@task.Id" />
+                                            <button type="submit" class="btn btn-outline-primary fw-bold rounded-pill btn-sm py-2">
+                                                <i class="bi bi-play-fill me-1"></i> เริ่มทำความสะอาด
+                                            </button>
+                                        </form>
+                                    </div>
+                                    <div class="col-6">
+                                        <button type="button" class="btn btn-success fw-bold rounded-pill btn-sm py-2 w-100 shadow-sm"
+                                                onclick="openCompleteModal('@task.Id', '@task.RoomNo', '@task.RoomTypeName')">
+                                            <i class="bi bi-check-circle-fill me-1"></i> ส่งงานพร้อมขาย
+                                        </button>
+                                    </div>
+                                </div>
+                            }
+                            else if (task.Status == "InProgress")
+                            {
+                                <button type="button" class="btn btn-success fw-bold rounded-pill w-100 py-2 shadow-sm"
+                                        onclick="openCompleteModal('@task.Id', '@task.RoomNo', '@task.RoomTypeName')">
+                                    <i class="bi bi-send-check-fill me-1"></i> ส่งงานเรียบร้อย (นำไปขายต่อ)
+                                </button>
+                            }
+                            else if (task.Status == "Completed")
+                            {
+                                <div class="d-flex justify-content-between align-items-center text-success small">
+                                    <span><i class="bi bi-check-all fs-5 me-1"></i> ห้องว่างในระบบเรียบร้อย</span>
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2">Ready to Book</span>
+                                </div>
+                            }
+                        </div>
+
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <!-- กรณีไม่มีงานตามตัวกรอง -->
+        <div class="card border-0 shadow-sm rounded-4 bg-white p-5 text-center my-4">
+            <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center p-4 mx-auto mb-3" style="width: 80px; height: 80px;">
+                <i class="bi bi-stars display-6 text-warning"></i>
+            </div>
+            <h4 class="fw-bold text-dark">ไม่มีงานทำความสะอาดในหมวดหมู่นี้</h4>
+            <p class="text-muted small mb-3">
+                ห้องพักทุกห้องในสาขาได้รับการดูแลและอยู่ในสถานะพร้อมเปิดขายเรียบร้อยแล้ว
+            </p>
+            <div>
+                <a asp-action="Dashboard" asp-route-branch="@currentBranch" asp-route-statusFilter="ALL" asp-route-floorFilter="ALL"
+                   class="btn btn-outline-primary rounded-pill px-4 btn-sm">
+                    ดูงานทำความสะอาดทั้งหมด
+                </a>
+            </div>
+        </div>
+    }
+
+</div>
+
+<!-- Modal ส่งงานทำความสะอาด (Complete Cleaning & Ready for Sale Modal) -->
+<div class="modal fade" id="completeTaskModal" tabindex="-1" aria-labelledby="completeTaskModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 520px;">
+        <div class="modal-content border-0 rounded-4 shadow-lg overflow-hidden">
+            <div class="modal-header bg-success text-white border-0 py-3 px-4">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-check2-circle fs-4 text-warning"></i>
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0" id="completeTaskModalLabel">ส่งงานทำความสะอาดห้องพัก</h5>
+                        <small class="text-white-50" style="font-size: 0.75rem;">เปลี่ยนสถานะห้องเป็น "ว่าง" เพื่อนำไปเปิดขายต่อทันที</small>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <form asp-action="CompleteTask" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="taskId" id="modalTaskId" />
+
+                <div class="modal-body p-4">
+                    <!-- ข้อมูลห้องที่กำลังส่งงาน -->
+                    <div class="bg-light p-3 rounded-3 mb-4 border d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="text-muted small">ห้องพักที่ส่งมอบ:</span>
+                            <h3 class="fw-bold text-dark mb-0" id="modalRoomDisplay">ห้อง -</h3>
+                        </div>
+                        <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill small">
+                            <i class="bi bi-stars me-1"></i>ตรวจรับความสะอาด
+                        </span>
+                    </div>
+
+                    <!-- รายการตรวจสอบความสะอาด (Checklist) -->
+                    <div class="mb-4">
+                        <label class="form-label small fw-bold text-dark mb-2">
+                            <i class="bi bi-card-checklist text-primary me-1"></i>รายการตรวจสอบความสะอาดตามมาตรฐานโรงแรม:
+                        </label>
+                        <div class="list-group list-group-flush rounded-3 border">
+                            <label class="list-group-item d-flex gap-2 align-items-center py-2">
+                                <input class="form-check-input flex-shrink-0 mt-0" type="checkbox" name="checklist" value="เปลี่ยนผ้าปูที่นอนและปลอกหมอนใหม่" checked>
+                                <span class="small">เปลี่ยนผ้าปูที่นอน ปลอกหมอน และผ้าห่มใหม่</span>
+                            </label>
+                            <label class="list-group-item d-flex gap-2 align-items-center py-2">
+                                <input class="form-check-input flex-shrink-0 mt-0" type="checkbox" name="checklist" value="ทำความสะอาดห้องน้ำ ขัดสุขภัณฑ์ และเปลี่ยนผ้าเช็ดตัว" checked>
+                                <span class="small">ล้างทำความสะอาดห้องน้ำ ขัดสุขภัณฑ์ เปลี่ยนผ้าเช็ดตัว</span>
+                            </label>
+                            <label class="list-group-item d-flex gap-2 align-items-center py-2">
+                                <input class="form-check-input flex-shrink-0 mt-0" type="checkbox" name="checklist" value="เติมของใช้ Amenities (สบู่, แชมพู, น้ำดื่ม, ชา/กาแฟ)" checked>
+                                <span class="small">เติมชุดของใช้ Amenities ครบเซ็ต (สบู่, แชมพู, น้ำดื่ม)</span>
+                            </label>
+                            <label class="list-group-item d-flex gap-2 align-items-center py-2">
+                                <input class="form-check-input flex-shrink-0 mt-0" type="checkbox" name="checklist" value="ดูดฝุ่น ถูพื้น และจัดระเบียบเฟอร์นิเจอร์" checked>
+                                <span class="small">ดูดฝุ่น ถูพื้นฆ่าเชื้อ และจัดโต๊ะ/เตียงเป็นระเบียบ</span>
+                            </label>
+                            <label class="list-group-item d-flex gap-2 align-items-center py-2">
+                                <input class="form-check-input flex-shrink-0 mt-0" type="checkbox" name="checklist" value="ตรวจสอบระบบไฟ เครื่องปรับอากาศ และความเย็น" checked>
+                                <span class="small">ตรวจสอบระบบไฟ รีโมท แอร์เย็นปกติ ไม่มีกลิ่นอับ</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- หมายเหตุเพิ่มเติม -->
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-dark mb-1">
+                            บันทึกการส่งงาน / หมายเหตุเพิ่มเติม:
+                        </label>
+                        <textarea name="completionNotes" class="form-control" rows="2"
+                                  placeholder="เช่น ตรวจเช็คห้องเรียบร้อย ของใช้ครบ แอร์ทำงานปกติ ห้องพร้อมเปิดขายต่อค่ะ"></textarea>
+                    </div>
+
+                    <div class="alert alert-info border-0 rounded-3 p-3 small mb-0">
+                        <i class="bi bi-info-circle-fill text-primary me-1"></i>
+                        เมื่อกดยืนยัน ระบบจะปรับสถานะห้องพักในฐานข้อมูลเป็น <strong>"ว่าง" (Available)</strong> ทันที ทำให้ลูกค้าหน้าเว็บและพนักงานต้อนรับสามารถนำห้องนี้ไปขายต่อได้ทันที
+                    </div>
+                </div>
+
+                <div class="modal-footer border-top px-4 py-3 bg-light">
+                    <button type="button" class="btn btn-light border rounded-pill px-3" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button type="submit" class="btn btn-success fw-bold rounded-pill px-4 shadow-sm">
+                        <i class="bi bi-check2-circle me-1"></i> ยืนยันส่งงาน (เปิดขายต่อทันที)
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function openCompleteModal(taskId, roomNo, roomType) {
+            document.getElementById('modalTaskId').value = taskId;
+            document.getElementById('modalRoomDisplay').innerText = 'ห้อง ' + roomNo + ' (' + roomType + ')';
+            const modal = new bootstrap.Modal(document.getElementById('completeTaskModal'));
+            modal.show();
+        }
+    </script>
+}

@@ -32,21 +32,43 @@
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label asp-for="Password" class="form-label fw-bold">รหัสผ่านเริ่มต้น:</label>
-                            <input asp-for="Password" type="text" class="form-control" placeholder="กำหนดรหัสผ่านให้พนักงาน" required />
+                            <input asp-for="Password" type="text" class="form-control" placeholder="กำหนดรหัสผ่าน" required />
                         </div>
                         <div class="col-md-6 mb-3">
-                            <!-- เว้นว่างไว้เพื่อรักษาสมดุลของ Layout -->
+                            <label asp-for="Phone" class="form-label fw-bold">เบอร์โทรศัพท์:</label>
+                            <input asp-for="Phone" type="tel" class="form-control" placeholder="เช่น 0812345678" />
                         </div>
                     </div>
 
-                    <!-- ล็อก Dropdown ไว้แค่ 3 ตำแหน่ง -->
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="IdCardOrPassport" class="form-label fw-bold">เลขบัตรประชาชน / พาสปอร์ต:</label>
+                            <input asp-for="IdCardOrPassport" type="text" class="form-control" placeholder="เลข 13 หลัก หรือพาสปอร์ต" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Branch" class="form-label fw-bold">สาขาประจำการ (สำหรับพนักงาน):</label>
+                            <select asp-for="Branch" class="form-select">
+                                <option value="">-- ไม่ระบุ / ส่วนกลาง --</option>
+                                <option value="Bangkok">สาขากรุงเทพฯ (Bangkok)</option>
+                                <option value="Chonburi">สาขาชลบุรี-พัทยา (Chonburi)</option>
+                                <option value="Phuket">สาขาภูเก็ต (Phuket)</option>
+                            </select>
+                        </div>
+                    </div>
+
                     <div class="mb-4">
-                        <label asp-for="Role" class="form-label fw-bold text-primary">กำหนดตำแหน่ง (Role):</label>
+                        <label asp-for="Role" class="form-label fw-bold text-primary">กำหนดตำแหน่ง / บทบาท (Role):</label>
                         <select asp-for="Role" class="form-select border-primary" required>
                             <option value="">-- กรุณาเลือกตำแหน่ง --</option>
-                            <option value="Admin">ผู้ดูแลระบบ (Admin)</option>
-                            <option value="Staff">พนักงานต้อนรับ (Staff)</option>
-                            <option value="Accounting">พนักงานบัญชี (Accounting)</option>
+                            <optgroup label="👔 พนักงานและบุคลากร">
+                                <option value="Admin">ผู้ดูแลระบบ (Admin)</option>
+                                <option value="Staff">พนักงานต้อนรับ (Staff)</option>
+                                <option value="Housekeeper">พนักงานแม่บ้าน (Housekeeper)</option>
+                                <option value="Accounting">พนักงานบัญชี (Accounting)</option>
+                            </optgroup>
+                            <optgroup label="👤 ผู้ใช้งานทั่วไป">
+                                <option value="Customer">ลูกค้า / สมาชิกทั่วไป (Customer)</option>
+                            </optgroup>
                         </select>
                         <small class="text-danger mt-1 d-block">* หมายเหตุ: ตำแหน่ง Super Admin มีได้เพียงบัญชีเดียวในระบบ ไม่สามารถสร้างเพิ่มได้</small>
                     </div>

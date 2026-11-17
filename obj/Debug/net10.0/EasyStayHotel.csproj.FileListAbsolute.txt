@@ -169,4 +169,7 @@ C:\Users\LENOVO\EasyStayHotel\bin\Debug\net10.0\MySqlConnector.dll
 C:\Users\LENOVO\EasyStayHotel\bin\Debug\net10.0\Pomelo.EntityFrameworkCore.MySql.dll
 C:\Users\LENOVO\EasyStayHotel\obj\Debug\net10.0\EasyStayHotel.csproj.AssemblyReference.cache
 C:\Users\LENOVO\EasyStayHotel\bin\Debug\net10.0\Microsoft.Bcl.AsyncInterfaces.dll
-C:\Users\LENOVO\EasyStayHotel\obj\Debug\net10.0\compressed\f0zfxdsy1d-{0}-kat0ysbog0-kat0ysbog0.gz
+C:\Users\LENOVO\EasyStayHotel\obj\Debug\net10.0\compressed\wgivtrot88-{0}-gf5avobucw-gf5avobucw.gz
+C:\Users\LENOVO\EasyStayHotel\obj\Debug\net10.0\compressed\f0zfxdsy1d-{0}-45kpbggzgx-45kpbggzgx.gz
+C:\Users\LENOVO\EasyStayHotel\obj\Debug\net10.0\compressed\f2nxppo319-{0}-7lm0sqi1po-7lm0sqi1po.gz
+C:\Users\LENOVO\EasyStayHotel\obj\Debug\net10.0\compressed\gw19npzw6b-{0}-pt271w3pnn-pt271w3pnn.gz

@@ -1,12 +1,14 @@
 @model IEnumerable<EasyStayHotel.Models.Room>
+@using EasyStayHotel.Services
 @{
-     //Layout ให้เรียกใช้แถบเมนูของ Admin เท่านั้น
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
     ViewData["Title"] = "ระบบจัดการห้องพัก";
+    string selectedStatus = ViewBag.SelectedStatus as string ?? "ALL";
+    string selectedBranch = ViewBag.SelectedBranch as string ?? "ALL";
 }
 <!-- ฟังก์ชันสำหรับแปลงสถานะจาก DB เป็นสีและข้อความภาษาไทย -->
 @functions {
-    public string GetStatusColor(string status)
+    public string GetStatusColor(string? status)
     {
         return status switch
         {
@@ -14,23 +16,25 @@
             "Occupied" => "danger",
             "Cleaning" => "warning",
             "Maintenance" => "secondary",
-            _ => "primary"
+            "Reserved" => "primary",
+            _ => "dark"
         };
     }
 
-    public string GetStatusLabel(string status)
+    public string GetStatusLabel(string? status)
     {
         return status switch
         {
             "Available" => "ว่าง",
             "Occupied" => "ไม่ว่าง",
-            "Cleaning" => "รอความสะอาด",
+            "Cleaning" => "รอทำความสะอาด",
             "Maintenance" => "ซ่อมบำรุง",
-            _ => status
+            "Reserved" => "รอเช็คอิน",
+            _ => status ?? "-"
         };
     }
 
-    public string GetStatusRemark(string status)
+    public string GetStatusRemark(string? status)
     {
         return status switch
         {
@@ -38,32 +42,83 @@
             "Occupied" => "มีแขกเข้าพักอยู่",
             "Cleaning" => "มอบหมายแม่บ้านแล้ว",
             "Maintenance" => "ช่างกำลังดำเนินการแก้ไข",
+            "Reserved" => "มีแขกจองแล้ว รอจัดห้อง/เช็คอิน",
             _ => "รอการตรวจสอบ"
         };
     }
 }
 
-<div class="container-fluid mt-4 mb-5">
+<div class="container-fluid mt-2 mb-5">
     <!-- ส่วนหัว (Header) และปุ่มจัดการ -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
         <div>
             <h3 class="fw-bold mb-1">ระบบจัดการสถานะห้องพัก (Room Management)</h3>
-            <p class="text-muted small mb-0">ภาพรวมสถานะห้องพักปัจจุบันและการจัดการทำความสะอาดแบบเรียลไทม์</p>
+            <p class="text-muted small mb-0">ภาพรวมสถานะห้องพักปัจจุบันและการจัดการทำความสะอาดแบบเรียลไทม์ทั้ง 3 สาขา</p>
         </div>
-        <div class="d-flex gap-2">
-            <a asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-arrow-clockwise"></i> อัปเดตข้อมูล</a>
-            <button class="btn btn-primary">กรองตามสถานะ</button>
+        <div class="d-flex flex-wrap gap-2">
+            <a asp-action="CreateRoom" class="btn btn-success fw-bold rounded-pill px-3 shadow-sm">
+                <i class="bi bi-plus-circle me-1"></i> เพิ่มห้องพักใหม่
+            </a>
+            <a asp-action="RoomManagement" class="btn btn-outline-secondary rounded-pill px-3">
+                <i class="bi bi-arrow-clockwise me-1"></i> อัปเดตข้อมูล
+            </a>
+        </div>
+    </div>
+
+    <!-- แถบตัวกรองสถานะและสาขา -->
+    <div class="card shadow-sm border-0 mb-4 rounded-4 p-3 bg-white">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <!-- ฟิลเตอร์สถานะห้อง -->
+            <div class="d-flex flex-wrap align-items-center gap-1">
+                <span class="small fw-bold text-muted me-2">สถานะ:</span>
+                <a asp-action="RoomManagement" asp-route-status="ALL" asp-route-branch="@selectedBranch"
+                   class="btn btn-sm rounded-pill px-3 @(selectedStatus == "ALL" ? "btn-dark text-white fw-bold" : "btn-outline-secondary")">
+                    ทั้งหมด (@(ViewBag.TotalRooms ?? Model.Count()))
+                </a>
+                <a asp-action="RoomManagement" asp-route-status="Available" asp-route-branch="@selectedBranch"
+                   class="btn btn-sm rounded-pill px-3 @(selectedStatus == "Available" ? "btn-success text-white fw-bold" : "btn-outline-success")">
+                    <i class="bi bi-door-open-fill me-1"></i>ว่าง (@(ViewBag.AvailableCount ?? 0))
+                </a>
+                <a asp-action="RoomManagement" asp-route-status="Occupied" asp-route-branch="@selectedBranch"
+                   class="btn btn-sm rounded-pill px-3 @(selectedStatus == "Occupied" ? "btn-danger text-white fw-bold" : "btn-outline-danger")">
+                    <i class="bi bi-people-fill me-1"></i>มีแขกพัก (@(ViewBag.OccupiedCount ?? 0))
+                </a>
+                <a asp-action="RoomManagement" asp-route-status="Cleaning" asp-route-branch="@selectedBranch"
+                   class="btn btn-sm rounded-pill px-3 @(selectedStatus == "Cleaning" ? "btn-warning text-dark fw-bold" : "btn-outline-warning text-dark")">
+                    <i class="bi bi-stars me-1"></i>รอทำความสะอาด (@(ViewBag.CleaningCount ?? 0))
+                </a>
+                <a asp-action="RoomManagement" asp-route-status="Maintenance" asp-route-branch="@selectedBranch"
+                   class="btn btn-sm rounded-pill px-3 @(selectedStatus == "Maintenance" ? "btn-secondary text-white fw-bold" : "btn-outline-secondary")">
+                    <i class="bi bi-tools me-1"></i>ซ่อมบำรุง (@(ViewBag.MaintenanceCount ?? 0))
+                </a>
+            </div>
+
+            <!-- ฟิลเตอร์สาขา -->
+            <div class="d-flex align-items-center gap-2">
+                <span class="small fw-bold text-muted">สาขา:</span>
+                <div class="btn-group btn-group-sm rounded-pill" role="group">
+                    <a asp-action="RoomManagement" asp-route-status="@selectedStatus" asp-route-branch="ALL"
+                       class="btn @(selectedBranch == "ALL" ? "btn-primary text-white" : "btn-outline-primary")">ทุกสาขา</a>
+                    <a asp-action="RoomManagement" asp-route-status="@selectedStatus" asp-route-branch="Bangkok"
+                       class="btn @(selectedBranch == "Bangkok" ? "btn-primary text-white" : "btn-outline-primary")">กรุงเทพฯ</a>
+                    <a asp-action="RoomManagement" asp-route-status="@selectedStatus" asp-route-branch="Chonburi"
+                       class="btn @(selectedBranch == "Chonburi" ? "btn-primary text-white" : "btn-outline-primary")">ชลบุรี</a>
+                    <a asp-action="RoomManagement" asp-route-status="@selectedStatus" asp-route-branch="Phuket"
+                       class="btn @(selectedBranch == "Phuket" ? "btn-primary text-white" : "btn-outline-primary")">ภูเก็ต</a>
+                </div>
+            </div>
         </div>
     </div>
 
     <!-- แถบอธิบายสถานะห้องพัก (Legend) -->
     <div class="card shadow-sm border-0 mb-4 rounded-3">
-        <div class="card-body py-3">
-            <span class="fw-bold me-3 text-muted small">คำอธิบายสถานะห้องพัก</span>
-            <span class="me-3 small"><span class="badge bg-success p-2 me-1"> </span> <strong>ว่าง (Available)</strong> — พร้อมเข้าพัก</span>
-            <span class="me-3 small"><span class="badge bg-danger p-2 me-1"> </span> <strong>ไม่ว่าง (Occupied)</strong> — มีแขกเข้าพักอยู่</span>
-            <span class="me-3 small"><span class="badge bg-warning p-2 me-1"> </span> <strong>รอทำความสะอาด (Cleaning)</strong> — รอแม่บ้านตรวจสอบ</span>
-            <span class="me-3 small"><span class="badge bg-secondary p-2 me-1"> </span> <strong>ซ่อมบำรุง (Maintenance)</strong> — ปิดปรับปรุง</span>
+        <div class="card-body py-2 px-3 d-flex flex-wrap align-items-center gap-3">
+            <span class="fw-bold text-muted small">คำอธิบาย:</span>
+            <span class="small"><span class="badge bg-success p-1 me-1"> </span> <strong>ว่าง (Available)</strong> — พร้อมเข้าพัก</span>
+            <span class="small"><span class="badge bg-danger p-1 me-1"> </span> <strong>ไม่ว่าง (Occupied)</strong> — มีแขกเข้าพักอยู่</span>
+            <span class="small"><span class="badge bg-warning p-1 me-1"> </span> <strong>รอทำความสะอาด (Cleaning)</strong> — รอแม่บ้านตรวจสอบ</span>
+            <span class="small"><span class="badge bg-secondary p-1 me-1"> </span> <strong>ซ่อมบำรุง (Maintenance)</strong> — ปิดปรับปรุง</span>
+            <span class="small"><span class="badge bg-primary p-1 me-1"> </span> <strong>รอเช็คอิน (Reserved)</strong> — จองออนไลน์รอจัดห้อง</span>
         </div>
     </div>
 
@@ -72,39 +127,65 @@
         var groupedRooms = Model.GroupBy(r => r.RoomType?.TypeName ?? "ไม่ระบุประเภท").OrderBy(g => g.Key);
     }
 
-    @foreach (var group in groupedRooms)
+    @if (Model.Any())
     {
-        <h5 class="fw-bold mt-4 mb-3 text-dark">ประเภทห้อง: @group.Key</h5>
-        
-        <div class="row g-3">
-            @foreach (var room in group)
-            {
-                var colorClass = GetStatusColor(room.Status);
-                var labelText = GetStatusLabel(room.Status);
-                var remarkText = GetStatusRemark(room.Status);
+        @foreach (var group in groupedRooms)
+        {
+            <div class="d-flex align-items-center gap-2 mt-4 mb-3">
+                <h5 class="fw-bold text-dark m-0">ประเภทห้อง: @group.Key</h5>
+                <span class="badge bg-light text-muted border rounded-pill px-2">@group.Count() ห้อง</span>
+            </div>
 
-                <div class="col-md-3">
-                    <!-- การ์ดห้องพัก ใช้ border ด้านซ้ายให้ตรงกับสีสถานะ และคลิกเพื่อแก้ไขได้ -->
-                    <a asp-action="EditRoom" asp-route-id="@room.RoomId" class="text-decoration-none text-dark">
-                        <div class="card h-100 shadow-sm border-0 border-start border-@colorClass border-4 rounded-3 transition-hover">
-                            <div class="card-body">
-                                <div class="d-flex justify-content-between align-items-start mb-2">
-                                    <h2 class="fw-bold m-0 text-dark">@room.RoomNo</h2>
-                                    <span class="badge bg-@colorClass text-white px-2 py-1 rounded-pill">@labelText</span>
+            <div class="row g-3">
+                @foreach (var room in group)
+                {
+                    var colorClass = GetStatusColor(room.Status);
+                    var labelText = GetStatusLabel(room.Status);
+                    var remarkText = GetStatusRemark(room.Status);
+                    string branchName = RoomPreviewHelper.GetBranchNameTh(room.Branch);
+
+                    <div class="col-md-3 col-sm-6">
+                        <!-- การ์ดห้องพัก ใช้ border ด้านซ้ายให้ตรงกับสีสถานะ และคลิกเพื่อแก้ไขได้ -->
+                        <a asp-action="EditRoom" asp-route-id="@room.RoomId" class="text-decoration-none text-dark">
+                            <div class="card h-100 shadow-sm border-0 border-start border-@colorClass border-4 rounded-3 transition-hover">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <div>
+                                            <h2 class="fw-bold m-0 text-dark">@room.RoomNo</h2>
+                                            <span class="badge bg-light text-muted border rounded-pill px-2 py-0 small" style="font-size: 0.72rem;">
+                                                <i class="bi bi-geo-alt-fill text-primary"></i> @branchName
+                                            </span>
+                                        </div>
+                                        <span class="badge bg-@colorClass text-white px-2 py-1 rounded-pill">@labelText</span>
+                                    </div>
+
+                                    <p class="text-muted small mb-2">@group.Key</p>
+
+                                    <hr class="text-muted opacity-25 my-2" />
+
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <small class="text-@colorClass fw-bold" style="font-size: 0.8rem;">
+                                            @remarkText
+                                        </small>
+                                        <span class="text-muted small"><i class="bi bi-pencil-square text-primary"></i> แก้ไข</span>
+                                    </div>
                                 </div>
-                                
-                                <p class="text-muted small mb-3">@group.Key</p>
-                                
-                                <hr class="text-muted opacity-25 my-2" />
-                                
-                                <small class="text-@colorClass fw-bold" style="font-size: 0.8rem;">
-                                    @remarkText
-                                </small>
                             </div>
-                        </div>
-                    </a>
-                </div>
-            }
+                        </a>
+                    </div>
+                }
+            </div>
+        }
+    }
+    else
+    {
+        <div class="card border-0 shadow-sm rounded-4 p-5 text-center bg-white">
+            <i class="bi bi-door-closed display-3 text-muted opacity-25 mb-3"></i>
+            <h5 class="fw-bold text-dark">ไม่พบห้องพักตามเงื่อนไขที่เลือก</h5>
+            <p class="text-muted small mb-3">กรุณาลองเปลี่ยนตัวกรองสถานะ หรือสาขาที่ต้องการดู</p>
+            <div>
+                <a asp-action="RoomManagement" class="btn btn-outline-primary rounded-pill px-4">ดูห้องพักทั้งหมด</a>
+            </div>
         </div>
     }
 </div>

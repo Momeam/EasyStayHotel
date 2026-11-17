@@ -44,13 +44,18 @@
                 <!-- 1. ข้อมูลรายละเอียดการเข้าพัก + พรีวิวห้องที่เลือก -->
                 <div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden">
                     <div class="card-body p-4">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
                             <h5 class="fw-bold text-primary m-0">
                                 <i class="bi bi-door-open-fill me-1"></i> ข้อมูลห้องพักและการเข้าพัก
                             </h5>
-                            <span class="badge bg-primary bg-opacity-10 text-primary border border-primary rounded-pill px-3 py-1">
-                                <i class="bi bi-geo-alt-fill me-1"></i> สาขา@branchNameTh @(ViewBag.RoomNo != null ? $"• ห้อง {ViewBag.RoomNo}" : "")
-                            </span>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary rounded-pill px-3 py-1">
+                                    <i class="bi bi-geo-alt-fill me-1"></i>สาขา @(branchNameTh)
+                                </span>
+                                <span class="badge bg-light text-muted border rounded-pill px-2 py-1 small">
+                                    <i class="bi bi-clock-history me-1 text-primary"></i>จัดสรรหมายเลขห้อง ณ วันเช็คอิน
+                                </span>
+                            </div>
                         </div>
 
                         <div class="row g-3 align-items-center mb-3">

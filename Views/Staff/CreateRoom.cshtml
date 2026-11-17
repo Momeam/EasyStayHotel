@@ -1,39 +1,64 @@
 @model EasyStayHotel.Models.Room
+@using EasyStayHotel.Services
 @{
     Layout = "~/Views/Shared/_StaffLayout.cshtml";
     ViewData["Title"] = "เพิ่มห้องพักใหม่";
+    var roomTypes = ViewBag.RoomTypes as List<EasyStayHotel.Models.Roomtype> ?? new List<EasyStayHotel.Models.Roomtype>();
+    string branchNameTh = RoomPreviewHelper.GetBranchNameTh(Model?.Branch ?? ViewBag.CurrentBranch as string);
 }
+
 <div class="row justify-content-center">
     <div class="col-md-8">
-        <div class="card shadow-sm border-0 mt4">
-            <div class="card-header gb-primary text-white">
-                <h5 class="card-title m-0">+ เพิ่มห้องพักใหม่(Create New Room)</h5>
+        <div class="card shadow-sm border-0 rounded-4 mt-4 overflow-hidden">
+            <div class="card-header bg-primary text-white p-3 d-flex justify-content-between align-items-center">
+                <h5 class="card-title m-0 fw-bold"><i class="bi bi-door-open-fill text-warning me-2"></i>เพิ่มห้องพักใหม่ (Create New Room)</h5>
+                <span class="badge bg-white text-primary rounded-pill px-3 py-1">สาขา @branchNameTh</span>
             </div>
             <div class="card-body p-4">
                 <form asp-controller="Staff" asp-action="CreateRoom" method="post">
-                    <div class="mb-3">
-                        <label asp-for="RoomNo" class="form-label fw-bold">หมายเลขห้อง(RoomNumber)</label>
-                        <input asp-for="RoomNo" class="form-control" placeholder="เช่น 101, 201" required />
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" asp-for="Branch" />
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label asp-for="RoomNo" class="form-label fw-bold">หมายเลขห้อง (Room Number) <span class="text-danger">*</span></label>
+                            <input asp-for="RoomNo" class="form-control form-control-lg" placeholder="เช่น 101, 201" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">สาขาประจำการ</label>
+                            <input type="text" class="form-control form-control-lg bg-light" value="สาขา @branchNameTh" readonly />
+                        </div>
                     </div>
+
                     <div class="mb-3">
-                        <label asp-for="RoomTypeId" class="form-lable fw-bold">ประเภทห้อง(Room Type Id)</label>
-                        <input asp-for="RoomTypeId" type="number" class="form-control"
-                               placeholder="ระบุ ID ประเภทห้อง (เช่น 1, 2, 3,)" />
+                        <label asp-for="RoomTypeId" class="form-label fw-bold">ประเภทห้อง (Room Type) <span class="text-danger">*</span></label>
+                        <select asp-for="RoomTypeId" class="form-select form-select-lg border-primary" required>
+                            <option value="">-- กรุณาเลือกประเภทห้อง --</option>
+                            @foreach (var rt in roomTypes)
+                            {
+                                <option value="@rt.RoomTypeId">@rt.TypeName (฿@rt.BasePrice.ToString("N0") / คืน - ความจุ @rt.Capacity ท่าน)</option>
+                            }
+                        </select>
                     </div>
+
                     <div class="mb-4">
-                        <label asp-for="Status" class="form-lable fw-bold">สถานะเริ่มต้น (Initial Status)</label>
+                        <label asp-for="Status" class="form-label fw-bold">สถานะเริ่มต้น (Initial Status)</label>
                         <select asp-for="Status" class="form-select">
                             <option value="Available">ว่างพร้อมใช้งาน (Available)</option>
+                            <option value="Cleaning">รอทำความสะอาด (Cleaning)</option>
                             <option value="Maintenance">ซ่อมบำรุง (Maintenance)</option>
                         </select>
                     </div>
-                    <div class="d-flex justify-content-end">
-                        <a asp-controller="Staff" asp-action="Index" class="btn btn-secondary me-2">ยกเลิก</a>
-                        <button type="submit" class="btn btn-success">บันทึกข้อมูลห้องพัก</button>
+
+                    <hr />
+                    <div class="d-flex justify-content-between align-items-center">
+                        <a asp-controller="Staff" asp-action="Index" class="btn btn-outline-secondary rounded-pill px-4">ยกเลิก</a>
+                        <button type="submit" class="btn btn-success rounded-pill px-5 fw-bold shadow-sm">
+                            <i class="bi bi-check2-circle me-1"></i> บันทึกข้อมูลห้องพัก
+                        </button>
                     </div>
                 </form>
             </div>
         </div>
-
     </div>
 </div>

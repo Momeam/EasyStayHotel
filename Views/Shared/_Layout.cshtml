@@ -117,6 +117,12 @@
                                     <i class="bi bi-calculator me-1"></i> ระบบบัญชี
                                 </a>
                             }
+                            else if (userRole == "Housekeeper" || userRole == "Maid")
+                            {
+                                <a asp-controller="Housekeeper" asp-action="Dashboard" class="btn btn-sm text-white fw-bold rounded-pill px-3 shadow-sm" style="background-color: #0d9488;">
+                                    <i class="bi bi-stars me-1"></i> แดชบอร์ดแม่บ้าน
+                                </a>
+                            }
 
                             <div class="dropdown">
                                 <button class="btn btn-light border rounded-pill px-3 py-2 dropdown-toggle d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -140,6 +146,16 @@
                                                 <i class="bi bi-briefcase me-2"></i> ระบบพนักงาน (Staff Console)
                                             </a>
                                         </li>
+                                        <li>
+                                            <a class="dropdown-item py-2 small fw-medium text-warning" asp-controller="Accounting" asp-action="RevenueReport">
+                                                <i class="bi bi-calculator me-2"></i> ระบบบัญชี (Accounting Console)
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item py-2 small fw-medium" style="color: #0d9488;" asp-controller="Housekeeper" asp-action="Dashboard">
+                                                <i class="bi bi-stars me-2"></i> แดชบอร์ดแม่บ้าน (Housekeeping)
+                                            </a>
+                                        </li>
                                         <li><hr class="dropdown-divider my-1"></li>
                                     }
                                     else if (userRole == "Staff")
@@ -151,6 +167,29 @@
                                         </li>
                                         <li><hr class="dropdown-divider my-1"></li>
                                     }
+                                    else if (userRole == "Accounting")
+                                    {
+                                        <li>
+                                            <a class="dropdown-item py-2 small fw-bold text-warning" asp-controller="Accounting" asp-action="RevenueReport">
+                                                <i class="bi bi-calculator me-2"></i> ระบบบัญชี (Accounting Console)
+                                            </a>
+                                        </li>
+                                        <li><hr class="dropdown-divider my-1"></li>
+                                    }
+                                    else if (userRole == "Housekeeper" || userRole == "Maid")
+                                    {
+                                        <li>
+                                            <a class="dropdown-item py-2 small fw-bold" style="color: #0d9488;" asp-controller="Housekeeper" asp-action="Dashboard">
+                                                <i class="bi bi-stars me-2"></i> แดชบอร์ดแม่บ้าน (Housekeeping)
+                                            </a>
+                                        </li>
+                                        <li><hr class="dropdown-divider my-1"></li>
+                                    }
+                                    <li>
+                                        <a class="dropdown-item py-2 small" asp-controller="Account" asp-action="Profile">
+                                            <i class="bi bi-person-gear me-2 text-primary"></i> ข้อมูลส่วนตัว / โปรไฟล์
+                                        </a>
+                                    </li>
                                     <li>
                                         <a class="dropdown-item py-2 small" asp-controller="Booking" asp-action="MyBookings">
                                             <i class="bi bi-calendar2-check me-2 text-primary"></i> ประวัติการจองของฉัน

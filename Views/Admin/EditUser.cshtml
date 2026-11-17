@@ -47,17 +47,31 @@
                             <label asp-for="IdCardOrPassport" class="form-label fw-bold">เลขบัตรประชาชน / พาสปอร์ต:</label>
                             <input asp-for="IdCardOrPassport" class="form-control" />
                         </div>
-                        <div class="col-md-6 mb-4">
-                            <label asp-for="Role" class="form-label fw-bold text-primary">กำหนดตำแหน่ง (Role):</label>
-                            <select asp-for="Role" class="form-select border-primary" required>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Branch" class="form-label fw-bold">สาขาประจำการ (สำหรับพนักงาน):</label>
+                            <select asp-for="Branch" class="form-select">
+                                <option value="Bangkok">สาขากรุงเทพฯ (Bangkok)</option>
+                                <option value="Chonburi">สาขาชลบุรี-พัทยา (Chonburi)</option>
+                                <option value="Phuket">สาขาภูเก็ต (Phuket)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label asp-for="Role" class="form-label fw-bold text-primary">กำหนดตำแหน่ง / บทบาท (Role):</label>
+                        <select asp-for="Role" class="form-select border-primary" required>
+                            <optgroup label="👔 พนักงานและบุคลากร">
                                 <option value="Admin">ผู้ดูแลระบบ (Admin)</option>
                                 <option value="Staff">พนักงานต้อนรับ (Staff)</option>
+                                <option value="Housekeeper">พนักงานแม่บ้าน (Housekeeper)</option>
                                 <option value="Accounting">พนักงานบัญชี (Accounting)</option>
-                                <option value="Customer">ลูกค้า (Customer)</option>
                                 <option value="SuperAdmin">เจ้าของระบบ (SuperAdmin)</option>
-                            </select>
-                            <span asp-validation-for="Role" class="text-danger"></span>
-                        </div>
+                            </optgroup>
+                            <optgroup label="👤 ผู้ใช้งานทั่วไป">
+                                <option value="Customer">ลูกค้า / สมาชิกทั่วไป (Customer)</option>
+                            </optgroup>
+                        </select>
+                        <span asp-validation-for="Role" class="text-danger"></span>
                     </div>
 
                     <hr />

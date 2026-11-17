@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.Mvc;
 using EasyStayHotel.Models;
+using EasyStayHotel.Services;
 using Microsoft.EntityFrameworkCore;
 using System.Linq;
 
@@ -18,37 +19,71 @@ namespace EasyStayHotel.Controllers
         }
 
 
-        // เพิ่มพารามิเตอร์สำหรับรับค่าจากช่องค้นหาและเลขหน้า
-        public async Task<IActionResult> UserManagement(string searchString, int? pageNumber)
+        // GET: Admin/UserManagement
+        // หน้ารายการแยกบัญชีผู้ใช้งานทั่วไป (ลูกค้า) และ พนักงานทุกบทบาท (Staff & Personnel)
+        public async Task<IActionResult> UserManagement(string? tab = "staff", string? roleFilter = null, string? searchString = null)
         {
-            int pageSize = 10;
-            int currentPage = pageNumber ?? 1;
+            tab = string.IsNullOrEmpty(tab) ? "staff" : tab.ToLower();
+            roleFilter = string.IsNullOrEmpty(roleFilter) ? "ALL" : roleFilter;
+            string cleanSearch = searchString?.Trim() ?? "";
 
-            var users = _context.Users.AsQueryable();
-
-            if (!string.IsNullOrEmpty(searchString))
+            var staffRoles = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
             {
-                // ค้นหาจาก ชื่อ, อีเมล หรือ บทบาท
-                users = users.Where(u => u.FullName.Contains(searchString)
-                                      || u.Email.Contains(searchString)
-                                      || u.Role.Contains(searchString));
+                "SuperAdmin", "Admin", "Staff", "Accounting", "Housekeeper", "Maid"
+            };
+
+            var query = _context.Users
+                .Include(u => u.Bookings)
+                .AsQueryable();
+
+            if (!string.IsNullOrEmpty(cleanSearch))
+            {
+                query = query.Where(u => u.FullName.Contains(cleanSearch)
+                                      || u.Email.Contains(cleanSearch)
+                                      || (u.Phone != null && u.Phone.Contains(cleanSearch))
+                                      || (u.Role != null && u.Role.Contains(cleanSearch))
+                                      || (u.Branch != null && u.Branch.Contains(cleanSearch)));
             }
 
-            int totalRecords = await users.CountAsync();
-            int totalPages = (int)Math.Ceiling(totalRecords / (double)pageSize);
+            var allUsers = await query.ToListAsync();
 
-            // เรียงลำดับด้วย UserId
-            var pagedUsers = await users
-                .OrderBy(u => u.UserId)
-                .Skip((currentPage - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync();
+            var staffList = allUsers.Where(u => staffRoles.Contains(u.Role ?? "")).ToList();
+            var customerList = allUsers.Where(u => !staffRoles.Contains(u.Role ?? "")).ToList();
 
-            ViewBag.CurrentPage = currentPage;
-            ViewBag.TotalPages = totalPages;
-            ViewBag.SearchString = searchString;
+            // กรองเพิ่มเติมตาม Role ฝั่งพนักงาน
+            var filteredStaff = staffList;
+            if (roleFilter != "ALL")
+            {
+                if (roleFilter == "Housekeeper")
+                {
+                    filteredStaff = staffList.Where(u => u.Role == "Housekeeper" || u.Role == "Maid").ToList();
+                }
+                else if (roleFilter == "Admin")
+                {
+                    filteredStaff = staffList.Where(u => u.Role == "Admin" || u.Role == "SuperAdmin").ToList();
+                }
+                else
+                {
+                    filteredStaff = staffList.Where(u => string.Equals(u.Role, roleFilter, StringComparison.OrdinalIgnoreCase)).ToList();
+                }
+            }
 
-            return View(pagedUsers);
+            ViewBag.ActiveTab = tab;
+            ViewBag.RoleFilter = roleFilter;
+            ViewBag.SearchString = cleanSearch;
+
+            ViewBag.TotalStaff = staffList.Count;
+            ViewBag.TotalCustomers = customerList.Count;
+
+            ViewBag.AdminCount = staffList.Count(u => u.Role == "Admin" || u.Role == "SuperAdmin");
+            ViewBag.ReceptionCount = staffList.Count(u => u.Role == "Staff");
+            ViewBag.HousekeeperCount = staffList.Count(u => u.Role == "Housekeeper" || u.Role == "Maid");
+            ViewBag.AccountingCount = staffList.Count(u => u.Role == "Accounting");
+
+            ViewBag.StaffList = filteredStaff.OrderBy(u => u.Role).ThenBy(u => u.UserId).ToList();
+            ViewBag.CustomerList = customerList.OrderByDescending(u => u.UserId).ToList();
+
+            return View();
         }
         // หน้าจัดการผู้ใช้งาน (User Management)
 
@@ -83,7 +118,15 @@ namespace EasyStayHotel.Controllers
                 return;
             }
 
-            // 4. ผู้ใช้งานทั่วไป (Customer) หรือบทบาทอื่นที่ไม่ใช่ Admin หรือ SuperAdmin -> ส่งกลับหน้าหลัก
+            // 4. พนักงานแม่บ้าน (Housekeeper) พยายามเข้าหน้า Admin -> ส่งกลับหน้าแดชบอร์ดแม่บ้าน
+            if (role == "Housekeeper" || role == "Maid")
+            {
+                TempData["ErrorMessage"] = "คุณไม่มีสิทธิ์เข้าถึงหน้าระบบผู้ดูแลระบบ (Admin) สงวนสิทธิ์เฉพาะแอดมินเท่านั้น";
+                context.Result = new RedirectToActionResult("Dashboard", "Housekeeper", null);
+                return;
+            }
+
+            // 5. ผู้ใช้งานทั่วไป (Customer) หรือบทบาทอื่นที่ไม่ใช่ Admin หรือ SuperAdmin -> ส่งกลับหน้าหลัก
             if (role != "Admin" && role != "SuperAdmin")
             {
                 TempData["ErrorMessage"] = "คุณไม่มีสิทธิ์เข้าถึงหน้าระบบผู้ดูแลระบบ (Admin) เฉพาะแอดมินเท่านั้น";
@@ -147,8 +190,8 @@ namespace EasyStayHotel.Controllers
     // 4. เตรียมข้อมูลกราฟโดนัท (สัดส่วนห้องพักที่ถูกจองแยกตามประเภท)
     var roomStats = await _context.Rooms
         .Include(r => r.RoomType)
-        .Where(r => r.Status != "Available") // นับเฉพาะห้องที่ไม่ว่าง
-        .GroupBy(r => r.RoomType.TypeName)
+        .Where(r => r.Status != "Available" && r.RoomType != null) // นับเฉพาะห้องที่ไม่ว่าง
+        .GroupBy(r => r.RoomType!.TypeName)
         .Select(g => new { TypeName = g.Key, Count = g.Count() })
         .ToListAsync();
 
@@ -162,7 +205,31 @@ namespace EasyStayHotel.Controllers
         .Take(5)
         .ToListAsync();
 
+    // 6. ดึงรายงานสรุปการเงินที่ฝ่ายบัญชีส่งมาให้ผู้จัดการ (Admin)
+    var financialReports = FinancialReportService.GetAll();
+    ViewBag.FinancialReports = financialReports;
+    ViewBag.PendingFinancialReportsCount = financialReports.Count(r => r.Status == "Pending");
+
     return View(recentBookings);
+}
+
+// POST: /Admin/AcknowledgeFinancialReport
+// ผู้จัดการลงนามรับทราบหรืออนุมัติรายงานการเงินจากฝ่ายบัญชี
+[HttpPost]
+[ValidateAntiForgeryToken]
+public IActionResult AcknowledgeFinancialReport(string reportId, string? managerComment, bool approve = true)
+{
+    string adminName = HttpContext.Session.GetString("FullName") ?? "ผู้จัดการทั่วไป (Admin)";
+    bool success = FinancialReportService.Acknowledge(reportId, adminName, managerComment, approve);
+    if (success)
+    {
+        TempData["SuccessMessage"] = $"บันทึกการ{(approve ? "อนุมัติ" : "รับทราบ")}รายงานการเงินรหัส {reportId} เรียบร้อยแล้ว";
+    }
+    else
+    {
+        TempData["ErrorMessage"] = "ไม่พบรายงานการเงินที่ระบุ";
+    }
+    return RedirectToAction(nameof(Dashboard));
 }
         //AddUser(Admin,Staff,Accounting)
 
@@ -268,16 +335,35 @@ namespace EasyStayHotel.Controllers
         // ==========================================
 
         // หน้ารายการห้องพักทั้งหมด
-        public IActionResult RoomManagement()
+        public IActionResult RoomManagement(string? status = null, string? branch = null)
         {
-            // ดึงข้อมูลห้องพักทั้งหมดจาก Database และรวมข้อมูล RoomType มาด้วย
-            var rooms = _context.Rooms.Include(r => r.RoomType).ToList();
+            var query = _context.Rooms.Include(r => r.RoomType).AsQueryable();
+
+            if (!string.IsNullOrEmpty(branch) && branch != "ALL")
+            {
+                query = query.Where(r => r.Branch == branch);
+            }
+
+            if (!string.IsNullOrEmpty(status) && status != "ALL")
+            {
+                query = query.Where(r => r.Status == status);
+            }
+
+            var rooms = query.OrderBy(r => r.Branch).ThenBy(r => r.RoomTypeId).ThenBy(r => r.RoomNo).ToList();
+            ViewBag.SelectedStatus = status ?? "ALL";
+            ViewBag.SelectedBranch = branch ?? "ALL";
+            ViewBag.TotalRooms = _context.Rooms.Count();
+            ViewBag.AvailableCount = _context.Rooms.Count(r => r.Status == "Available");
+            ViewBag.OccupiedCount = _context.Rooms.Count(r => r.Status == "Occupied");
+            ViewBag.CleaningCount = _context.Rooms.Count(r => r.Status == "Cleaning");
+            ViewBag.MaintenanceCount = _context.Rooms.Count(r => r.Status == "Maintenance");
+
             return View(rooms);
         }
 
-
         public IActionResult CreateRoom()
         {
+            ViewBag.RoomTypes = _context.Roomtypes.OrderBy(rt => rt.BasePrice).ToList();
             return View();
         }
 
@@ -286,15 +372,20 @@ namespace EasyStayHotel.Controllers
         [ValidateAntiForgeryToken]
         public IActionResult CreateRoom(Room newRoom)
         {
+            if (string.IsNullOrEmpty(newRoom.Branch))
+            {
+                newRoom.Branch = "Bangkok";
+            }
+
             if (ModelState.IsValid)
             {
                 _context.Rooms.Add(newRoom);
                 _context.SaveChanges();
-                TempData["SuccessMessage"] = "เพิ่มห้องพักใหม่เรียบร้อยแล้ว";
+                TempData["SuccessMessage"] = $"เพิ่มห้องพักใหม่ {newRoom.RoomNo} (สาขา {RoomPreviewHelper.GetBranchNameTh(newRoom.Branch)}) เรียบร้อยแล้ว";
 
-                
                 return RedirectToAction("RoomManagement");
             }
+            ViewBag.RoomTypes = _context.Roomtypes.OrderBy(rt => rt.BasePrice).ToList();
             return View(newRoom);
         }
 
@@ -302,11 +393,12 @@ namespace EasyStayHotel.Controllers
         // ดึงข้อมูลห้องพักเดิมมาแสดงในฟอร์ม
         public IActionResult EditRoom(int id)
         {
-            var room = _context.Rooms.Find(id);
+            var room = _context.Rooms.Include(r => r.RoomType).FirstOrDefault(r => r.RoomId == id);
             if (room == null)
             {
                 return NotFound();
             }
+            ViewBag.RoomTypes = _context.Roomtypes.OrderBy(rt => rt.BasePrice).ToList();
             return View(room);
         }
 
@@ -332,7 +424,11 @@ namespace EasyStayHotel.Controllers
                         roomInDb.RoomNo = updatedRoom.RoomNo;
                         roomInDb.RoomTypeId = updatedRoom.RoomTypeId;
                         roomInDb.Status = updatedRoom.Status;
-                        
+                        if (!string.IsNullOrEmpty(updatedRoom.Branch))
+                        {
+                            roomInDb.Branch = updatedRoom.Branch;
+                        }
+
                         _context.SaveChanges();
                         TempData["SuccessMessage"] = $"อัปเดตข้อมูลห้องพัก {updatedRoom.RoomNo} เรียบร้อยแล้ว";
                     }
@@ -343,6 +439,7 @@ namespace EasyStayHotel.Controllers
                     ModelState.AddModelError("", "เกิดข้อผิดพลาดในการบันทึก: " + ex.Message);
                 }
             }
+            ViewBag.RoomTypes = _context.Roomtypes.OrderBy(rt => rt.BasePrice).ToList();
             return View(updatedRoom);
         }
 

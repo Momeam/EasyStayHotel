@@ -7,12 +7,12 @@
     int? preselectedRoomId = ViewBag.PreselectedRoomId as int?;
 }
 
-<div class="container-fluid py-4 mb-5">
+<div class="container-fluid p-0 mb-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <div class="d-flex align-items-center gap-2 mb-1">
-                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary px-3 py-1 rounded-pill">
-                    <i class="bi bi-geo-alt-fill me-1"></i> สาขา@ViewBag.CurrentBranchTh
+                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary px-3 py-1 rounded-pill small">
+                    <i class="bi bi-geo-alt-fill me-1"></i>สาขา @(ViewBag.CurrentBranchTh)
                 </span>
                 <span class="badge bg-success rounded-pill px-3 py-1">Direct Walk-in Desk</span>
             </div>
@@ -20,7 +20,7 @@
             <p class="text-muted small mb-0">ลงทะเบียนผู้เข้าพักหน้าเคาน์เตอร์ เลือกห้องว่าง เลือกบริการเสริม และรับชำระเงินพร้อมเปิดห้องทันที</p>
         </div>
         <div>
-            <a asp-action="CheckInDesk" class="btn btn-outline-primary fw-bold rounded-pill px-3">
+            <a asp-action="CheckInDesk" class="btn btn-outline-primary fw-bold rounded-pill px-3 text-nowrap">
                 <i class="bi bi-upc-scan me-1"></i> เช็คอินลูกค้าที่มีรหัสการจองออนไลน์
             </a>
         </div>
@@ -92,7 +92,7 @@
                         <div class="row g-3">
                             <div class="col-md-12">
                                 <label class="form-label fw-bold small text-dark">
-                                    <i class="bi bi-door-open-fill text-primary me-1"></i> เลือกห้องพักว่างในสาขา@ViewBag.CurrentBranchTh *
+                                    <i class="bi bi-door-open-fill text-primary me-1"></i> เลือกห้องพักว่างในสาขา @(ViewBag.CurrentBranchTh) *
                                 </label>
                                 <select asp-for="RoomId" class="form-select form-select-lg border-primary" id="roomSelect" required>
                                     <option value="" data-price="0" data-type="0">-- กรุณาเลือกห้องพักที่ว่าง --</option>
@@ -127,7 +127,7 @@
 
             <!-- คอลัมน์ขวา: บริการเสริม (Add-ons) และการชำระเงิน -->
             <div class="col-lg-4">
-                <div class="card shadow-sm border-0 mb-4 rounded-4 bg-white overflow-hidden sticky-top" style="top: 20px;">
+                <div class="card shadow-sm border-0 mb-4 rounded-4 bg-white overflow-hidden sticky-top" style="top: 75px; max-height: calc(100vh - 90px); overflow-y: auto;">
                     <div class="card-header bg-dark text-white py-3">
                         <h6 class="m-0 fw-bold text-warning">
                             <i class="bi bi-cart-check-fill me-2"></i>3. บริการเสริมและสรุปชำระเงิน

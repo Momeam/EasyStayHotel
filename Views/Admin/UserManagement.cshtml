@@ -1,140 +1,353 @@
-@model IEnumerable<EasyStayHotel.Models.User>
+@using EasyStayHotel.Services
 @{
-    // เรียกใช้ Layout ของ Admin
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
-    ViewData["Title"] = "จัดการผู้ใช้งาน";
+    ViewData["Title"] = "จัดการผู้ใช้งานและพนักงาน";
+
+    var staffList = ViewBag.StaffList as List<EasyStayHotel.Models.User> ?? new List<EasyStayHotel.Models.User>();
+    var customerList = ViewBag.CustomerList as List<EasyStayHotel.Models.User> ?? new List<EasyStayHotel.Models.User>();
+
+    string activeTab = ViewBag.ActiveTab as string ?? "staff";
+    string roleFilter = ViewBag.RoleFilter as string ?? "ALL";
+    string searchString = ViewBag.SearchString as string ?? "";
+
+    int totalStaff = ViewBag.TotalStaff != null ? (int)ViewBag.TotalStaff : 0;
+    int totalCustomers = ViewBag.TotalCustomers != null ? (int)ViewBag.TotalCustomers : 0;
+
+    int adminCount = ViewBag.AdminCount != null ? (int)ViewBag.AdminCount : 0;
+    int receptionCount = ViewBag.ReceptionCount != null ? (int)ViewBag.ReceptionCount : 0;
+    int housekeeperCount = ViewBag.HousekeeperCount != null ? (int)ViewBag.HousekeeperCount : 0;
+    int accountingCount = ViewBag.AccountingCount != null ? (int)ViewBag.AccountingCount : 0;
 }
 
-<div class="card shadow-sm border-0 mt-4">
-    <div class="card-header bg-dark text-warning d-flex justify-content-between align-items-center">
-        <h5 class="m-0">👥 จัดการบัญชีผู้ใช้งานระบบ (User Management)</h5>
-        <a asp-controller="Admin" asp-action="AddUser" class="btn btn-sm btn-primary">+ เพิ่มผู้ใช้งานใหม่</a>
+<div class="container-fluid p-0">
+    <!-- การ์ดหัวข้อและปุ่มเพิ่มผู้ใช้ -->
+    <div class="card border-0 shadow-sm rounded-4 bg-white p-4 mb-4">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+            <div>
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <span class="badge bg-primary text-white rounded-pill px-3 py-1 fw-bold">Admin Directory</span>
+                    <span class="badge bg-dark rounded-pill px-3 py-1">Role Segregation</span>
+                </div>
+                <h3 class="fw-bold m-0 text-dark">ระบบจัดการบัญชีผู้ใช้งานและบุคลากร</h3>
+                <p class="text-muted small mb-0">
+                    แยกหมวดหมู่ชัดเจนระหว่าง <strong class="text-primary">พนักงานทุกฝ่าย (Staff & Personnel)</strong> และ <strong class="text-success">ลูกค้าทั่วไป (Customers & Members)</strong>
+                </p>
+            </div>
+            <div>
+                <a asp-controller="Admin" asp-action="AddUser" class="btn btn-primary fw-bold rounded-pill px-4 shadow-sm">
+                    <i class="bi bi-person-plus-fill me-1"></i> เพิ่มพนักงาน / ผู้ใช้ใหม่
+                </a>
+            </div>
+        </div>
     </div>
-    
-    <div class="card-body p-4">
-        
-        <!-- 1. ส่วนแสดงแจ้งเตือน (Alert) -->
-        @if (TempData["ErrorMessage"] != null)
-        {
-            <div class="alert alert-danger shadow-sm py-2">
-                <strong>❌ ปฏิเสธการเข้าถึง:</strong> @TempData["ErrorMessage"]
-            </div>
-        }
-        @if (TempData["SuccessMessage"] != null)
-        {
-            <div class="alert alert-success shadow-sm py-2">
-                <strong>✅ สำเร็จ:</strong> @TempData["SuccessMessage"]
-            </div>
-        }
 
-        <!-- 2. ฟอร์มค้นหา -->
-        <form asp-action="UserManagement" method="get" class="mb-4">
-            <div class="input-group">
-                <input type="text" name="searchString" value="@ViewBag.SearchString" class="form-control" placeholder="ค้นหาด้วย Username หรือ Role...">
-                <button type="submit" class="btn btn-primary">ค้นหา</button>
-                <a asp-action="UserManagement" class="btn btn-outline-secondary">ล้างค่า</a>
+    <!-- สถิติตัวเลขสรุป (Summary Cards) -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm rounded-4 p-4 bg-white border-start border-primary border-4 h-100">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <span class="text-muted small fw-bold">พนักงานทุกโรล (Staff & Personnel)</span>
+                        <h2 class="fw-bold text-primary m-0 mt-2">@totalStaff <span class="fs-6 text-muted">คน</span></h2>
+                    </div>
+                    <div class="bg-primary bg-opacity-10 text-primary rounded-circle p-3 d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                        <i class="bi bi-briefcase-fill fs-4"></i>
+                    </div>
+                </div>
+                <div class="d-flex flex-wrap gap-1 mt-3 pt-2 border-top">
+                    <span class="badge bg-danger rounded-pill px-2 py-1">แอดมิน: @adminCount</span>
+                    <span class="badge bg-primary rounded-pill px-2 py-1">ต้อนรับ: @receptionCount</span>
+                    <span class="badge text-white rounded-pill px-2 py-1" style="background-color: #0d9488;">แม่บ้าน: @housekeeperCount</span>
+                    <span class="badge bg-warning text-dark rounded-pill px-2 py-1">บัญชี: @accountingCount</span>
+                </div>
             </div>
-        </form>
+        </div>
 
-        <!-- 3. ตารางแสดงข้อมูล (ใช้เวอร์ชันที่จัดรูปแบบสวยงามแล้ว) -->
-        <div class="table-responsive">
-            <table class="table table-hover table-bordered text-center align-middle">
-                <!-- เปลี่ยนเป็น table-dark เพื่อให้เข้ากับ Header ของ Card -->
-                <thead class="table-dark">
-                    <tr>
-                        <th>รหัสผู้ใช้ (ID)</th>
-                        <th>ชื่อผู้ใช้งาน (FullName)</th>
-                        <th>อีเมล (Email)</th>
-                        <th>บทบาท (Role)</th>
-                        <th>จัดการ</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @if (Model != null && Model.Any())
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm rounded-4 p-4 bg-white border-start border-success border-4 h-100">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <span class="text-muted small fw-bold">ลูกค้าและสมาชิกทั่วไป (Customers / Members)</span>
+                        <h2 class="fw-bold text-success m-0 mt-2">@totalCustomers <span class="fs-6 text-muted">บัญชี</span></h2>
+                    </div>
+                    <div class="bg-success bg-opacity-10 text-success rounded-circle p-3 d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                        <i class="bi bi-people-fill fs-4"></i>
+                    </div>
+                </div>
+                <p class="text-muted small mb-0 mt-3 pt-2 border-top">
+                    <i class="bi bi-check-circle-fill text-success me-1"></i> ผู้ใช้งานที่ลงทะเบียนผ่านระบบหน้าเว็บไซต์เพื่อจองห้องพัก
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ส่วนเนื้อหาหลัก: แท็บแยกพนักงาน vs ลูกค้า -->
+    <div class="card border-0 shadow-sm rounded-4 bg-white overflow-hidden mb-5">
+        <!-- แถบเลือกแท็บด้านบน -->
+        <div class="card-header bg-white border-bottom p-3">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+                <ul class="nav nav-pills" id="userDirectoryTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <a class="nav-link rounded-pill px-4 fw-bold @(activeTab == "staff" ? "active bg-primary text-white" : "text-muted")"
+                           asp-action="UserManagement" asp-route-tab="staff" asp-route-searchString="@searchString">
+                            <i class="bi bi-briefcase-fill me-1"></i> รายชื่อพนักงานทุกโรล
+                            <span class="badge @(activeTab == "staff" ? "bg-white text-primary" : "bg-primary text-white") rounded-pill ms-1">@totalStaff</span>
+                        </a>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <a class="nav-link rounded-pill px-4 fw-bold @(activeTab == "customer" ? "active bg-success text-white" : "text-muted")"
+                           asp-action="UserManagement" asp-route-tab="customer" asp-route-searchString="@searchString">
+                            <i class="bi bi-people-fill me-1"></i> รายชื่อลูกค้า / สมาชิกทั่วไป
+                            <span class="badge @(activeTab == "customer" ? "bg-white text-success" : "bg-success text-white") rounded-pill ms-1">@totalCustomers</span>
+                        </a>
+                    </li>
+                </ul>
+
+                <!-- ฟอร์มค้นหา -->
+                <form asp-action="UserManagement" method="get" class="d-flex gap-2" style="max-width: 360px;">
+                    <input type="hidden" name="tab" value="@activeTab" />
+                    <input type="hidden" name="roleFilter" value="@roleFilter" />
+                    <div class="input-group input-group-sm">
+                        <input type="text" name="searchString" value="@searchString" class="form-control rounded-start-pill ps-3"
+                               placeholder="ค้นหาชื่อ, อีเมล, เบอร์โทร..." />
+                        <button type="submit" class="btn btn-dark rounded-end-pill px-3">
+                            <i class="bi bi-search"></i>
+                        </button>
+                    </div>
+                    @if (!string.IsNullOrEmpty(searchString))
                     {
-                        foreach (var user in Model)
+                        <a asp-action="UserManagement" asp-route-tab="@activeTab" class="btn btn-sm btn-outline-secondary rounded-pill px-2" title="ล้างการค้นหา">
+                            <i class="bi bi-x-lg"></i>
+                        </a>
+                    }
+                </form>
+            </div>
+        </div>
+
+        <!-- แท็บที่ 1: รายชื่อพนักงาน (ทุกโรล) -->
+        @if (activeTab == "staff")
+        {
+            <div class="p-3 bg-light border-bottom">
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+                    <div class="d-flex flex-wrap align-items-center gap-1">
+                        <span class="small fw-bold text-muted me-2">กรองตามแผนก:</span>
+                        <a asp-action="UserManagement" asp-route-tab="staff" asp-route-roleFilter="ALL" asp-route-searchString="@searchString"
+                           class="btn btn-sm rounded-pill px-3 @(roleFilter == "ALL" ? "btn-dark text-white fw-bold" : "btn-outline-secondary")">
+                            ทั้งหมด (@totalStaff)
+                        </a>
+                        <a asp-action="UserManagement" asp-route-tab="staff" asp-route-roleFilter="Admin" asp-route-searchString="@searchString"
+                           class="btn btn-sm rounded-pill px-3 @(roleFilter == "Admin" ? "btn-danger text-white fw-bold" : "btn-outline-danger")">
+                            ผู้ดูแลระบบ (@adminCount)
+                        </a>
+                        <a asp-action="UserManagement" asp-route-tab="staff" asp-route-roleFilter="Staff" asp-route-searchString="@searchString"
+                           class="btn btn-sm rounded-pill px-3 @(roleFilter == "Staff" ? "btn-primary text-white fw-bold" : "btn-outline-primary")">
+                            พนักงานต้อนรับ (@receptionCount)
+                        </a>
+                        <a asp-action="UserManagement" asp-route-tab="staff" asp-route-roleFilter="Housekeeper" asp-route-searchString="@searchString"
+                           class="btn btn-sm rounded-pill px-3 @(roleFilter == "Housekeeper" ? "btn-success text-white fw-bold" : "btn-outline-success")">
+                            พนักงานแม่บ้าน (@housekeeperCount)
+                        </a>
+                        <a asp-action="UserManagement" asp-route-tab="staff" asp-route-roleFilter="Accounting" asp-route-searchString="@searchString"
+                           class="btn btn-sm rounded-pill px-3 @(roleFilter == "Accounting" ? "btn-warning text-dark fw-bold" : "btn-outline-warning")">
+                            พนักงานบัญชี (@accountingCount)
+                        </a>
+                    </div>
+                    <small class="text-muted">พบพนักงานทั้งหมด @staffList.Count คน</small>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0 text-center">
+                    <thead class="table-light small fw-bold text-nowrap">
+                        <tr>
+                            <th class="ps-4 text-start">รหัสพนักงาน</th>
+                            <th class="text-start">ชื่อ-นามสกุล</th>
+                            <th class="text-start">อีเมลสำหรับเข้าสู่ระบบ (Login)</th>
+                            <th>สาขาประจำการ</th>
+                            <th>แผนก / ตำแหน่ง (Role)</th>
+                            <th>เบอร์โทรศัพท์</th>
+                            <th class="text-end pe-4">จัดการบัญชี</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (staffList.Any())
+                        {
+                            foreach (var user in staffList)
+                            {
+                                string branchName = RoomPreviewHelper.GetBranchNameTh(user.Branch);
+                                <tr>
+                                    <td class="ps-4 text-start font-monospace fw-bold text-primary">#EMP-@user.UserId.ToString("D4")</td>
+                                    <td class="text-start">
+                                        <div class="fw-bold text-dark">@user.FullName</div>
+                                        <small class="text-muted">เข้าระบบด้วยสิทธิ์พนักงาน</small>
+                                    </td>
+                                    <td class="text-start font-monospace small">
+                                        <i class="bi bi-envelope-at text-muted me-1"></i>@user.Email
+                                    </td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(user.Branch))
+                                        {
+                                            <span class="badge bg-light text-dark border rounded-pill px-3 py-1">
+                                                <i class="bi bi-geo-alt-fill text-primary me-1"></i>@branchName
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-light text-muted border rounded-pill px-2">ทุกสาขา / ส่วนกลาง</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (user.Role == "SuperAdmin")
+                                        {
+                                            <span class="badge bg-dark text-warning border border-warning rounded-pill px-3 py-1 fw-bold">
+                                                <i class="bi bi-shield-shaded me-1"></i>เจ้าของระบบ (SuperAdmin)
+                                            </span>
+                                        }
+                                        else if (user.Role == "Admin")
+                                        {
+                                            <span class="badge bg-danger rounded-pill px-3 py-1 fw-bold">
+                                                <i class="bi bi-shield-lock-fill me-1"></i>ผู้ดูแลระบบ (Admin)
+                                            </span>
+                                        }
+                                        else if (user.Role == "Staff")
+                                        {
+                                            <span class="badge bg-primary rounded-pill px-3 py-1 fw-bold">
+                                                <i class="bi bi-person-badge-fill me-1"></i>พนักงานต้อนรับ (Staff)
+                                            </span>
+                                        }
+                                        else if (user.Role == "Housekeeper" || user.Role == "Maid")
+                                        {
+                                            <span class="badge text-white rounded-pill px-3 py-1 fw-bold" style="background-color: #0d9488;">
+                                                <i class="bi bi-stars me-1"></i>พนักงานแม่บ้าน (Housekeeper)
+                                            </span>
+                                        }
+                                        else if (user.Role == "Accounting")
+                                        {
+                                            <span class="badge bg-warning text-dark rounded-pill px-3 py-1 fw-bold">
+                                                <i class="bi bi-calculator-fill me-1"></i>พนักงานบัญชี (Accounting)
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary rounded-pill px-3 py-1">@user.Role</span>
+                                        }
+                                    </td>
+                                    <td class="small text-muted">
+                                        @(string.IsNullOrEmpty(user.Phone) ? "-" : user.Phone)
+                                    </td>
+                                    <td class="text-end pe-4 text-nowrap">
+                                        <a asp-action="EditUser" asp-route-id="@user.UserId" class="btn btn-sm btn-outline-warning rounded-pill px-3 fw-medium">
+                                            <i class="bi bi-pencil-square me-1"></i>แก้ไข
+                                        </a>
+
+                                        @if (user.Role != "SuperAdmin")
+                                        {
+                                            <a asp-controller="Admin" asp-action="DeleteUser" asp-route-id="@user.UserId"
+                                               class="btn btn-sm btn-outline-danger rounded-pill px-3 fw-medium ms-1"
+                                               onclick="return confirm('ยืนยันการลบบัญชีพนักงานของคุณ @user.FullName ออกจากระบบ?');">
+                                                <i class="bi bi-trash3 me-1"></i>ลบ
+                                            </a>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
                         {
                             <tr>
-                                <td>@user.UserId</td>
-                                <td class="fw-bold">@user.FullName</td>
-                                <td>@user.Email</td>
-                                <td>
-                                    <!-- ดึง Role จากฐานข้อมูลมาโชว์ พร้อมใส่สีป้าย -->
-                                    @if (user.Role == "SuperAdmin")
-                                    {
-                                        <span class="badge bg-danger text-light border border-dark">เจ้าของระบบ</span>
-                                    }
-                                    else if (user.Role == "Admin")
-                                    {
-                                        <span class="badge bg-danger">ผู้ดูแลระบบ</span>
-                                    }
-                                    else if (user.Role == "Staff")
-                                    {
-                                        <span class="badge bg-primary">พนักงานต้อนรับ</span>
-                                    }
-                                    else if (user.Role == "Accounting")
-                                    {
-                                        <span class="badge bg-warning text-dark">พนักงานบัญชี</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="badge bg-secondary">@(user.Role ?? "ผู้ใช้งานทั่วไป")</span>
-                                    }
-                                </td>
-                                <td>
-                                    <!-- ปุ่มแก้ไข (เปลี่ยนให้เป็น tag <a> เพื่อให้กดลิงก์ได้จริง) -->
-                                    <a asp-action="EditUser" asp-route-id="@user.UserId" class="btn btn-sm btn-warning">แก้ไข</a>
-                                    
-                                    <!-- ปุ่มลบ -->
-                                    <a asp-controller="Admin" asp-action="DeleteUser" asp-route-id="@user.UserId" 
-                                       class="btn btn-sm btn-danger" 
-                                       onclick="return confirm('คุณแน่ใจหรือไม่ว่าต้องการลบ @user.FullName ออกจากระบบ?');">
-                                       ลบ
-                                    </a>
+                                <td colspan="7" class="text-center py-5 text-muted">
+                                    <i class="bi bi-person-x fs-1 opacity-25 d-block mb-2"></i>
+                                    ไม่พบบัญชีพนักงานในเงื่อนไขการค้นหานี้
                                 </td>
                             </tr>
                         }
-                    }
-                    else
-                    {
-                        <tr>
-                            <td colspan="5" class="text-muted py-4">ยังไม่มีข้อมูลผู้ใช้งานในระบบ</td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
-
-        <!-- 4. ส่วนปุ่มแบ่งหน้า (Pagination) -->
-        @if (ViewBag.TotalPages > 1)
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
         {
-            <nav aria-label="Page navigation">
-                <ul class="pagination justify-content-center mt-4 mb-0">
-                    <!-- ปุ่มก่อนหน้า -->
-                    <li class="page-item @(ViewBag.CurrentPage == 1 ? "disabled" : "")">
-                        <a class="page-link" asp-action="UserManagement" 
-                           asp-route-searchString="@ViewBag.SearchString" 
-                           asp-route-pageNumber="@(ViewBag.CurrentPage - 1)">Previous</a>
-                    </li>
+            <!-- แท็บที่ 2: รายชื่อลูกค้า / สมาชิกทั่วไป -->
+            <div class="p-3 bg-light border-bottom d-flex justify-content-between align-items-center">
+                <span class="small fw-bold text-muted">
+                    <i class="bi bi-person-lines-fill text-success me-1"></i> รายชื่อบัญชีลูกค้าที่ลงทะเบียนเพื่อจองห้องพัก
+                </span>
+                <small class="text-muted">พบลบูกค้าทั้งหมด @customerList.Count คน</small>
+            </div>
 
-                    <!-- วนลูปสร้างตัวเลขหน้า -->
-                    @for (int i = 1; i <= ViewBag.TotalPages; i++)
-                    {
-                        <li class="page-item @(ViewBag.CurrentPage == i ? "active" : "")">
-                            <a class="page-link" asp-action="UserManagement" 
-                               asp-route-searchString="@ViewBag.SearchString" 
-                               asp-route-pageNumber="@i">@i</a>
-                        </li>
-                    }
-
-                    <!-- ปุ่มถัดไป -->
-                    <li class="page-item @(ViewBag.CurrentPage == ViewBag.TotalPages ? "disabled" : "")">
-                        <a class="page-link" asp-action="UserManagement" 
-                           asp-route-searchString="@ViewBag.SearchString" 
-                           asp-route-pageNumber="@(ViewBag.CurrentPage + 1)">Next</a>
-                    </li>
-                </ul>
-            </nav>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0 text-center">
+                    <thead class="table-light small fw-bold text-nowrap">
+                        <tr>
+                            <th class="ps-4 text-start">รหัสลูกค้า</th>
+                            <th class="text-start">ชื่อผู้เข้าพัก / ลูกค้า</th>
+                            <th class="text-start">อีเมล</th>
+                            <th>เบอร์โทรศัพท์ติดต่อ</th>
+                            <th>ประวัติการจอง</th>
+                            <th>สถานะสมาชิก</th>
+                            <th class="text-end pe-4">จัดการ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (customerList.Any())
+                        {
+                            foreach (var user in customerList)
+                            {
+                                int bookingCount = user.Bookings?.Count ?? 0;
+                                <tr>
+                                    <td class="ps-4 text-start font-monospace fw-bold text-success">#CUST-@user.UserId.ToString("D5")</td>
+                                    <td class="text-start">
+                                        <div class="fw-bold text-dark">@user.FullName</div>
+                                        <small class="text-muted">ลูกค้าโรงแรม</small>
+                                    </td>
+                                    <td class="text-start font-monospace small">
+                                        <i class="bi bi-envelope text-muted me-1"></i>@user.Email
+                                    </td>
+                                    <td class="small">
+                                        @(string.IsNullOrEmpty(user.Phone) ? "-" : user.Phone)
+                                    </td>
+                                    <td>
+                                        @if (bookingCount > 0)
+                                        {
+                                            <span class="badge bg-success bg-opacity-10 text-success border border-success rounded-pill px-3 py-1">
+                                                จองแล้ว @bookingCount รายการ
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-light text-muted border rounded-pill px-2">ยังไม่มีประวัติจอง</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary bg-opacity-10 text-secondary border rounded-pill px-3 py-1">
+                                            @(user.Role ?? "Customer")
+                                        </span>
+                                    </td>
+                                    <td class="text-end pe-4 text-nowrap">
+                                        <a asp-action="EditUser" asp-route-id="@user.UserId" class="btn btn-sm btn-outline-warning rounded-pill px-3 fw-medium">
+                                            <i class="bi bi-pencil-square me-1"></i>แก้ไข
+                                        </a>
+                                        <a asp-controller="Admin" asp-action="DeleteUser" asp-route-id="@user.UserId"
+                                           class="btn btn-sm btn-outline-danger rounded-pill px-3 fw-medium ms-1"
+                                           onclick="return confirm('ยืนยันการลบบัญชีลูกค้าคุณ @user.FullName?');">
+                                            <i class="bi bi-trash3 me-1"></i>ลบ
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="7" class="text-center py-5 text-muted">
+                                    <i class="bi bi-person-x fs-1 opacity-25 d-block mb-2"></i>
+                                    ไม่พบบัญชีลูกค้าในเงื่อนไขการค้นหานี้
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
         }
     </div>
 </div>

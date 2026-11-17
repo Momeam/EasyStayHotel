@@ -8,18 +8,25 @@
         <h2 class="fw-bold mt-4 mb-3">การจองสำเร็จ!</h2>
         <p class="text-muted mb-4">ขอบคุณสำหรับการจองห้องพักกับ Easy Stay ระบบได้รับหลักฐานการชำระเงินของคุณแล้ว</p>
         
-        <div class="bg-light p-4 rounded-3 mb-4 border">
+        <div class="bg-light p-4 rounded-3 mb-3 border">
             <p class="mb-1 text-muted small">หมายเลขการจอง (Booking Reference)</p>
             <h3 class="fw-bold text-primary m-0">@ViewBag.BookingRef</h3>
+        </div>
+        
+        <div class="alert alert-info border-0 rounded-3 text-start small mb-4 py-2 px-3">
+            <i class="bi bi-info-circle me-1"></i> <strong>หมายเหตุ:</strong> หมายเลขห้องพักจริงจะถูกจัดสรรโดยพนักงานต้อนรับจากห้องที่ว่างตามประเภทห้องที่ท่านจอง เมื่อท่านเดินทางมาถึงและทำการเช็คอิน ณ โรงแรม
         </div>
         
         <p class="small text-muted mb-4">พนักงานของเรากำลังตรวจสอบรายการชำระเงิน คุณสามารถใช้หมายเลขการจองนี้เพื่อติดตามสถานะได้ตลอดเวลา</p>
         
         <div class="d-grid gap-2">
-            <a asp-controller="Booking" asp-action="MyBookings" asp-route-bookingRef="@ViewBag.BookingRef" class="btn btn-primary btn-lg fw-bold">
-                <i class="bi bi-journal-check me-1"></i> ดูสถานะและรายละเอียดการจองนี้
+            <a asp-controller="Booking" asp-action="BookingVoucher" asp-route-bookingRef="@ViewBag.BookingRef" target="_blank" class="btn btn-success btn-lg fw-bold shadow-sm">
+                <i class="bi bi-file-earmark-arrow-down-fill me-2"></i> พิมพ์ / ดาวน์โหลดเอกสารการจอง (Booking Voucher)
             </a>
-            <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary btn-lg fw-bold">
+            <a asp-controller="Booking" asp-action="MyBookings" asp-route-bookingRef="@ViewBag.BookingRef" class="btn btn-outline-primary fw-bold">
+                <i class="bi bi-journal-check me-1"></i> ตรวจสอบสถานะการจอง
+            </a>
+            <a asp-controller="Home" asp-action="Index" class="btn btn-light border fw-bold text-muted">
                 กลับสู่หน้าหลัก
             </a>
         </div>

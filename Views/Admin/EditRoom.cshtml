@@ -2,13 +2,14 @@
 @{
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
     ViewData["Title"] = "แก้ไขห้องพัก";
+    var roomTypes = ViewBag.RoomTypes as List<EasyStayHotel.Models.Roomtype> ?? new List<EasyStayHotel.Models.Roomtype>();
 }
 
 <div class="row justify-content-center mt-4">
     <div class="col-md-8">
-        <div class="card shadow-sm border-0">
-            <div class="card-header bg-dark text-warning">
-                <h5 class="m-0">✏️ แก้ไขข้อมูลห้องพัก (หมายเลข @Model.RoomNo)</h5>
+        <div class="card shadow-sm border-0 rounded-4 overflow-hidden">
+            <div class="card-header bg-dark text-warning p-3">
+                <h5 class="m-0 fw-bold"><i class="bi bi-pencil-square me-2"></i>แก้ไขข้อมูลห้องพัก (หมายเลข @Model.RoomNo)</h5>
             </div>
             <div class="card-body p-4">
                 <form asp-controller="Admin" asp-action="EditRoom" method="post">
@@ -17,31 +18,50 @@
                     
                     <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
 
-                    <div class="mb-3">
-                        <label asp-for="RoomNo" class="form-label fw-bold">หมายเลขห้อง (Room Number):</label>
-                        <input asp-for="RoomNo" class="form-control" required />
-                        <span asp-validation-for="RoomNo" class="text-danger"></span>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label asp-for="RoomNo" class="form-label fw-bold">หมายเลขห้อง (Room Number): <span class="text-danger">*</span></label>
+                            <input asp-for="RoomNo" class="form-control form-control-lg" required />
+                            <span asp-validation-for="RoomNo" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Branch" class="form-label fw-bold">สาขาของโรงแรม (Branch): <span class="text-danger">*</span></label>
+                            <select asp-for="Branch" class="form-select form-select-lg" required>
+                                <option value="Bangkok">สาขากรุงเทพมหานคร (Bangkok)</option>
+                                <option value="Chonburi">สาขาชลบุรี-พัทยา (Chonburi)</option>
+                                <option value="Phuket">สาขาภูเก็ต (Phuket)</option>
+                            </select>
+                        </div>
                     </div>
 
                     <div class="mb-3">
-                        <label asp-for="RoomTypeId" class="form-label fw-bold">ประเภทห้องพัก (Room Type ID):</label>
-                        <input asp-for="RoomTypeId" type="number" class="form-control" required />
+                        <label asp-for="RoomTypeId" class="form-label fw-bold">ประเภทห้องพัก (Room Type): <span class="text-danger">*</span></label>
+                        <select asp-for="RoomTypeId" class="form-select form-select-lg border-primary" required>
+                            @foreach (var rt in roomTypes)
+                            {
+                                <option value="@rt.RoomTypeId" selected="@(rt.RoomTypeId == Model.RoomTypeId)">
+                                    @rt.TypeName (฿@rt.BasePrice.ToString("N0") / คืน - ความจุ @rt.Capacity ท่าน)
+                                </option>
+                            }
+                        </select>
                     </div>
 
                     <div class="mb-4">
                         <label asp-for="Status" class="form-label fw-bold">สถานะห้องพัก:</label>
-                        <select asp-for="Status" class="form-select" required>
-                            <option value="Available">ว่าง (Available)</option>
+                        <select asp-for="Status" class="form-select form-select-lg" required>
+                            <option value="Available">ว่างพร้อมขาย (Available)</option>
                             <option value="Occupied">มีผู้เข้าพัก (Occupied)</option>
                             <option value="Cleaning">กำลังทำความสะอาด (Cleaning)</option>
-                            <option value="Maintenance">ปิดปรับปรุง (Maintenance)</option>
+                            <option value="Maintenance">ปิดปรับปรุง / ซ่อมบำรุง (Maintenance)</option>
                         </select>
                     </div>
 
                     <hr />
-                    <div class="d-flex justify-content-between">
-                        <a asp-controller="Admin" asp-action="RoomManagement" class="btn btn-outline-secondary">ยกเลิกกลับไปหน้าหลัก</a>
-                        <button type="submit" class="btn btn-warning px-5 fw-bold">💾 บันทึกการแก้ไข</button>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <a asp-controller="Admin" asp-action="RoomManagement" class="btn btn-outline-secondary rounded-pill px-4">ยกเลิกกลับไปหน้าหลัก</a>
+                        <button type="submit" class="btn btn-warning rounded-pill px-5 fw-bold shadow-sm">
+                            <i class="bi bi-floppy-fill me-1"></i> บันทึกการแก้ไข
+                        </button>
                     </div>
                 </form>
             </div>

@@ -1,0 +1,26 @@
+[
+  {
+    "RefundId": "7d868f1810df42f68912e1098b410e80",
+    "BookingId": 16,
+    "BookingRef": "ES-25691117105142",
+    "GuestName": "\u0E0A\u0E19\u0E30\u0E1E\u0E25 \u0E40\u0E2A\u0E23\u0E35\u0E04\u0E38\u0E13\u0E32\u0E04\u0E38\u0E13",
+    "ContactPhone": "0845536666",
+    "ContactEmail": "memza007@gmail.com",
+    "Branch": "Bangkok",
+    "RoomNo": "315",
+    "RoomTypeName": "Roomtest",
+    "Amount": 4.50,
+    "BankName": "\u0E1E\u0E23\u0E49\u0E2D\u0E21\u0E40\u0E1E\u0E22\u0E4C (PromptPay)",
+    "BankAccountNumber": "0983813674",
+    "BankAccountName": "\u0E0A\u0E19\u0E30\u0E1E\u0E25 \u0E40\u0E2A\u0E23\u0E35\u0E04\u0E38\u0E13\u0E32\u0E04\u0E38\u0E13",
+    "Reason": "\u0E2D\u0E37\u0E48\u0E19\u0E46: \u0E44\u0E21\u0E48\u0E1A\u0E2D\u0E01\u0E01\u0E01",
+    "BookingDate": "2026-11-17T10:51:42",
+    "RequestedAt": "2026-11-17T11:04:09.7377347+07:00",
+    "RefundDeadline": "2026-11-20T11:04:09.7377354+07:00",
+    "Status": "Approved",
+    "ProcessedBy": "\u0E04\u0E38\u0E13\u0E2A\u0E21\u0E28\u0E23\u0E35 \u0E1A\u0E31\u0E0D\u0E0A\u0E35",
+    "ProcessedAt": "2026-11-17T11:04:51.410067+07:00",
+    "AdminNote": null,
+    "RefundSlipUrl": null
+  }
+]

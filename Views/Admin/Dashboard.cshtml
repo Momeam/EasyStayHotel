@@ -81,7 +81,206 @@
         </div>
     </div>
 
-    <!-- ส่วนที่ 3: ตารางการจองล่าสุด -->
+    <!-- ส่วนที่ 3: รายงานสรุปภาพรวมการเงินจากฝ่ายบัญชี (3 สาขา) -->
+    @{
+        var financialReports = ViewBag.FinancialReports as List<EasyStayHotel.Models.FinancialReport> ?? new List<EasyStayHotel.Models.FinancialReport>();
+        int pendingReportsCount = ViewBag.PendingFinancialReportsCount != null ? (int)ViewBag.PendingFinancialReportsCount : 0;
+    }
+    <div class="card shadow-sm border-0 mb-4 rounded-4 overflow-hidden">
+        <div class="card-header bg-white border-bottom p-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <div>
+                <span class="badge bg-primary text-white rounded-pill px-3 py-1 mb-1 small">Accounting Handover & Audit</span>
+                <h6 class="m-0 fw-bold text-dark">
+                    <i class="bi bi-file-earmark-bar-graph-fill text-primary me-2"></i>รายงานสรุปภาพรวมการเงินจากฝ่ายบัญชี (3 สาขา)
+                </h6>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                @if (pendingReportsCount > 0)
+                {
+                    <span class="badge bg-warning text-dark rounded-pill px-3 py-2 fw-bold">
+                        <i class="bi bi-bell-fill me-1"></i> มี @pendingReportsCount รายงานรอผู้จัดการลงนาม
+                    </span>
+                }
+                else
+                {
+                    <span class="badge bg-success rounded-pill px-3 py-2 fw-medium">
+                        <i class="bi bi-check2-circle me-1"></i> รับทราบรายงานครบถ้วน
+                    </span>
+                }
+                <a asp-controller="Accounting" asp-action="RevenueReport" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-bold">
+                    <i class="bi bi-box-arrow-up-right me-1"></i> เปิดดูระบบบัญชีเต็มรูปแบบ
+                </a>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            @if (financialReports.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0 text-center">
+                        <thead class="table-light small fw-bold text-nowrap">
+                            <tr>
+                                <th class="text-start ps-3">รหัสรายงาน / วันที่</th>
+                                <th class="text-start">รอบรายงาน / สาขา</th>
+                                <th class="text-end">ยอดรวมรายได้</th>
+                                <th class="text-end">เงินสด</th>
+                                <th class="text-end">เงินโอน</th>
+                                <th class="text-start">บันทึกจากฝ่ายบัญชี</th>
+                                <th>สถานะ</th>
+                                <th class="text-end pe-3">ดำเนินการ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var rep in financialReports)
+                            {
+                                bool isPending = rep.Status == "Pending";
+                                <tr>
+                                    <td class="text-start ps-3 font-monospace fw-bold text-primary">
+                                        @rep.ReportId
+                                        <div class="text-muted" style="font-size: 0.72rem;">@rep.CreatedAt.ToString("dd/MM/yyyy HH:mm น.")</div>
+                                    </td>
+                                    <td class="text-start">
+                                        <div class="fw-bold text-dark">@rep.PeriodLabel</div>
+                                        <span class="badge bg-light text-dark border">
+                                            สาขา: @(rep.Branch == "ALL" ? "รวม 3 สาขา" : rep.Branch)
+                                        </span>
+                                        <span class="badge bg-secondary text-white">@rep.PeriodType</span>
+                                    </td>
+                                    <td class="text-end fw-bold text-success fs-6">
+                                        ฿@rep.TotalRevenue.ToString("N2")
+                                    </td>
+                                    <td class="text-end text-muted small">
+                                        ฿@rep.CashAmount.ToString("N2")
+                                    </td>
+                                    <td class="text-end text-muted small">
+                                        ฿@rep.TransferAmount.ToString("N2")
+                                    </td>
+                                    <td class="text-start small" style="max-width: 220px;">
+                                        <div class="text-truncate" title="@rep.Notes">@(string.IsNullOrWhiteSpace(rep.Notes) ? "-" : rep.Notes)</div>
+                                    </td>
+                                    <td>
+                                        @if (rep.Status == "Approved")
+                                        {
+                                            <span class="badge bg-success rounded-pill px-3 py-1">
+                                                <i class="bi bi-check-circle-fill me-1"></i>อนุมัติแล้ว
+                                            </span>
+                                            <div class="text-muted" style="font-size: 0.72rem;">โดย @rep.AcknowledgedBy</div>
+                                        }
+                                        else if (rep.Status == "Acknowledged")
+                                        {
+                                            <span class="badge bg-info text-dark rounded-pill px-3 py-1">
+                                                <i class="bi bi-check2 me-1"></i>รับทราบแล้ว
+                                            </span>
+                                            <div class="text-muted" style="font-size: 0.72rem;">โดย @rep.AcknowledgedBy</div>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-warning text-dark rounded-pill px-3 py-1">
+                                                <i class="bi bi-hourglass-split me-1"></i>รอลงนามอนุมัติ
+                                            </span>
+                                        }
+                                    </td>
+                                    <td class="text-end pe-3 text-nowrap">
+                                        <button type="button" class="btn btn-sm btn-primary rounded-pill px-3 fw-bold shadow-sm"
+                                                data-bs-toggle="modal" data-bs-target="#reviewReportModal-@rep.ReportId">
+                                            <i class="bi bi-file-earmark-text me-1"></i> ตรวจสอบรายงาน
+                                        </button>
+
+                                        <!-- Modal ตรวจสอบและลงนามรับทราบ/อนุมัติรายงาน -->
+                                        <div class="modal fade text-start" id="reviewReportModal-@rep.ReportId" tabindex="-1" aria-hidden="true">
+                                            <div class="modal-dialog modal-dialog-centered modal-lg">
+                                                <div class="modal-content border-0 rounded-4 shadow-lg overflow-hidden">
+                                                    <div class="modal-header bg-dark text-white py-3 px-4">
+                                                        <h6 class="modal-title fw-bold">
+                                                            <i class="bi bi-file-earmark-check-fill text-warning me-2"></i>รายงานสรุปการเงิน - @rep.ReportId
+                                                        </h6>
+                                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                    </div>
+                                                    <form asp-action="AcknowledgeFinancialReport" method="post">
+                                                        @Html.AntiForgeryToken()
+                                                        <input type="hidden" name="reportId" value="@rep.ReportId" />
+
+                                                        <div class="modal-body p-4 bg-light">
+                                                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                                                <div>
+                                                                    <h5 class="fw-bold text-dark m-0">@rep.PeriodLabel</h5>
+                                                                    <small class="text-muted">สาขา: @(rep.Branch == "ALL" ? "รวม 3 สาขา (กรุงเทพฯ, ชลบุรี, ภูเก็ต)" : rep.Branch) • ส่งโดย @rep.CreatedBy</small>
+                                                                </div>
+                                                                <span class="badge @(rep.Status == "Approved" ? "bg-success" : "bg-warning text-dark") fs-6 rounded-pill px-3 py-1">
+                                                                    สถานะ: @rep.Status
+                                                                </span>
+                                                            </div>
+
+                                                            <!-- กล่องตัวเลขสรุป -->
+                                                            <div class="card border-0 bg-white rounded-3 p-3 shadow-sm mb-3">
+                                                                <div class="row g-2 text-center">
+                                                                    <div class="col-4 border-end">
+                                                                        <span class="text-muted small d-block">รายได้รวมสุทธิ</span>
+                                                                        <h4 class="fw-bold text-success m-0">฿@rep.TotalRevenue.ToString("N2")</h4>
+                                                                    </div>
+                                                                    <div class="col-4 border-end">
+                                                                        <span class="text-muted small d-block">เงินสด (Cash)</span>
+                                                                        <h5 class="fw-bold text-dark m-0">฿@rep.CashAmount.ToString("N2")</h5>
+                                                                    </div>
+                                                                    <div class="col-4">
+                                                                        <span class="text-muted small d-block">เงินโอน / บัตร (Digital)</span>
+                                                                        <h5 class="fw-bold text-info m-0">฿@rep.TransferAmount.ToString("N2")</h5>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="row g-2 mt-2 pt-2 border-top text-center small text-muted">
+                                                                    <div class="col-4">กรุงเทพฯ: <strong>฿@rep.BangkokRevenue.ToString("N0")</strong></div>
+                                                                    <div class="col-4">ชลบุรี: <strong>฿@rep.ChonburiRevenue.ToString("N0")</strong></div>
+                                                                    <div class="col-4">ภูเก็ต: <strong>฿@rep.PhuketRevenue.ToString("N0")</strong></div>
+                                                                </div>
+                                                            </div>
+
+                                                            <!-- ข้อความจากฝ่ายบัญชี -->
+                                                            <div class="card border-0 bg-white rounded-3 p-3 shadow-sm mb-3">
+                                                                <h6 class="fw-bold text-primary small mb-1">
+                                                                    <i class="bi bi-chat-left-quote-fill me-1"></i> ข้อความวิเคราะห์ / คำชี้แจงจากฝ่ายบัญชี:
+                                                                </h6>
+                                                                <p class="text-dark small mb-0" style="white-space: pre-line;">
+                                                                    @(string.IsNullOrWhiteSpace(rep.Notes) ? "ไม่มีข้อความเพิ่มเติม" : rep.Notes)
+                                                                </p>
+                                                            </div>
+
+                                                            <!-- ช่องกรอกความเห็นผู้จัดการ -->
+                                                            <div class="mb-0">
+                                                                <label class="form-label small fw-bold text-dark">
+                                                                    <i class="bi bi-pen-fill text-primary me-1"></i> ความเห็น / ข้อสั่งการตอบกลับจากผู้จัดการ (Manager Feedback)
+                                                                </label>
+                                                                <textarea name="managerComment" class="form-control" rows="2"
+                                                                          placeholder="เช่น ตรวจสอบยอดเงินเรียบร้อย อนุมัติการปิดรอบบัญชี">@rep.ManagerComment</textarea>
+                                                            </div>
+                                                        </div>
+
+                                                        <div class="modal-footer bg-white border-top py-3 px-4">
+                                                            <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">ปิดหน้าต่าง</button>
+                                                            <button type="submit" name="approve" value="true" class="btn btn-success rounded-pill px-4 fw-bold shadow-sm">
+                                                                <i class="bi bi-check-circle-fill me-1"></i> ลงนามรับทราบ & อนุมัติรายงาน
+                                                            </button>
+                                                        </div>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="text-center py-4 text-muted small">
+                    <i class="bi bi-inbox fs-2 opacity-25 d-block mb-1"></i>
+                    ยังไม่มีรายงานการเงินที่ส่งมาจากฝ่ายบัญชี
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- ส่วนที่ 4: ตารางการจองล่าสุด -->
     <div class="card shadow-sm border-0 mb-5 rounded-3">
         <div class="card-header bg-white border-bottom">
             <h6 class="m-0 fw-bold py-2">📋 การจองล่าสุด (Recent Bookings)</h6>

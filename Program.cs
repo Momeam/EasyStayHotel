@@ -27,11 +27,12 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 
 var app = builder.Build();
 
-// ตรวจสอบและเตรียมห้องพักสถานะว่างสำหรับสาขา Chonburi และ Phuket
+// ตรวจสอบและเตรียมห้องพักสถานะว่างสำหรับสาขา และเตรียมผู้ใช้แม่บ้าน
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<EasystaydbContext>();
     DatabaseInitializer.EnsureBranchRooms(context);
+    DatabaseInitializer.EnsureHousekeeperUser(context);
 }
 
 // Configure the HTTP request pipeline.

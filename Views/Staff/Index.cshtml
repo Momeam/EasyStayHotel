@@ -34,13 +34,13 @@
     }
 }
 
-<div class="container-fluid py-4 mb-5">
+<div class="container-fluid p-0 mb-4">
     <!-- ส่วนหัว -->
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
         <div>
             <div class="d-flex align-items-center gap-2 mb-1">
-                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary px-3 py-1 rounded-pill">
-                    <i class="bi bi-geo-alt-fill me-1"></i> สาขา@ViewBag.CurrentBranchTh
+                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary px-3 py-1 rounded-pill small">
+                    <i class="bi bi-geo-alt-fill me-1"></i>สาขา @(ViewBag.CurrentBranchTh)
                 </span>
                 <span class="badge bg-dark rounded-pill px-3 py-1">Room Control Board</span>
             </div>
@@ -49,10 +49,10 @@
         </div>
 
         <div class="d-flex flex-wrap gap-2">
-            <a asp-action="WalkinBooking" class="btn btn-success fw-bold rounded-pill px-3 shadow-sm">
+            <a asp-action="WalkinBooking" class="btn btn-success fw-bold rounded-pill px-3 shadow-sm text-nowrap">
                 <i class="bi bi-person-plus-fill me-1"></i> จองแบบ Walk-in
             </a>
-            <a asp-action="DailyOverview" class="btn btn-outline-primary fw-medium rounded-pill px-3 bg-white shadow-sm">
+            <a asp-action="DailyOverview" class="btn btn-outline-primary fw-medium rounded-pill px-3 bg-white shadow-sm text-nowrap">
                 <i class="bi bi-calendar2-day-fill me-1"></i> ภาพรวมรายวัน
             </a>
         </div>
@@ -112,10 +112,10 @@
                         var labelText = GetStatusLabel(room.Status);
                         activeBookings.TryGetValue(room.RoomId, out var currentBooking);
 
-                        <div class="col-xl-3 col-lg-4 col-md-6">
+                        <div class="col-xxl-3 col-xl-4 col-md-6 col-12">
                             <div class="card h-100 shadow-sm border-0 rounded-4 bg-white overflow-hidden room-card"
                                  style="border-left: 6px solid var(--bs-@colorClass) !important;">
-                                <div class="card-body p-4 d-flex flex-column">
+                                <div class="card-body p-3 p-xl-4 d-flex flex-column">
 
                                     <!-- ส่วนบน: หมายเลขห้อง + ป้ายสถานะ -->
                                     <div class="d-flex justify-content-between align-items-start mb-2">
@@ -170,21 +170,16 @@
                                             <form asp-action="CheckOutBooking" method="post" class="d-grid" onsubmit="return confirm('ยืนยันการเช็คเอาท์ห้อง @room.RoomNo? ห้องจะถูกเปลี่ยนเป็นสถานะ: รอทำความสะอาด');">
                                                 @Html.AntiForgeryToken()
                                                 <input type="hidden" name="id" value="@currentBooking.BookingId" />
-                                                <button type="submit" class="btn btn-danger btn-sm fw-bold rounded-pill shadow-sm">
+                                                <button type="submit" class="btn btn-danger btn-sm fw-bold rounded-pill shadow-sm text-nowrap">
                                                     <i class="bi bi-box-arrow-right me-1"></i> เช็คเอาท์ห้องนี้
                                                 </button>
                                             </form>
                                         }
                                         else if (room.Status == "Cleaning")
                                         {
-                                            <form asp-action="QuickUpdateRoomStatus" method="post" class="d-grid">
-                                                @Html.AntiForgeryToken()
-                                                <input type="hidden" name="roomId" value="@room.RoomId" />
-                                                <input type="hidden" name="newStatus" value="Available" />
-                                                <button type="submit" class="btn btn-success btn-sm fw-bold rounded-pill shadow-sm">
-                                                    <i class="bi bi-check2-circle me-1"></i> ทำความสะอาดเสร็จแล้ว (ตั้งเป็นว่าง)
-                                                </button>
-                                            </form>
+                                            <div class="p-2 rounded-3 bg-warning bg-opacity-10 border border-warning border-opacity-25 small text-dark text-center">
+                                                <i class="bi bi-hourglass-split me-1 text-warning"></i> อยู่ระหว่างแม่บ้านทำความสะอาด
+                                            </div>
                                         }
                                         else if (room.Status == "Maintenance")
                                         {
@@ -192,7 +187,7 @@
                                                 @Html.AntiForgeryToken()
                                                 <input type="hidden" name="roomId" value="@room.RoomId" />
                                                 <input type="hidden" name="newStatus" value="Available" />
-                                                <button type="submit" class="btn btn-outline-success btn-sm fw-bold rounded-pill">
+                                                <button type="submit" class="btn btn-outline-success btn-sm fw-bold rounded-pill text-nowrap">
                                                     <i class="bi bi-tools me-1"></i> ซ่อมบำรุงเสร็จสิ้น (ตั้งเป็นว่าง)
                                                 </button>
                                             </form>
@@ -201,14 +196,19 @@
                                         {
                                             <div class="d-flex gap-1">
                                                 <a asp-action="WalkinBooking" asp-route-preselectedRoomId="@room.RoomId"
-                                                   class="btn btn-primary btn-sm fw-bold rounded-pill flex-grow-1 shadow-sm">
+                                                   class="btn btn-primary btn-sm fw-bold rounded-pill flex-grow-1 shadow-sm text-nowrap">
                                                     <i class="bi bi-person-plus-fill me-1"></i> Walk-in ห้องนี้
                                                 </a>
+                                                <button type="button" class="btn btn-outline-warning text-dark btn-sm rounded-pill px-2"
+                                                        title="แจ้งแม่บ้านทำความสะอาด"
+                                                        onclick="openCleaningModal('@room.RoomId', '@room.RoomNo', '@(room.RoomType?.TypeName ?? "ห้องพัก")')">
+                                                    <i class="bi bi-stars"></i>
+                                                </button>
                                                 <form asp-action="QuickUpdateRoomStatus" method="post" class="d-inline">
                                                     @Html.AntiForgeryToken()
                                                     <input type="hidden" name="roomId" value="@room.RoomId" />
                                                     <input type="hidden" name="newStatus" value="Maintenance" />
-                                                    <button type="submit" class="btn btn-outline-secondary btn-sm rounded-pill" title="ส่งซ่อมบำรุง">
+                                                    <button type="submit" class="btn btn-outline-secondary btn-sm rounded-pill px-2" title="ส่งซ่อมบำรุง">
                                                         <i class="bi bi-tools"></i>
                                                     </button>
                                                 </form>
@@ -233,6 +233,51 @@
     }
 </div>
 
+<!-- Modal แจ้งงานทำความสะอาดถึงฝ่ายแม่บ้าน -->
+<div class="modal fade" id="cleaningModal" tabindex="-1" aria-labelledby="cleaningModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 rounded-4 shadow-lg overflow-hidden">
+            <div class="modal-header text-white border-0 py-3 px-4" style="background-color: #0d9488;">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-stars fs-5 text-warning"></i>
+                    <h5 class="modal-title fw-bold" id="cleaningModalLabel">แจ้งงานทำความสะอาดถึงฝ่ายแม่บ้าน</h5>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form asp-action="RequestCleaning" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="roomId" id="modalRoomId" />
+                <div class="modal-body p-4">
+                    <div class="bg-light p-3 rounded-3 mb-3 border">
+                        <div class="small text-muted">ห้องพักที่ต้องการแจ้งทำความสะอาด:</div>
+                        <h4 class="fw-bold text-dark mb-0" id="modalRoomDisplay">ห้อง -</h4>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-dark">ระดับความด่วน (Priority):</label>
+                        <select name="priority" class="form-select">
+                            <option value="Normal">ระดับปกติ (Normal)</option>
+                            <option value="Urgent">ด่วนพิเศษ (Urgent - มีแขกจ่อเช็คอินต่อ)</option>
+                            <option value="VIP">ห้อง VIP (ตรวจเข้มงวดพิเศษ)</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-dark">คำขอหรือหมายเหตุพิเศษสำหรับแม่บ้าน:</label>
+                        <textarea name="notes" class="form-control" rows="3" placeholder="ระบุรายละเอียด เช่น เปลี่ยนผ้าปูที่นอน, เติมสบู่/แชมพู, มีกลิ่นอับ, ตรวจสอบแอร์"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-top px-4 py-3">
+                    <button type="button" class="btn btn-light rounded-pill px-3" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button type="submit" class="btn text-white fw-bold rounded-pill px-4" style="background-color: #0d9488;">
+                        <i class="bi bi-send-fill me-1"></i> ส่งงานให้แม่บ้านทันที
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <style>
     .room-card {
         transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -242,3 +287,14 @@
         box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08) !important;
     }
 </style>
+
+@section Scripts {
+    <script>
+        function openCleaningModal(roomId, roomNo, roomType) {
+            document.getElementById('modalRoomId').value = roomId;
+            document.getElementById('modalRoomDisplay').innerText = 'ห้อง ' + roomNo + ' (' + roomType + ')';
+            const modal = new bootstrap.Modal(document.getElementById('cleaningModal'));
+            modal.show();
+        }
+    </script>
+}

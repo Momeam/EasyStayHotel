@@ -8,13 +8,13 @@
     string searchQuery = ViewBag.SearchQuery as string ?? "";
 }
 
-<div class="container-fluid py-4 mb-5">
+<div class="container-fluid p-0 mb-4">
     <!-- ส่วนหัว -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <div class="d-flex align-items-center gap-2 mb-1">
-                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary px-3 py-1 rounded-pill">
-                    <i class="bi bi-geo-alt-fill me-1"></i> สาขา@ViewBag.CurrentBranchTh
+                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary px-3 py-1 rounded-pill small">
+                    <i class="bi bi-geo-alt-fill me-1"></i>สาขา @(ViewBag.CurrentBranchTh)
                 </span>
                 <span class="badge bg-dark rounded-pill px-3 py-1">Front Desk Terminal</span>
             </div>
@@ -22,7 +22,7 @@
             <p class="text-muted small mb-0">ค้นหาด้วยรหัสหมายเลขการจอง (Booking Reference) หรือเบอร์โทรศัพท์ เพื่อจัดหมายเลขห้องและมอบกุญแจเข้าพัก</p>
         </div>
         <div>
-            <a asp-action="WalkinBooking" class="btn btn-outline-success fw-bold rounded-pill px-3">
+            <a asp-action="WalkinBooking" class="btn btn-outline-success fw-bold rounded-pill px-3 text-nowrap">
                 <i class="bi bi-person-plus-fill me-1"></i> ลูกค้า Walk-in (ไม่มีการจอง)
             </a>
         </div>
@@ -129,28 +129,114 @@
                             </div>
                         </div>
 
+                        @{
+                            int bookedTypeId = targetBooking.Room?.RoomTypeId ?? 0;
+                            string bookedTypeName = targetBooking.Room?.RoomType?.TypeName ?? "Standard Room";
+                            var matchedRooms = availableRooms.Where(r => r.RoomTypeId == bookedTypeId).ToList();
+                            var otherRooms = availableRooms.Where(r => r.RoomTypeId != bookedTypeId).ToList();
+                        }
+
+                        <!-- ข้อมูลสถิติห้องประเภทที่จองในสาขานี้ -->
+                        <div class="card border-0 bg-light rounded-4 p-3 mb-4 border">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="fw-bold text-dark small">
+                                    <i class="bi bi-door-open-fill text-primary me-1"></i> สถานะห้องพักประเภท "@bookedTypeName" ในสาขา @(ViewBag.CurrentBranchTh):
+                                </span>
+                                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary px-3 py-1 rounded-pill small">
+                                    ทั้งหมด @(ViewBag.BookedTypeTotal ?? matchedRooms.Count) ห้อง
+                                </span>
+                            </div>
+                            <div class="row g-2 text-center small">
+                                <div class="col-4">
+                                    <div class="bg-white rounded-3 p-2 border">
+                                        <div class="text-success fw-bold fs-6">@(ViewBag.BookedTypeAvailable ?? matchedRooms.Count)</div>
+                                        <div class="text-muted" style="font-size: 0.72rem;">ว่างพร้อมเข้าพัก</div>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="bg-white rounded-3 p-2 border">
+                                        <div class="text-warning fw-bold fs-6">@(ViewBag.BookedTypeCleaning ?? 0)</div>
+                                        <div class="text-muted" style="font-size: 0.72rem;">กำลังทำความสะอาด</div>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="bg-white rounded-3 p-2 border">
+                                        <div class="text-secondary fw-bold fs-6">@(ViewBag.BookedTypeOccupied ?? 0)</div>
+                                        <div class="text-muted" style="font-size: 0.72rem;">มีแขกพักอยู่</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- ฟอร์มเลือกหมายเลขห้องและกดยืนยันเช็คอิน -->
                         <form asp-action="ProcessCheckIn" method="post" class="border-top pt-4">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="bookingId" value="@targetBooking.BookingId" />
 
+                            <!-- กล่องกดเลือกห้องว่างตรงประเภทแบบด่วน -->
+                            @if (matchedRooms.Any())
+                            {
+                                <div class="mb-3">
+                                    <label class="form-label small fw-bold text-success d-flex align-items-center gap-1">
+                                        <i class="bi bi-check2-circle fs-5"></i> คลิกเลือกห้องว่างตรงประเภท (@bookedTypeName) ที่ต้องการจัดให้ลูกค้า:
+                                    </label>
+                                    <div class="d-flex flex-wrap gap-2">
+                                        @foreach (var mr in matchedRooms)
+                                        {
+                                            bool isPreSelected = targetBooking.RoomId == mr.RoomId;
+                                            <button type="button"
+                                                    class="btn @(isPreSelected ? "btn-success" : "btn-outline-success") fw-bold rounded-3 px-3 py-2 room-pick-btn shadow-sm"
+                                                    data-room-id="@mr.RoomId"
+                                                    onclick="selectRoomOption('@mr.RoomId')">
+                                                <i class="bi bi-key-fill me-1"></i> ห้อง @mr.RoomNo
+                                            </button>
+                                        }
+                                    </div>
+                                    <small class="text-muted mt-1 d-block" style="font-size: 0.75rem;">
+                                        * คลิกเพื่อเลือกหมายเลขห้องได้ทันที หรือเลือกจากรายการด้านล่าง
+                                    </small>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="alert alert-warning border-0 rounded-3 small mb-3 py-2 px-3">
+                                    <i class="bi bi-exclamation-triangle-fill text-warning me-1"></i>
+                                    ขณะนี้ไม่มีห้องว่างสถานะ Available สำหรับประเภท <strong>@bookedTypeName</strong> (ท่านสามารถเลือกอัปเกรดห้องประเภทอื่นให้ลูกค้าจากรายการด้านล่างได้)
+                                </div>
+                            }
+
                             <div class="mb-3">
                                 <label class="form-label fw-bold text-dark">
-                                    <i class="bi bi-key-fill text-primary me-1"></i> เลือกหมายเลขห้องพักจริง (Room Number) ให้ลูกค้า *
+                                    <i class="bi bi-key-fill text-primary me-1"></i> หมายเลขห้องพักจริงที่จะส่งมอบ (Room Number) *
                                 </label>
-                                <select name="roomId" class="form-select form-select-lg border-primary" required>
+                                <select name="roomId" id="checkinRoomSelect" class="form-select form-select-lg border-primary" onchange="onSelectRoomChanged(this.value)" required>
                                     <option value="">-- กรุณาเลือกหมายเลขห้องที่พร้อมเข้าพัก --</option>
-                                    @foreach (var r in availableRooms)
+                                    @if (matchedRooms.Any())
                                     {
-                                        bool isOriginalRoom = targetBooking.RoomId == r.RoomId;
-                                        bool isSameType = targetBooking.Room?.RoomTypeId == r.RoomTypeId;
-                                        <option value="@r.RoomId" selected="@isOriginalRoom">
-                                            ห้อง @r.RoomNo - @(r.RoomType?.TypeName) @(isSameType ? "(ตรงประเภทที่จอง)" : "(อัปเกรด/ต่างประเภท)") - สถานะ: @r.Status
-                                        </option>
+                                        <optgroup label="⭐ ห้องว่างตรงตามประเภทที่จอง (@bookedTypeName) - แนะนำ">
+                                            @foreach (var r in matchedRooms)
+                                            {
+                                                bool isOriginalRoom = targetBooking.RoomId == r.RoomId;
+                                                <option value="@r.RoomId" selected="@isOriginalRoom">
+                                                    ห้อง @r.RoomNo - @(r.RoomType?.TypeName) (ตรงประเภทที่จอง) [สถานะ: @r.Status]
+                                                </option>
+                                            }
+                                        </optgroup>
+                                    }
+                                    @if (otherRooms.Any())
+                                    {
+                                        <optgroup label="ห้องประเภทอื่นในสาขา (กรณีอัปเกรด/สลับประเภท)">
+                                            @foreach (var r in otherRooms)
+                                            {
+                                                <option value="@r.RoomId">
+                                                    ห้อง @r.RoomNo - @(r.RoomType?.TypeName) (฿@r.RoomType?.BasePrice.ToString("N0")/คืน) [สถานะ: @r.Status]
+                                                </option>
+                                            }
+                                        </optgroup>
                                     }
                                 </select>
                                 <small class="text-muted mt-1 d-block">
-                                    * ระบบจะแสดงเฉพาะห้องที่สถานะว่างในสาขา@ViewBag.CurrentBranchTh เพื่อให้พนักงานจัดห้องได้อย่างถูกต้อง
+                                    * ระบบจะเปิดห้องและอัปเดตสถานะห้องเป็น "Occupied (มีผู้เข้าพัก)" พร้อมออกใบเสร็จเช็คอิน
                                 </small>
                             </div>
 
@@ -160,11 +246,11 @@
                             </div>
 
                             <div class="d-grid gap-2">
-                                <button type="submit" class="btn btn-success btn-lg fw-bold shadow-sm py-3" onclick="return confirm('ยืนยันการเช็คอินและเปิดห้องให้ลูกค้า?');">
+                                <button type="submit" class="btn btn-success btn-lg fw-bold shadow-sm py-3" onclick="return confirm('ยืนยันการเช็คอินและมอบกุญแจห้องให้ลูกค้า?');">
                                     <i class="bi bi-check2-circle me-1"></i> ยืนยันการเช็คอิน & มอบกุญแจห้อง
                                 </button>
-                                <a asp-action="BookingReceipt" asp-route-id="@targetBooking.BookingId" class="btn btn-outline-secondary">
-                                    <i class="bi bi-printer me-1"></i> ดู/พิมพ์ใบเสร็จล่วงหน้า
+                                <a asp-action="BookingReceipt" asp-route-id="@targetBooking.BookingId" target="_blank" class="btn btn-outline-secondary">
+                                    <i class="bi bi-file-earmark-text me-1"></i> พิมพ์ / ดาวน์โหลดเอกสารการจองและหลักฐานการเข้าพัก
                                 </a>
                             </div>
                         </form>
@@ -224,3 +310,28 @@
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        function selectRoomOption(roomId) {
+            var select = document.getElementById('checkinRoomSelect');
+            if (select) {
+                select.value = roomId;
+                onSelectRoomChanged(roomId);
+            }
+        }
+
+        function onSelectRoomChanged(roomId) {
+            var buttons = document.querySelectorAll('.room-pick-btn');
+            buttons.forEach(function(btn) {
+                if (btn.getAttribute('data-room-id') === roomId) {
+                    btn.classList.remove('btn-outline-success');
+                    btn.classList.add('btn-success');
+                } else {
+                    btn.classList.remove('btn-success');
+                    btn.classList.add('btn-outline-success');
+                }
+            });
+        }
+    </script>
+}

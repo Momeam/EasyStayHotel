@@ -9,13 +9,13 @@
     bool isToday = ViewBag.IsToday != null && (bool)ViewBag.IsToday;
 }
 
-<div class="container-fluid py-4 mb-5">
+<div class="container-fluid p-0 mb-4">
     <!-- ส่วนหัวและแถบเลือกวันที่ / สาขา -->
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
         <div>
             <div class="d-flex align-items-center gap-2">
-                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary px-3 py-1 rounded-pill">
-                    <i class="bi bi-geo-alt-fill me-1"></i> สาขา@ViewBag.CurrentBranchTh
+                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary px-3 py-1 rounded-pill small">
+                    <i class="bi bi-geo-alt-fill me-1"></i>สาขา @(ViewBag.CurrentBranchTh)
                 </span>
                 @if (isToday)
                 {
@@ -36,10 +36,10 @@
         </form>
     </div>
 
-    <!-- 1. การ์ดสถิติภาพรวม 5 ช่อง (Metrics Cards) -->
+    <!-- 1. การ์ดสถิติภาพรวม 6 ช่อง (Metrics Cards) ปรับยืดหยุ่นตามหน้าจอ Laptop และ PC -->
     <div class="row g-3 mb-4">
         <!-- แขกเช็คอิน -->
-        <div class="col-xl-2 col-md-4 col-6">
+        <div class="col-xxl-2 col-xl-4 col-md-4 col-sm-6 col-12">
             <div class="card border-0 shadow-sm rounded-4 h-100 bg-white border-start border-primary border-4 p-3">
                 <div class="d-flex justify-content-between align-items-start mb-2">
                     <span class="text-muted small fw-bold">เช็คอินวันนี้</span>
@@ -51,7 +51,7 @@
         </div>
 
         <!-- แขกเช็คเอาท์ -->
-        <div class="col-xl-2 col-md-4 col-6">
+        <div class="col-xxl-2 col-xl-4 col-md-4 col-sm-6 col-12">
             <div class="card border-0 shadow-sm rounded-4 h-100 bg-white border-start border-danger border-4 p-3">
                 <div class="d-flex justify-content-between align-items-start mb-2">
                     <span class="text-muted small fw-bold">เช็คเอาท์วันนี้</span>
@@ -63,7 +63,7 @@
         </div>
 
         <!-- กำลังพักอยู่ -->
-        <div class="col-xl-2 col-md-4 col-6">
+        <div class="col-xxl-2 col-xl-4 col-md-4 col-sm-6 col-12">
             <div class="card border-0 shadow-sm rounded-4 h-100 bg-white border-start border-success border-4 p-3">
                 <div class="d-flex justify-content-between align-items-start mb-2">
                     <span class="text-muted small fw-bold">กำลังพักอยู่</span>
@@ -75,7 +75,7 @@
         </div>
 
         <!-- ห้องว่างพร้อมใช้ -->
-        <div class="col-xl-2 col-md-4 col-6">
+        <div class="col-xxl-2 col-xl-4 col-md-4 col-sm-6 col-12">
             <div class="card border-0 shadow-sm rounded-4 h-100 bg-white border-start border-info border-4 p-3">
                 <div class="d-flex justify-content-between align-items-start mb-2">
                     <span class="text-muted small fw-bold">ห้องว่างพร้อมขาย</span>
@@ -87,7 +87,7 @@
         </div>
 
         <!-- รอทำความสะอาด -->
-        <div class="col-xl-2 col-md-4 col-6">
+        <div class="col-xxl-2 col-xl-4 col-md-4 col-sm-6 col-12">
             <div class="card border-0 shadow-sm rounded-4 h-100 bg-white border-start border-warning border-4 p-3">
                 <div class="d-flex justify-content-between align-items-start mb-2">
                     <span class="text-muted small fw-bold">รอแม่บ้านทำความสะอาด</span>
@@ -99,7 +99,7 @@
         </div>
 
         <!-- รายรับวันนี้ -->
-        <div class="col-xl-2 col-md-4 col-6">
+        <div class="col-xxl-2 col-xl-4 col-md-4 col-sm-6 col-12">
             <div class="card border-0 shadow-sm rounded-4 h-100 bg-dark text-white p-3">
                 <div class="d-flex justify-content-between align-items-start mb-2">
                     <span class="text-white-50 small fw-bold">รายรับวันที่เลือก</span>

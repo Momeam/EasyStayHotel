@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http;
 using EasyStayHotel.Models;
 using Microsoft.EntityFrameworkCore;
 using EasyStayHotel.Models.ViewModels;
+using EasyStayHotel.ViewModels;
 using EasyStayHotel.Services;
 using System;
 using System.Collections.Generic;
@@ -341,6 +342,47 @@ namespace EasyStayHotel.Controllers
             return View();
         }
 
+        // GET: /Booking/BookingVoucher
+        // เอกสารยืนยันการจองห้องพัก (Booking Confirmation Voucher) สำหรับลูกค้าพิมพ์/ดาวน์โหลดไปแสดงต่อพนักงานในวันเข้าพัก
+        [HttpGet]
+        public IActionResult BookingVoucher(string? bookingRef, int? id)
+        {
+            if (string.IsNullOrWhiteSpace(bookingRef) && !id.HasValue)
+            {
+                TempData["ErrorMessage"] = "ไม่พบรหัสการจองที่ต้องการดูเอกสาร";
+                return RedirectToAction(nameof(MyBookings));
+            }
+
+            var query = _context.Bookings
+                .Include(b => b.Room)
+                    .ThenInclude(r => r!.RoomType)
+                .Include(b => b.User)
+                .Include(b => b.Payments)
+                .AsQueryable();
+
+            Booking? booking = null;
+            if (!string.IsNullOrWhiteSpace(bookingRef))
+            {
+                string cleanRef = bookingRef.Trim();
+                booking = query.FirstOrDefault(b => b.BookingRef == cleanRef);
+            }
+            else if (id.HasValue)
+            {
+                booking = query.FirstOrDefault(b => b.BookingId == id.Value);
+            }
+
+            if (booking == null)
+            {
+                TempData["ErrorMessage"] = "ไม่พบข้อมูลการจองที่ระบุ";
+                return RedirectToAction(nameof(MyBookings));
+            }
+
+            var latestPayment = booking.Payments.OrderByDescending(p => p.PaymentId).FirstOrDefault();
+            ViewBag.LatestPayment = latestPayment;
+
+            return View(booking);
+        }
+
         // GET: /Booking/MyBookings
         // หน้าตรวจสอบสถานะการจองและประวัติการจองของลูกค้า
         [HttpGet]
@@ -383,6 +425,7 @@ namespace EasyStayHotel.Controllers
             else
             {
                 // ถ้ายังไม่ล็อกอินและยังไม่ได้กรอกค้นหา ให้ส่งรายการว่างไปแสดงหน้าค้นหาก่อน
+                ViewBag.RefundRequests = new Dictionary<int, RefundRequest>();
                 return View(new List<Booking>());
             }
 
@@ -390,7 +433,98 @@ namespace EasyStayHotel.Controllers
                 .OrderByDescending(b => b.BookingId)
                 .ToList();
 
+            var allRefunds = RefundService.GetAll();
+            var refundMap = allRefunds.GroupBy(r => r.BookingId).ToDictionary(g => g.Key, g => g.First());
+            ViewBag.RefundRequests = refundMap;
+
             return View(bookings);
+        }
+
+        // POST: /Booking/RequestRefund
+        // ลูกค้ายื่นเรื่องขอคืนเงิน (ภายใน 7 วันหลังจากการจอง โดยส่งเรื่องให้ฝ่ายบัญชีตรวจสอบและโอนคืนภายใน 3 วันทำการ)
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult RequestRefund(RefundRequestViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                TempData["ErrorMessage"] = "ข้อมูลการขอคืนเงินไม่ถูกต้อง กรุณากรอกข้อมูลให้ครบถ้วน";
+                return RedirectToAction(nameof(MyBookings));
+            }
+
+            var booking = _context.Bookings
+                .Include(b => b.Room).ThenInclude(r => r!.RoomType)
+                .Include(b => b.Payments)
+                .Include(b => b.User)
+                .FirstOrDefault(b => b.BookingId == model.BookingId);
+
+            if (booking == null)
+            {
+                TempData["ErrorMessage"] = "ไม่พบข้อมูลการจองที่ต้องการขอคืนเงิน";
+                return RedirectToAction(nameof(MyBookings));
+            }
+
+            // ตรวจสอบเงื่อนไข 7 วันและสถานะสิทธิ์การขอคืนเงิน
+            if (!RefundService.IsEligibleForRefund(booking, out string eligibilityReason, out int daysRemaining))
+            {
+                TempData["ErrorMessage"] = eligibilityReason;
+                return RedirectToAction(nameof(MyBookings), new { bookingRef = booking.BookingRef });
+            }
+
+            DateTime bookingDate = RefundService.GetBookingDate(booking);
+            var refundReq = new RefundRequest
+            {
+                BookingId = booking.BookingId,
+                BookingRef = booking.BookingRef,
+                GuestName = booking.GuestName ?? booking.User?.FullName ?? "ไม่ระบุชื่อ",
+                ContactPhone = model.ContactPhone.Trim(),
+                ContactEmail = booking.User?.Email ?? "",
+                Branch = booking.Room?.Branch ?? "Bangkok",
+                RoomNo = booking.Room?.RoomNo,
+                RoomTypeName = booking.Room?.RoomType?.TypeName,
+                Amount = booking.TotalPrice,
+                BankName = model.BankName.Trim(),
+                BankAccountNumber = model.BankAccountNumber.Trim(),
+                BankAccountName = model.BankAccountName.Trim(),
+                Reason = model.Reason.Trim() == "อื่นๆ" && !string.IsNullOrWhiteSpace(model.OtherReason)
+                    ? $"อื่นๆ: {model.OtherReason.Trim()}"
+                    : model.Reason.Trim(),
+                BookingDate = bookingDate,
+                RequestedAt = DateTime.Now,
+                RefundDeadline = DateTime.Now.AddDays(3), // กำหนดคืนเงินภายใน 3 วันทำการ
+                Status = "Pending"
+            };
+
+            bool created = RefundService.CreateRequest(refundReq);
+            if (created)
+            {
+                // อัปเดตสถานะการจองเป็น RefundRequested
+                booking.BookingStatus = "RefundRequested";
+                _context.SaveChanges();
+
+                // ส่งการแจ้งเตือนอัตโนมัติไปยังฝ่ายบัญชี
+                var accFeedback = new AccountingFeedback
+                {
+                    CreatedAt = DateTime.Now,
+                    StaffName = "ระบบอัตโนมัติ (Customer Portal)",
+                    Branch = booking.Room?.Branch ?? "Bangkok",
+                    Shift = "คำขอคืนเงินออนไลน์",
+                    CashAmount = 0,
+                    TransferAmount = booking.TotalPrice,
+                    Category = "แจ้งเรื่องคืนเงิน",
+                    Message = $"ลูกค้ารหัสการจอง {booking.BookingRef} ({refundReq.GuestName}) ขอคืนเงิน ฿{booking.TotalPrice:N2} เข้า {model.BankName} เลขบัญชี {model.BankAccountNumber} ({model.BankAccountName}) เหตุผล: {model.Reason} (กำหนดคืนเงินภายใน 3 วัน: ภายใน {refundReq.RefundDeadline:dd/MM/yyyy HH:mm น.})",
+                    IsAcknowledged = false
+                };
+                AccountingFeedbackService.Add(accFeedback);
+
+                TempData["SuccessMessage"] = $"ยื่นคำขอคืนเงินรหัส {booking.BookingRef} สำเร็จแล้ว! ระบบส่งข้อมูลให้พนักงานฝ่ายบัญชีเรียบร้อย โดยฝ่ายบัญชีจะตรวจสอบและโอนเงินคืนผ่านธนาคารภายใน 3 วันทำการ (ภายในวันที่ {refundReq.RefundDeadline:dd/MM/yyyy})";
+            }
+            else
+            {
+                TempData["ErrorMessage"] = "ไม่สามารถยื่นคำขอคืนเงินได้ เนื่องจากมีคำขอเดิมอยู่ในระบบแล้ว";
+            }
+
+            return RedirectToAction(nameof(MyBookings), new { bookingRef = booking.BookingRef });
         }
     }
 

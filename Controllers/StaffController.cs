@@ -35,7 +35,23 @@ namespace EasyStayHotel.Controllers
                 return;
             }
 
-            // 2. ผู้ใช้งานทั่วไป (Customer) หรือบทบาทอื่นที่ไม่มีสิทธิ์เข้าถึงหน้าพนักงาน
+            // 2. ถ้าเป็นพนักงานแม่บ้าน (Housekeeper) พยายามเข้าหน้าพนักงานต้อนรับ -> ส่งกลับหน้าแดชบอร์ดแม่บ้าน
+            if (role == "Housekeeper" || role == "Maid")
+            {
+                TempData["ErrorMessage"] = "คุณไม่มีสิทธิ์เข้าถึงหน้าระบบพนักงานต้อนรับ สงวนสิทธิ์เฉพาะพนักงานต้อนรับและผู้ดูแลระบบเท่านั้น เพื่อป้องกันการปฏิบัติงานข้ามหน้าที่";
+                context.Result = new RedirectToActionResult("Dashboard", "Housekeeper", null);
+                return;
+            }
+
+            // 3. ฝ่ายบัญชี (Accounting) พยายามเข้าหน้า Staff
+            if (role == "Accounting")
+            {
+                TempData["ErrorMessage"] = "คุณไม่มีสิทธิ์เข้าถึงหน้าระบบพนักงานต้อนรับ";
+                context.Result = new RedirectToActionResult("RevenueReport", "Accounting", null);
+                return;
+            }
+
+            // 4. ผู้ใช้งานทั่วไป (Customer) หรือบทบาทอื่นที่ไม่มีสิทธิ์เข้าถึงหน้าพนักงาน
             if (role != "Staff" && role != "Admin" && role != "SuperAdmin")
             {
                 TempData["ErrorMessage"] = "คุณไม่มีสิทธิ์เข้าถึงหน้าระบบพนักงาน สงวนสิทธิ์เฉพาะพนักงานและผู้ดูแลระบบเท่านั้น";
@@ -48,7 +64,20 @@ namespace EasyStayHotel.Controllers
 
         private string GetCurrentBranch(string? branch = null)
         {
-            string currentBranch = HttpContext.Session.GetString("Branch") ?? "Bangkok";
+            var role = HttpContext.Session.GetString("Role");
+            string userBranch = HttpContext.Session.GetString("Branch") ?? "Bangkok";
+
+            // กฎความปลอดภัย: พนักงานต้อนรับ (Staff) จะเห็นและจัดการได้เฉพาะสาขาตนเองเท่านั้น ห้ามสลับไปดูสาขาอื่น
+            if (role == "Staff")
+            {
+                ViewBag.CurrentBranch = userBranch;
+                ViewBag.CurrentBranchTh = RoomPreviewHelper.GetBranchNameTh(userBranch);
+                ViewBag.IsBranchLocked = true;
+                return userBranch;
+            }
+
+            // สำหรับผู้ดูแลระบบ (Admin, SuperAdmin) สามารถสลับดูสาขาอื่นได้
+            string currentBranch = userBranch;
             if (!string.IsNullOrEmpty(branch))
             {
                 currentBranch = branch;
@@ -56,6 +85,7 @@ namespace EasyStayHotel.Controllers
             }
             ViewBag.CurrentBranch = currentBranch;
             ViewBag.CurrentBranchTh = RoomPreviewHelper.GetBranchNameTh(currentBranch);
+            ViewBag.IsBranchLocked = false;
             return currentBranch;
         }
 
@@ -208,6 +238,18 @@ namespace EasyStayHotel.Controllers
             ViewBag.AvailableRooms = availableRooms;
             ViewBag.PendingArrivals = pendingArrivals;
 
+            if (targetBooking?.Room?.RoomType != null)
+            {
+                int? bookedTypeId = targetBooking.Room.RoomTypeId;
+                var allTypeRooms = _context.Rooms
+                    .Where(r => r.Branch == currentBranch && r.RoomTypeId == bookedTypeId)
+                    .ToList();
+                ViewBag.BookedTypeTotal = allTypeRooms.Count;
+                ViewBag.BookedTypeAvailable = allTypeRooms.Count(r => r.Status == "Available" || r.RoomId == targetBooking.RoomId);
+                ViewBag.BookedTypeCleaning = allTypeRooms.Count(r => r.Status == "Cleaning");
+                ViewBag.BookedTypeOccupied = allTypeRooms.Count(r => r.Status == "Occupied");
+            }
+
             return View();
         }
 
@@ -231,6 +273,15 @@ namespace EasyStayHotel.Controllers
             {
                 TempData["ErrorMessage"] = "ไม่พบห้องพักที่เลือก";
                 return RedirectToAction(nameof(CheckInDesk), new { bookingRef = booking.BookingRef });
+            }
+
+            // ตรวจสอบสิทธิ์สาขา: พนักงานต้อนรับจัดการได้เฉพาะสาขาตนเองเท่านั้น
+            string currentBranch = GetCurrentBranch();
+            var role = HttpContext.Session.GetString("Role");
+            if (role == "Staff" && (newRoom.Branch != currentBranch || (booking.Room != null && booking.Room.Branch != currentBranch)))
+            {
+                TempData["ErrorMessage"] = "คุณไม่มีสิทธิ์จัดการการเช็คอินของสาขาอื่น";
+                return RedirectToAction(nameof(BookingList));
             }
 
             // หากมีการสลับห้อง ให้ปล่อยห้องเดิมกลับเป็น Available
@@ -277,17 +328,51 @@ namespace EasyStayHotel.Controllers
         [ValidateAntiForgeryToken]
         public IActionResult CheckOutBooking(int id)
         {
-            var booking = _context.Bookings.Include(b => b.Room).FirstOrDefault(b => b.BookingId == id);
+            var booking = _context.Bookings
+                .Include(b => b.Room)
+                    .ThenInclude(r => r!.RoomType)
+                .Include(b => b.User)
+                .FirstOrDefault(b => b.BookingId == id);
+
             if (booking != null)
             {
+                // ตรวจสอบสิทธิ์สาขา: พนักงานต้อนรับจัดการได้เฉพาะสาขาตนเองเท่านั้น
+                string currentBranch = GetCurrentBranch();
+                var role = HttpContext.Session.GetString("Role");
+                if (role == "Staff" && booking.Room != null && booking.Room.Branch != currentBranch)
+                {
+                    TempData["ErrorMessage"] = "คุณไม่มีสิทธิ์เช็คเอาท์ห้องพักของสาขาอื่น";
+                    return RedirectToAction(nameof(BookingList));
+                }
+
                 booking.BookingStatus = "Completed";
                 if (booking.Room != null)
                 {
                     // เปลี่ยนสถานะห้องเป็นรอทำความสะอาด (Cleaning) ตามมาตรฐานโรงแรม
                     booking.Room.Status = "Cleaning";
+                    _context.SaveChanges();
+
+                    // ส่งต่องานทำความสะอาดไปยังแดชบอร์ดแม่บ้านทันที
+                    string staffName = HttpContext.Session.GetString("FullName") ?? "พนักงานต้อนรับ";
+                    string guestName = booking.User?.FullName ?? "ลูกค้าทั่วไป";
+                    HousekeepingService.CreateTask(
+                        booking.Room.RoomId,
+                        booking.Room.RoomNo,
+                        booking.Room.RoomType?.TypeName ?? "Standard",
+                        booking.Room.Branch,
+                        staffName,
+                        priority: "Normal",
+                        notes: $"ลูกค้า {guestName} เช็คเอาท์เรียบร้อยแล้ว รบกวนทำความสะอาดและจัดเตรียมห้องสำหรับผู้เข้าพักถัดไป",
+                        guestName: guestName,
+                        source: "CheckOut"
+                    );
                 }
-                _context.SaveChanges();
-                TempData["SuccessMessage"] = $"เช็คเอาท์แขกห้อง {(booking.Room != null ? booking.Room.RoomNo : "")} เรียบร้อยแล้ว (สถานะห้องเปลี่ยนเป็น: รอทำความสะอาด)";
+                else
+                {
+                    _context.SaveChanges();
+                }
+
+                TempData["SuccessMessage"] = $"เช็คเอาท์แขกห้อง {(booking.Room != null ? booking.Room.RoomNo : "")} เรียบร้อยแล้ว (ส่งรายการทำความสะอาดไปยังฝั่งแม่บ้านแล้ว)";
             }
             else
             {
@@ -364,24 +449,123 @@ namespace EasyStayHotel.Controllers
         [ValidateAntiForgeryToken]
         public IActionResult QuickUpdateRoomStatus(int roomId, string newStatus)
         {
-            var room = _context.Rooms.Find(roomId);
+            var room = _context.Rooms.Include(r => r.RoomType).FirstOrDefault(r => r.RoomId == roomId);
             if (room != null)
             {
+                // ตรวจสอบสิทธิ์สาขา: พนักงานจัดการได้เฉพาะสาขาตนเอง
+                string currentBranch = GetCurrentBranch();
+                var role = HttpContext.Session.GetString("Role");
+                if (role == "Staff" && room.Branch != currentBranch)
+                {
+                    TempData["ErrorMessage"] = "คุณไม่มีสิทธิ์แก้ไขสถานะห้องพักของสาขาอื่น";
+                    return RedirectToAction(nameof(Index));
+                }
+
                 room.Status = newStatus;
                 _context.SaveChanges();
+
+                string staffName = HttpContext.Session.GetString("FullName") ?? "พนักงาน";
+
+                if (newStatus == "Cleaning")
+                {
+                    HousekeepingService.CreateTask(
+                        room.RoomId,
+                        room.RoomNo,
+                        room.RoomType?.TypeName ?? "Standard",
+                        room.Branch,
+                        staffName,
+                        "Normal",
+                        "พนักงานต้อนรับตั้งสถานะเป็น 'รอทำความสะอาด'",
+                        null,
+                        "FrontDesk"
+                    );
+                }
+                else if (newStatus == "Available")
+                {
+                    // ปลดล็อกงานแม่บ้านเดิม (ถ้ามี)
+                    var activeTask = HousekeepingService.GetAllTasks(room.Branch)
+                        .FirstOrDefault(t => t.RoomId == roomId && t.Status != "Completed");
+                    if (activeTask != null)
+                    {
+                        HousekeepingService.CompleteCleaning(activeTask.Id, staffName, "พนักงานต้อนรับปลดล็อกสถานะห้องเป็นว่างพร้อมขายต่อ");
+                    }
+                }
+
                 TempData["SuccessMessage"] = $"อัปเดตสถานะห้อง {room.RoomNo} เป็น '{newStatus}' เรียบร้อยแล้ว";
             }
             return RedirectToAction(nameof(Index));
         }
 
+        // ส่งคำขอทำความสะอาดไปยังฝั่งแม่บ้าน (Send Cleaning Request to Housekeeping)
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult RequestCleaning(int roomId, string priority = "Normal", string? notes = null)
+        {
+            var room = _context.Rooms.Include(r => r.RoomType).FirstOrDefault(r => r.RoomId == roomId);
+            if (room != null)
+            {
+                // ตรวจสอบสิทธิ์สาขา: พนักงานจัดการได้เฉพาะสาขาตนเอง
+                string currentBranch = GetCurrentBranch();
+                var role = HttpContext.Session.GetString("Role");
+                if (role == "Staff" && room.Branch != currentBranch)
+                {
+                    TempData["ErrorMessage"] = "คุณไม่มีสิทธิ์ส่งงานห้องพักของสาขาอื่น";
+                    return RedirectToAction(nameof(Index));
+                }
+
+                room.Status = "Cleaning";
+                _context.SaveChanges();
+
+                string staffName = HttpContext.Session.GetString("FullName") ?? "พนักงานต้อนรับ";
+                HousekeepingService.CreateTask(
+                    room.RoomId,
+                    room.RoomNo,
+                    room.RoomType?.TypeName ?? "Standard",
+                    room.Branch,
+                    staffName,
+                    priority: string.IsNullOrEmpty(priority) ? "Normal" : priority,
+                    notes: string.IsNullOrEmpty(notes) ? "พนักงานต้อนรับแจ้งทำความสะอาดห้องพัก" : notes,
+                    guestName: null,
+                    source: "FrontDesk"
+                );
+
+                TempData["SuccessMessage"] = $"ส่งงานแจ้งทำความสะอาดห้อง {room.RoomNo} ไปยังฝั่งแม่บ้านเรียบร้อยแล้ว";
+            }
+            else
+            {
+                TempData["ErrorMessage"] = "ไม่พบห้องพักที่ระบุ";
+            }
+
+            string? referer = Request.Headers["Referer"].ToString();
+            if (!string.IsNullOrEmpty(referer) && Url.IsLocalUrl(referer))
+            {
+                return Redirect(referer);
+            }
+
+            return RedirectToAction(nameof(Index));
+        }
+
         public IActionResult CreateRoom()
         {
-            return View();
+            string currentBranch = GetCurrentBranch();
+            ViewBag.RoomTypes = _context.Roomtypes.OrderBy(rt => rt.BasePrice).ToList();
+            var room = new Room
+            {
+                Branch = currentBranch,
+                Status = "Available"
+            };
+            return View(room);
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public IActionResult CreateRoom(Room newRoom)
         {
+            if (string.IsNullOrEmpty(newRoom.Branch))
+            {
+                newRoom.Branch = GetCurrentBranch();
+            }
+
             if (ModelState.IsValid)
             {
                 _context.Rooms.Add(newRoom);
@@ -389,6 +573,7 @@ namespace EasyStayHotel.Controllers
                 TempData["SuccessMessage"] = $"เพิ่มห้อง {newRoom.RoomNo} เรียบร้อยแล้ว";
                 return RedirectToAction(nameof(Index));
             }
+            ViewBag.RoomTypes = _context.Roomtypes.OrderBy(rt => rt.BasePrice).ToList();
             return View(newRoom);
         }
 
@@ -399,10 +584,12 @@ namespace EasyStayHotel.Controllers
             {
                 return NotFound();
             }
+            ViewBag.RoomTypes = _context.Roomtypes.OrderBy(rt => rt.BasePrice).ToList();
             return View(room);
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public IActionResult EditRoom(Room updatedRoom)
         {
             var roomInDb = _context.Rooms.Find(updatedRoom.RoomId);
@@ -411,10 +598,12 @@ namespace EasyStayHotel.Controllers
                 roomInDb.Status = updatedRoom.Status;
                 if (!string.IsNullOrEmpty(updatedRoom.RoomNo)) roomInDb.RoomNo = updatedRoom.RoomNo;
                 if (updatedRoom.RoomTypeId.HasValue) roomInDb.RoomTypeId = updatedRoom.RoomTypeId;
+                if (!string.IsNullOrEmpty(updatedRoom.Branch)) roomInDb.Branch = updatedRoom.Branch;
                 _context.SaveChanges();
                 TempData["SuccessMessage"] = $"แก้ไขข้อมูลห้อง {roomInDb.RoomNo} สำเร็จ";
                 return RedirectToAction(nameof(Index));
             }
+            ViewBag.RoomTypes = _context.Roomtypes.OrderBy(rt => rt.BasePrice).ToList();
             return View(updatedRoom);
         }
 
@@ -476,6 +665,20 @@ namespace EasyStayHotel.Controllers
 
             if (ModelState.IsValid)
             {
+                // คำนวณยอดเงินสำรองหากส่งมาเป็น 0
+                if (model.TotalPrice <= 0)
+                {
+                    var selectedRoom = _context.Rooms.Include(r => r.RoomType).FirstOrDefault(r => r.RoomId == model.RoomId);
+                    decimal basePrice = selectedRoom?.RoomType?.BasePrice ?? 1200;
+                    int nights = model.CheckOutDate.DayNumber - model.CheckInDate.DayNumber;
+                    if (nights <= 0) nights = 1;
+                    decimal calculated = basePrice * nights;
+                    if (model.AddBreakfast) calculated += (300 * nights);
+                    if (model.AddExtraBed) calculated += (500 * nights);
+                    if (model.AddAirportTransfer) calculated += 800;
+                    if (model.AddLateCheckout) calculated += 300;
+                    model.TotalPrice = calculated;
+                }
                 // 1. จัดการข้อมูลลูกค้า (Guest)
                 var guest = _context.Users.FirstOrDefault(u => u.IdCardOrPassport == model.IdCardOrPassport);
                 if (guest == null && !string.IsNullOrEmpty(model.Email))
@@ -635,6 +838,15 @@ namespace EasyStayHotel.Controllers
             if (booking == null)
             {
                 return NotFound();
+            }
+
+            // ตรวจสอบสิทธิ์สาขา: พนักงานต้อนรับดูได้เฉพาะสาขาตนเองเท่านั้น
+            string currentBranch = GetCurrentBranch();
+            var role = HttpContext.Session.GetString("Role");
+            if (role == "Staff" && booking.Room != null && booking.Room.Branch != currentBranch)
+            {
+                TempData["ErrorMessage"] = "คุณไม่มีสิทธิ์ดูใบเสร็จรับเงินของสาขาอื่น";
+                return RedirectToAction(nameof(BookingList));
             }
 
             var payment = booking.Payments.OrderByDescending(p => p.PaymentId).FirstOrDefault()

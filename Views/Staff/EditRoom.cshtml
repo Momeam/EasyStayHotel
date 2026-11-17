@@ -1,31 +1,58 @@
 @model EasyStayHotel.Models.Room
+@using EasyStayHotel.Services
 @{
     Layout = "~/Views/Shared/_StaffLayout.cshtml";
-    ViewData["Title"] = "เปลี่ยนสถานะห้องพัก";
+    ViewData["Title"] = "แก้ไขและเปลี่ยนสถานะห้องพัก";
+    var roomTypes = ViewBag.RoomTypes as List<EasyStayHotel.Models.Roomtype> ?? new List<EasyStayHotel.Models.Roomtype>();
+    string branchNameTh = RoomPreviewHelper.GetBranchNameTh(Model.Branch);
 }
+
 <div class="row justify-content-center">
     <div class="col-md-6">
-        <div class="card shadow-sm border-0 mt-4">
-            <div class="card-header bg-warning text-dark">
-                <h5 class="card-title m-0">เปลี่ยนสถานะห้องพัก (หมายเลข @Model.RoomNo)</h5>
+        <div class="card shadow-sm border-0 rounded-4 mt-4 overflow-hidden">
+            <div class="card-header bg-warning text-dark p-3 d-flex justify-content-between align-items-center">
+                <h5 class="card-title m-0 fw-bold"><i class="bi bi-pencil-square me-2"></i>แก้ไขและเปลี่ยนสถานะห้องพัก (ห้อง @Model.RoomNo)</h5>
+                <span class="badge bg-dark rounded-pill px-3 py-1">สาขา @branchNameTh</span>
             </div>
             <div class="card-body p-4">
                 <form asp-controller="Staff" asp-action="EditRoom" method="post">
+                    @Html.AntiForgeryToken()
                     <input type="hidden" asp-for="RoomId" />
-                    <input type="hidden" asp-for="RoomNo" />
-                    <input type="hidden" asp-for="RoomTypeId" />
-                    <div class="mb-4">
-                        <label asp-for="Status" class="form-lable fw-bold">เลือกสถานะใหม่:</label>
-                        <select asp-for="Status" class="form-select border-primary">
-                            <option value="Available">ว่างพร้อมใช้งาน</option>
-                            <option value="Occupied">มีแขกเข้าพักอยู่</option>
-                            <option value="Cleaning">รอทำความสะอาด</option>
-                            <option value="Maintenance">ซ่อมบำรุง</option>
+                    <input type="hidden" asp-for="Branch" />
+
+                    <div class="mb-3">
+                        <label asp-for="RoomNo" class="form-label fw-bold">หมายเลขห้อง (Room Number): <span class="text-danger">*</span></label>
+                        <input asp-for="RoomNo" class="form-control form-control-lg" required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="RoomTypeId" class="form-label fw-bold">ประเภทห้องพัก (Room Type): <span class="text-danger">*</span></label>
+                        <select asp-for="RoomTypeId" class="form-select form-select-lg border-primary" required>
+                            @foreach (var rt in roomTypes)
+                            {
+                                <option value="@rt.RoomTypeId" selected="@(rt.RoomTypeId == Model.RoomTypeId)">
+                                    @rt.TypeName (฿@rt.BasePrice.ToString("N0") / คืน)
+                                </option>
+                            }
                         </select>
                     </div>
-                    <div class="d-flex justify-content-end">
-                        <a asp-controller="Staff" asp-action="Index" class="btn btn-secondary me-2">ยกเลิก</a>
-                        <button type="submit" class="btn btn-primary">บันทึกการเปลี่ยนแปลง</button>
+
+                    <div class="mb-4">
+                        <label asp-for="Status" class="form-label fw-bold">เลือกสถานะห้องพัก:</label>
+                        <select asp-for="Status" class="form-select form-select-lg border-primary">
+                            <option value="Available">ว่างพร้อมใช้งาน (Available)</option>
+                            <option value="Occupied">มีแขกเข้าพักอยู่ (Occupied)</option>
+                            <option value="Cleaning">รอทำความสะอาด (Cleaning)</option>
+                            <option value="Maintenance">ซ่อมบำรุง (Maintenance)</option>
+                        </select>
+                    </div>
+
+                    <hr />
+                    <div class="d-flex justify-content-between align-items-center">
+                        <a asp-controller="Staff" asp-action="Index" class="btn btn-outline-secondary rounded-pill px-4">ยกเลิก</a>
+                        <button type="submit" class="btn btn-primary rounded-pill px-5 fw-bold shadow-sm">
+                            <i class="bi bi-floppy-fill me-1"></i> บันทึกการเปลี่ยนแปลง
+                        </button>
                     </div>
                 </form>
             </div>
