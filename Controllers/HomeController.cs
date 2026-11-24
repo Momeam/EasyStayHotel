@@ -1,46 +1,43 @@
+// นำเข้า System สำหรับชนิดข้อมูลและคลาสพื้นฐาน
 using System;
+// นำเข้า System.Collections.Generic สำหรับการใช้งาน List
 using System.Collections.Generic;
+// นำเข้า System.Diagnostics สำหรับ Activity ในการติดตามข้อผิดพลาด
 using System.Diagnostics;
+// นำเข้า System.Linq สำหรับฟังก์ชันคิวรี LINQ เช่น OrderBy, ToList, Any
 using System.Linq;
+// นำเข้า Microsoft.AspNetCore.Mvc สำหรับสร้าง MVC Controller และ View Results
 using Microsoft.AspNetCore.Mvc;
+// นำเข้า Microsoft.EntityFrameworkCore สำหรับคำสั่ง Include ดึงข้อมูลห้องพักพร้อมประเภท
 using Microsoft.EntityFrameworkCore;
+// นำเข้าโมเดลของ EasyStayHotel
 using EasyStayHotel.Models;
 
+// กำหนดเนมสเปซ EasyStayHotel.Controllers
 namespace EasyStayHotel.Controllers;
 
-/// <summary>
-/// คอนโทรลเลอร์ HomeController: จัดการหน้าหลัก (Landing Page) และหน้าพื้นฐานของเว็บไซต์
-/// หน้าที่:
-/// 1. แสดงหน้าแรก (Index) พร้อมดึงรายการประเภทห้องพัก (Room Types) และราคาเริ่มต้นจากฐานข้อมูล
-/// 2. มีกลไก Fallback ข้อมูลตัวอย่างระดับโรงแรม 5 ดาว หากยังไม่ได้ต่อฐานข้อมูล
-/// 3. จัดการหน้านโยบายความเป็นส่วนตัว (Privacy) และหน้าแจ้งข้อผิดพลาด (Error)
-/// 
-/// คำถามที่อาจารย์มักถาม:
-/// - การใช้ Include() ใน Entity Framework Core มีไว้ทำอะไร?
-///   -> ใช้ทำ Eager Loading เพื่อดึงข้อมูลตารางที่สัมพันธ์กัน (ตาราง rooms) มารวมกับ roomtypes ในคิวรีเดียว ป้องกันปัญหา N+1 Query
-/// </summary>
+// คอนโทรลเลอร์หน้าแรกของเว็บไซต์ แสดงพรีวิวห้องพัก ข้อมูลสาขา และโปรโมชั่น
 public class HomeController : Controller
 {
+    // ตัวแปรเชื่อมต่อฐานข้อมูล MySQL
     private readonly EasystaydbContext _context;
 
-    /// <summary>
-    /// Constructor รับ EasystaydbContext เข้ามาผ่าน Dependency Injection
-    /// </summary>
+    // คอนสตรัคเตอร์รับ DbContext ผ่าน Dependency Injection
     public HomeController(EasystaydbContext context)
     {
+        // กำหนดค่า DbContext
         _context = context;
     }
 
-    /// <summary>
-    /// Action Index: หน้าแรกของเว็บไซต์ Easy Stay Hotel
-    /// ดึงรายการประเภทห้องพักทั้งหมด พร้อมห้องพักในสังกัด เรียงตามราคาเริ่มต้นจากน้อยไปมาก
-    /// </summary>
+    // หน้าแรกของเว็บไซต์ (Landing Page) แสดงพรีวิวห้องพักพร้อมจำนวนห้องว่างจริงในแต่ละสาขา
+    [HttpGet]
     public IActionResult Index()
     {
+        // กำหนด List เก็บประเภทห้องพัก
         List<Roomtype> roomTypes;
         try
         {
-            // ดึงประเภทห้องพักพร้อม Eager Loading ข้อมูลห้องพัก (Rooms) และจัดเรียงตามราคา
+            // ดึงประเภทห้องพักทั้งหมดพร้อมข้อมูลห้องพักย่อยในตาราง Rooms
             roomTypes = _context.Roomtypes
                 .Include(rt => rt.Rooms)
                 .OrderBy(rt => rt.BasePrice)
@@ -48,15 +45,16 @@ public class HomeController : Controller
         }
         catch
         {
-            // หากเกิดข้อผิดพลาดในการเชื่อมต่อฐานข้อมูล ให้คืนค่า List เปล่า
+            // หากฐานข้อมูลยังไม่พร้อม ให้สร้าง List ว่าง
             roomTypes = new List<Roomtype>();
         }
 
-        // กรณีฐานข้อมูลว่างเปล่า (ยังไม่มีข้อมูล) ให้ใช้ข้อมูลพรีวิวมาตรฐานระดับพรีเมียม เพื่อให้หน้าเว็บแสดงผลได้อย่างสวยงาม
+        // กรณีไม่มีข้อมูลในฐานข้อมูล ให้ใช้ข้อมูลจำลองเริ่มต้น (Fallback Data) เพื่อให้หน้าเว็บแสดงผลได้อย่างสวยงาม
         if (!roomTypes.Any())
         {
             roomTypes = new List<Roomtype>
             {
+                // ประเภทที่ 1: ห้องสแตนดาร์ด
                 new Roomtype
                 {
                     RoomTypeId = 1,
@@ -71,6 +69,7 @@ public class HomeController : Controller
                         new Room { RoomId = 103, RoomNo = "103", Branch = "Phuket", Status = "Available" }
                     }
                 },
+                // ประเภทที่ 2: ห้องดีลักซ์
                 new Roomtype
                 {
                     RoomTypeId = 2,
@@ -85,6 +84,7 @@ public class HomeController : Controller
                         new Room { RoomId = 203, RoomNo = "203", Branch = "Phuket", Status = "Available" }
                     }
                 },
+                // ประเภทที่ 3: ห้องสวีทสุดหรู
                 new Roomtype
                 {
                     RoomTypeId = 3,
@@ -102,24 +102,21 @@ public class HomeController : Controller
             };
         }
 
-        // ส่งโมเดล roomTypes ไปยังหน้า Views/Home/Index.cshtml
+        // ส่งข้อมูลประเภทห้องพักไปยัง View เพื่อเรนเดอร์การ์ดห้องพัก
         return View(roomTypes);
     }
 
-    /// <summary>
-    /// Action Privacy: หน้านโยบายความเป็นส่วนตัวและข้อกำหนดการให้บริการ
-    /// </summary>
+    // หน้านโยบายความเป็นส่วนตัว (Privacy Policy)
     public IActionResult Privacy()
     {
         return View();
     }
 
-    /// <summary>
-    /// Action Error: หน้าแสดงข้อผิดพลาดของระบบ (เมื่อเกิด Unhandled Exception)
-    /// </summary>
+    // หน้าแสดงข้อผิดพลาดของระบบ (Error Handling) ปิดแคชเพื่อความปลอดภัย
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
     public IActionResult Error()
     {
+        // ส่ง ErrorViewModel พร้อม Trace Identifier เพื่อใช้วิเคราะห์ปัญหา
         return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
     }
 }

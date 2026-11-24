@@ -4,19 +4,8 @@ using EasyStayHotel.Models;
 
 namespace EasyStayHotel.Services
 {
-    /// <summary>
-    /// เซอร์วิส DatabaseInitializer: สำหรับเตรียมข้อมูลเริ่มต้นและ Seed Data ของฐานข้อมูล (Database Seeder)
-    /// หน้าที่:
-    /// 1. ตรวจสอบและสร้างห้องพักจำลองสำหรับทุกสาขา (Bangkok, Chonburi, Phuket)
-    /// 2. ตรวจสอบและสร้างบัญชีผู้ใช้งานทดสอบสำหรับทุก Role (Admin, Staff ทุกสาขา, Accounting, Housekeeper)
-    /// 3. จัดเตรียมรายการจองตัวอย่างเพื่อความพร้อมในการสาธิต (Demo-ready)
-    /// </summary>
     public static class DatabaseInitializer
     {
-        /// <summary>
-        /// ตรวจสอบและเตรียมห้องพักสถานะว่าง (Available) ให้แก่ทุกสาขาของโรงแรม
-        /// หากสาขาใดไม่มีห้องพัก จะสร้างห้องพักมาตรฐาน (Standard, Deluxe, Suite) ให้อัตโนมัติ
-        /// </summary>
         public static void EnsureBranchRooms(EasystaydbContext context)
         {
             try
@@ -26,14 +15,12 @@ namespace EasyStayHotel.Services
 
                 foreach (var branch in branches)
                 {
-                    // นับจำนวนห้องที่ว่างพร้อมขายในสาขานั้น
                     int availableCount = context.Rooms.Count(r => r.Branch == branch && r.Status == "Available");
                     if (availableCount == 0)
                     {
                         var existingRooms = context.Rooms.Where(r => r.Branch == branch).ToList();
                         if (existingRooms.Any())
                         {
-                            // หากมีห้องพักอยู่แล้วแต่สถานะไม่ใช่ Available ให้ปรับเป็น Available
                             foreach (var room in existingRooms)
                             {
                                 room.Status = "Available";
@@ -42,7 +29,6 @@ namespace EasyStayHotel.Services
                         }
                         else
                         {
-                            // หากยังไม่มีห้องพักในสาขานั้นเลย ให้สร้างห้องพักใหม่ประเภทละ 3 ห้อง
                             var types = context.Roomtypes.Where(rt => rt.RoomTypeId >= 1 && rt.RoomTypeId <= 3).ToList();
                             if (types.Any())
                             {
@@ -80,18 +66,13 @@ namespace EasyStayHotel.Services
             }
             catch
             {
-                // กลไก Fail-safe: หากฐานข้อมูลยังไม่พร้อมตอนรันระบบ จะไม่ทำให้แอปพลิเคชันพัง (Crash)
             }
         }
 
-        /// <summary>
-        /// ตรวจสอบและสร้างบัญชีผู้ใช้งานระบบเริ่มต้น (Default User Accounts) สำหรับทุกบทบาท
-        /// </summary>
         public static void EnsureHousekeeperUser(EasystaydbContext context)
         {
             try
             {
-                // 1. ตรวจสอบและสร้างบัญชีผู้ดูแลระบบ (Admin)
                 bool adminExists = context.Users.Any(u => u.Email == "admin@easystay.com");
                 if (!adminExists)
                 {
@@ -107,7 +88,6 @@ namespace EasyStayHotel.Services
                     });
                 }
 
-                // 2. ตรวจสอบและสร้างบัญชีแม่บ้านประจำโรงแรม (Housekeeper)
                 bool housekeeperExists = context.Users.Any(u => u.Role == "Housekeeper" || u.Role == "Maid" || u.Email == "housekeeper@easystay.com");
                 if (!housekeeperExists)
                 {
@@ -124,7 +104,6 @@ namespace EasyStayHotel.Services
                     context.Users.Add(housekeeperUser);
                 }
 
-                // 3. ตรวจสอบและสร้างบัญชีฝ่ายบัญชีและการเงิน (Accounting)
                 bool accUserExists = context.Users.Any(u => u.Role == "Accounting" || u.Email == "account@easystay.com");
                 if (!accUserExists)
                 {
@@ -140,7 +119,6 @@ namespace EasyStayHotel.Services
                     });
                 }
 
-                // 4. ตรวจสอบและสร้างบัญชีพนักงานต้อนรับประจำแต่ละสาขา (Front Desk Staff)
                 var staffAccounts = new[]
                 {
                     new { Email = "staff_puket@easystay.com", Name = "พนักงานต้อนรับ ภูเก็ต (001)", Branch = "Phuket", Phone = "076-123-456" },
@@ -168,7 +146,6 @@ namespace EasyStayHotel.Services
                     }
                     else
                     {
-                        // อัปเดตข้อมูลสาขาและสิทธิ์ให้ถูกต้องเสมอ
                         existingStaff.Branch = acc.Branch;
                         existingStaff.Role = "Staff";
                         existingStaff.FullName = acc.Name;
@@ -177,18 +154,13 @@ namespace EasyStayHotel.Services
 
                 context.SaveChanges();
 
-                // 5. เตรียมข้อมูลการจองตัวอย่างสำหรับสาขาภูเก็ตและชลบุรี เพื่อให้พร้อมทดสอบระบบหน้าร้านทันที
                 EnsureSampleBranchBookings(context);
             }
             catch
             {
-                // Fallback
             }
         }
 
-        /// <summary>
-        /// เตรียมข้อมูลการจองตัวอย่าง (Sample Bookings) เช่น แขกพักอยู่จริง (In-House) และแขกกำลังจะเข้าพัก (Arrivals)
-        /// </summary>
         private static void EnsureSampleBranchBookings(EasystaydbContext context)
         {
             try
@@ -204,7 +176,6 @@ namespace EasyStayHotel.Services
                         var branchRooms = context.Rooms.Where(r => r.Branch == branch).ToList();
                         if (branchRooms.Count >= 2)
                         {
-                            // 1. แขกที่พักอยู่ในโรงแรมปัจจุบัน (In-House) พร้อมให้ทดสอบการเช็คเอาท์
                             var room1 = branchRooms[0];
                             room1.Status = "Occupied";
                             var inHouseBooking = new Booking
@@ -225,7 +196,6 @@ namespace EasyStayHotel.Services
                             });
                             context.Bookings.Add(inHouseBooking);
 
-                            // 2. แขกที่จะเช็คอินในวันนี้ (Arrival) พร้อมให้ทดสอบการรับเช็คอิน
                             var room2 = branchRooms[1];
                             room2.Status = "Available";
                             var arrivalBooking = new Booking
@@ -253,7 +223,6 @@ namespace EasyStayHotel.Services
             }
             catch
             {
-                // Fallback
             }
         }
     }

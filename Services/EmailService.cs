@@ -7,53 +7,26 @@ using Microsoft.Extensions.Logging;
 
 namespace EasyStayHotel.Services
 {
-    /// <summary>
-    /// อินเตอร์เฟซ IEmailService: สัญญาระบุฟังก์ชันการส่งอีเมลของระบบ (Service Interface)
-    /// คำถามที่อาจารย์มักถาม:
-    /// - ทำไมต้องมี Interface?
-    ///   -> เพื่อรองรับหลักการ Dependency Inversion Principle (DIP) และ Loose Coupling ทำให้สามารถสลับผู้ให้บริการอีเมลหรือ Mock ข้อมูลในการทำ Unit Test ได้ง่าย
-    /// </summary>
     public interface IEmailService
     {
-        /// <summary>
-        /// ส่งรหัส OTP ยืนยันตัวตนสำหรับการสมัครสมาชิกใหม่
-        /// </summary>
         Task<(bool Success, string Message)> SendOtpEmailAsync(string toEmail, string fullName, string otpCode);
 
-        /// <summary>
-        /// ส่งรหัส OTP สำหรับการรีเซ็ตรหัสผ่าน (Forgot Password)
-        /// </summary>
         Task<(bool Success, string Message)> SendPasswordResetOtpEmailAsync(string toEmail, string fullName, string otpCode);
 
-        /// <summary>
-        /// ส่งอีเมลยืนยันการจองห้องพักสำเร็จพร้อมรายละเอียดและลิงก์เปิดใบเสร็จ Voucher
-        /// </summary>
         Task<(bool Success, string Message)> SendBookingConfirmationEmailAsync(string toEmail, string guestName, string bookingRef, string roomTypeName, string branch, string checkIn, string checkOut, decimal totalAmount, string voucherUrl);
     }
 
-    /// <summary>
-    /// เซอร์วิส EmailService: จัดการส่งอีเมลผ่าน SMTP (Simple Mail Transfer Protocol)
-    /// คุณสมบัติเด่น:
-    /// - รองรับการส่งจริงผ่าน Gmail SMTP (port 587, SSL/TLS)
-    /// - มีระบบจำลองการส่ง (Local Development Simulation Mode) หากยังไม่ได้ระบุ Credentials ใน appsettings.json ทำให้ระบบทดสอบได้ทันทีโดยไม่เกิด Error ขัดข้อง
-    /// </summary>
     public class EmailService : IEmailService
     {
         private readonly IConfiguration _config;
         private readonly ILogger<EmailService> _logger;
 
-        /// <summary>
-        /// Constructor รับ IConfiguration สำหรับอ่านการตั้งค่า SMTP และ ILogger สำหรับบันทึก Log การส่งอีเมล
-        /// </summary>
         public EmailService(IConfiguration config, ILogger<EmailService> logger)
         {
             _config = config;
             _logger = logger;
         }
 
-        /// <summary>
-        /// ส่งรหัส OTP สำหรับยืนยันตัวตนตอนสมัครสมาชิกใหม่ (อายุการใช้งาน 5 นาที)
-        /// </summary>
         public async Task<(bool Success, string Message)> SendOtpEmailAsync(string toEmail, string fullName, string otpCode)
         {
             string host = _config["EmailSettings:SmtpHost"] ?? "smtp.gmail.com";
@@ -63,7 +36,6 @@ namespace EasyStayHotel.Services
             string senderName = _config["EmailSettings:SenderName"] ?? "Easy Stay Hotel & Resort";
             bool enableSsl = bool.TryParse(_config["EmailSettings:EnableSsl"], out bool ssl) ? ssl : true;
 
-            // ตรวจสอบว่าได้ตั้งค่า SenderEmail หรือยัง ถ้ายังไม่ได้ตั้งค่า ให้จำลองการส่ง (Local Development Mode)
             if (string.IsNullOrWhiteSpace(senderEmail) || string.IsNullOrWhiteSpace(senderPassword))
             {
                 _logger.LogInformation("=================================================");
@@ -112,7 +84,7 @@ namespace EasyStayHotel.Services
         <div class='content'>
             <p>เรียน คุณ <strong>{fullName}</strong>,</p>
             <p>ขอบคุณที่ให้ความสนใจสมัครสมาชิกกับ Easy Stay Hotel & Resort กรุณานำรหัสยืนยัน (OTP) ด้านล่างนี้ไปกรอกในหน้าเว็บไซต์เพื่อยืนยันอีเมลของคุณ:</p>
-            
+
             <div class='otp-box'>
                 <div style='font-size: 13px; color: #64748b; margin-bottom: 8px; text-transform: uppercase;'>รหัสยืนยัน OTP (Valid for 5 mins)</div>
                 <div class='otp-code'>{otpCode}</div>
@@ -149,9 +121,6 @@ namespace EasyStayHotel.Services
             }
         }
 
-        /// <summary>
-        /// ส่งรหัส OTP สำหรับการรีเซ็ตรหัสผ่าน (Password Reset)
-        /// </summary>
         public async Task<(bool Success, string Message)> SendPasswordResetOtpEmailAsync(string toEmail, string fullName, string otpCode)
         {
             string host = _config["EmailSettings:SmtpHost"] ?? "smtp.gmail.com";
@@ -209,7 +178,7 @@ namespace EasyStayHotel.Services
         <div class='content'>
             <p>เรียน คุณ <strong>{fullName}</strong>,</p>
             <p>เราได้รับคำขอรีเซ็ตรหัสผ่านสำหรับบัญชี Easy Stay Hotel ของคุณ กรุณานำรหัสยืนยัน (OTP) ด้านล่างนี้ไปกรอกในหน้าเว็บไซต์เพื่อตั้งรหัสผ่านใหม่:</p>
-            
+
             <div class='otp-box'>
                 <div style='font-size: 13px; color: #64748b; margin-bottom: 8px; text-transform: uppercase;'>รหัสยืนยัน OTP (Valid for 5 mins)</div>
                 <div class='otp-code'>{otpCode}</div>
@@ -246,18 +215,15 @@ namespace EasyStayHotel.Services
             }
         }
 
-        /// <summary>
-        /// ส่งอีเมลยืนยันการจองห้องพักสำเร็จ (Booking Confirmation) แจ้งรายละเอียดการเข้าพักและลิงก์เปิดใบเสร็จ Voucher
-        /// </summary>
         public async Task<(bool Success, string Message)> SendBookingConfirmationEmailAsync(
-            string toEmail, 
-            string guestName, 
-            string bookingRef, 
-            string roomTypeName, 
-            string branch, 
-            string checkIn, 
-            string checkOut, 
-            decimal totalAmount, 
+            string toEmail,
+            string guestName,
+            string bookingRef,
+            string roomTypeName,
+            string branch,
+            string checkIn,
+            string checkOut,
+            decimal totalAmount,
             string voucherUrl)
         {
             string host = _config["EmailSettings:SmtpHost"] ?? "smtp.gmail.com";
@@ -313,7 +279,7 @@ namespace EasyStayHotel.Services
         <div class='content'>
             <p>เรียนคุณ <strong>{guestName}</strong>,</p>
             <p>ขอขอบพระคุณที่ท่านได้ไว้วางใจเลือกจองห้องพักกับ Easy Stay Hotel & Resort ระบบได้รับข้อมูลการจองและหลักฐานการชำระเงินของท่านเรียบร้อยแล้ว</p>
-            
+
             <div class='booking-card'>
                 <div style='border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 12px;'>
                     <span style='color: #64748b; font-size: 13px;'>หมายเลขการจอง (Booking Reference):</span><br>

@@ -32,43 +32,75 @@
         body {
             font-family: 'Kanit', sans-serif;
             background-color: #f8fafc;
-            overflow-x: hidden;
+            overflow-x: clip;
         }
         
-        /* แถบเมนูด้านข้าง (Sidebar) */
+        /* แถบเมนูด้านข้าง (Sidebar) ล็อกติดขอบบนเสมอเมื่อเลื่อนหน้าจอลง */
         .sidebar {
             background-color: #0f172a; 
-            width: 250px;
+            width: 230px;
             height: 100vh;
             max-height: 100vh;
             border-right: 1px solid #1e293b;
             position: sticky;
             top: 0;
+            align-self: flex-start;
+            flex-shrink: 0;
             overflow-y: auto;
             overflow-x: hidden;
             transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
             z-index: 1030;
         }
 
-        /* Sidebar เมื่อย่อ (Collapsed state สำหรับจอเล็กหรือเมื่อต้องการพื้นที่กว้าง) */
-        .sidebar.collapsed {
-            width: 72px;
+        /* Sidebar เมื่อย่อ (Collapsed state สำหรับจอแท็บเล็ต/โน้ตบุ๊ก) */
+        @@media (min-width: 768px) {
+            .sidebar.collapsed {
+                width: 72px;
+            }
+            .sidebar.collapsed .sidebar-text,
+            .sidebar.collapsed .user-profile-box,
+            .sidebar.collapsed .brand-text {
+                display: none !important;
+            }
+            .sidebar.collapsed .sidebar-link {
+                justify-content: center;
+                padding: 12px 0;
+            }
+            .sidebar.collapsed .sidebar-link i {
+                margin-right: 0 !important;
+                font-size: 1.3rem;
+            }
+            .sidebar.collapsed .brand-icon-box {
+                margin-right: 0 !important;
+            }
         }
-        .sidebar.collapsed .sidebar-text,
-        .sidebar.collapsed .user-profile-box,
-        .sidebar.collapsed .brand-text {
-            display: none !important;
+
+        /* Sidebar สำหรับหน้าจอมือถือ (< 768px): ซ่อนออกนอกจอ 100% และสไลด์ออกมาเมื่อกดปุ่มเมนู */
+        .sidebar-backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.5);
+            backdrop-filter: blur(2px);
+            z-index: 1035;
         }
-        .sidebar.collapsed .sidebar-link {
-            justify-content: center;
-            padding: 12px 0;
-        }
-        .sidebar.collapsed .sidebar-link i {
-            margin-right: 0 !important;
-            font-size: 1.3rem;
-        }
-        .sidebar.collapsed .brand-icon-box {
-            margin-right: 0 !important;
+        @@media (max-width: 767.98px) {
+            .sidebar {
+                position: fixed;
+                left: 0;
+                top: 0;
+                bottom: 0;
+                width: 250px !important;
+                z-index: 1040;
+                transform: translateX(0);
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+            }
+            .sidebar.collapsed {
+                transform: translateX(-100%);
+            }
+            .sidebar:not(.collapsed) ~ .sidebar-backdrop {
+                display: block;
+            }
         }
 
         /* กล่องข้อมูลผู้ใช้งานใน Sidebar */
@@ -285,6 +317,9 @@
             </div>
         </aside>
 
+        <!-- ฉากหลังสีเข้มเมื่อเปิดเมนูบนมือถือ -->
+        <div class="sidebar-backdrop" id="staffSidebarBackdrop" onclick="$('#staffSidebar').addClass('collapsed');"></div>
+
         <!-- Main Content Area ด้านขวา -->
         <div class="main-wrapper">
             
@@ -374,11 +409,21 @@
                 }
             });
 
-            // ดึงค่าการย่อเมนูเดิมที่เคยตั้งไว้
-            if (localStorage.getItem('staff_sidebar_collapsed') === 'true') {
-                $('#staffSidebar').addClass('collapsed');
-                $('#sidebarToggleText').text('ขยายเมนู');
+            // ดึงค่าการย่อเมนูเดิมที่เคยตั้งไว้ หรือย่ออัตโนมัติเมื่อหน้าจอแคบ (< 1100px)
+            function syncStaffSidebarByViewport() {
+                if (window.innerWidth < 1100) {
+                    $('#staffSidebar').addClass('collapsed');
+                    $('#sidebarToggleText').text('ขยายเมนู');
+                } else if (localStorage.getItem('staff_sidebar_collapsed') === 'true') {
+                    $('#staffSidebar').addClass('collapsed');
+                    $('#sidebarToggleText').text('ขยายเมนู');
+                } else {
+                    $('#staffSidebar').removeClass('collapsed');
+                    $('#sidebarToggleText').text('ย่อเมนู');
+                }
             }
+            syncStaffSidebarByViewport();
+            $(window).on('resize', syncStaffSidebarByViewport);
 
             // นาฬิกา Real-time Top Bar
             setInterval(function () {

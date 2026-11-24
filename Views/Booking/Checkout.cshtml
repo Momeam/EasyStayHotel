@@ -29,8 +29,8 @@
         <!-- ซ่อนข้อมูลที่จำเป็นไว้ไม่ให้ลูกค้าแก้ แต่ต้องส่งไปหลังบ้าน -->
         <input type="hidden" asp-for="RoomId" />
         <input type="hidden" asp-for="RoomTypeName" />
-        <input type="hidden" name="CheckInDate" id="CheckInDate" value="@Model.CheckInDate.ToString("yyyy-MM-dd")" />
-        <input type="hidden" name="CheckOutDate" id="CheckOutDate" value="@Model.CheckOutDate.ToString("yyyy-MM-dd")" />
+        <input type="hidden" name="CheckInDate" id="CheckInDate" value="@DateHelper.ToIsoDate(Model.CheckInDate)" />
+        <input type="hidden" name="CheckOutDate" id="CheckOutDate" value="@DateHelper.ToIsoDate(Model.CheckOutDate)" />
         <input type="hidden" name="Nights" id="hiddenNights" value="@nights" />
         <input type="hidden" asp-for="Guests" />
         <input type="hidden" name="BasePrice" id="hiddenBasePrice" value="@Model.BasePrice.ToString(System.Globalization.CultureInfo.InvariantCulture)" />
@@ -69,7 +69,7 @@
                                     <span><i class="bi bi-lamp-fill text-primary me-1"></i> @bedType</span>
                                 </div>
                                 <p class="text-muted small mb-2">
-                                    เข้าพัก <strong>@nights คืน</strong>@(roomsCount > 1 ? $", {roomsCount} ห้อง" : ""), แขก <strong>@Model.Guests ท่าน</strong> • ฟรี Wi-Fi และอาหารเช้า
+                                    เข้าพัก <strong id="uiHeaderNights">@nights คืน</strong>@(roomsCount > 1 ? $", {roomsCount} ห้อง" : ""), แขก <strong>@Model.Guests ท่าน</strong> • ฟรี Wi-Fi และอาหารเช้า
                                 </p>
                                 <span class="badge bg-success bg-opacity-10 text-success">
                                     <i class="bi bi-shield-check me-1"></i> ยกเลิกฟรีล่วงหน้า 3 วันก่อนเข้าพัก
@@ -77,18 +77,34 @@
                             </div>
                         </div>
 
-                        <div class="row bg-light p-3 rounded-3 g-0">
-                            <div class="col-6 border-end pe-3">
-                                <span class="text-muted small d-block">วันที่เช็คอิน (Check-in 14:00 น.)</span>
-                                <h6 class="fw-bold m-0 text-dark mt-1">
-                                    <i class="bi bi-calendar-event text-primary me-1"></i> @Model.CheckInDate.ToString("dd MMM yyyy")
-                                </h6>
+                        <!-- ส่วนเลือกและปรับเปลี่ยนวันเข้าพัก/วันเช็คเอาท์ (Interactive Date Selector) -->
+                        <div class="row bg-light p-3 rounded-3 g-3 align-items-center mb-0 border">
+                            <div class="col-md-5">
+                                <label for="uiCheckInDate" class="form-label small fw-bold text-dark mb-1">
+                                    <i class="bi bi-calendar-event text-primary me-1"></i> วันที่เช็คอิน (Check-in 14:00 น.) *
+                                </label>
+                                <input type="date" id="uiCheckInDate" class="form-control fw-semibold border-primary bg-white shadow-none"
+                                       value="@DateHelper.ToIsoDate(Model.CheckInDate)"
+                                       min="@DateHelper.ToIsoDate(DateTime.Today)" required />
+                                <small class="text-muted d-block mt-1" id="uiCheckInThaiText">
+                                    <i class="bi bi-calendar2-check text-muted me-1"></i>@DateHelper.ToThaiDisplayDate(Model.CheckInDate)
+                                </small>
                             </div>
-                            <div class="col-6 ps-3">
-                                <span class="text-muted small d-block">วันที่เช็คเอาท์ (Check-out 12:00 น.)</span>
-                                <h6 class="fw-bold m-0 text-dark mt-1">
-                                    <i class="bi bi-calendar-check text-primary me-1"></i> @Model.CheckOutDate.ToString("dd MMM yyyy")
-                                </h6>
+                            <div class="col-md-5">
+                                <label for="uiCheckOutDate" class="form-label small fw-bold text-dark mb-1">
+                                    <i class="bi bi-calendar-check text-primary me-1"></i> วันที่เช็คเอาท์ (Check-out 12:00 น.) *
+                                </label>
+                                <input type="date" id="uiCheckOutDate" class="form-control fw-semibold border-primary bg-white shadow-none"
+                                       value="@DateHelper.ToIsoDate(Model.CheckOutDate)"
+                                       min="@DateHelper.ToIsoDate(Model.CheckInDate.AddDays(1))" required />
+                                <small class="text-muted d-block mt-1" id="uiCheckOutThaiText">
+                                    <i class="bi bi-calendar2-check text-muted me-1"></i>@DateHelper.ToThaiDisplayDate(Model.CheckOutDate)
+                                </small>
+                            </div>
+                            <div class="col-md-2 text-center">
+                                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary px-3 py-2 rounded-pill mt-md-3 d-inline-block">
+                                    <i class="bi bi-moon-stars me-1"></i> <span id="uiNightsBadge">@nights</span> คืน
+                                </span>
                             </div>
                         </div>
                     </div>
@@ -188,7 +204,7 @@
                         <h5 class="fw-bold text-primary mb-4">สรุปค่าใช้จ่ายทั้งหมด</h5>
                         
                         <div class="d-flex justify-content-between small mb-2">
-                            <span class="text-muted">ค่าห้องพัก (@nights คืน@(roomsCount > 1 ? $", {roomsCount} ห้อง" : ""))</span>
+                            <span class="text-muted">ค่าห้องพัก <span id="uiSummaryNights">(@nights คืน@(roomsCount > 1 ? $", {roomsCount} ห้อง" : ""))</span></span>
                             <span class="fw-bold" id="uiRoomPrice">฿@initialRoomPrice.ToString("N0")</span>
                         </div>
                         
@@ -269,29 +285,96 @@
         $(document).ready(function () {
             const rawBase = $('#hiddenBasePrice').val() || '0';
             const baseRoomPrice = parseFloat(rawBase) || 0;
-            const nights = parseInt($('#hiddenNights').val()) || 1;
             const roomsCount = parseInt($('#hiddenRoomsCount').val()) || 1;
             
             const priceExtraBed = 800;
             const priceBreakfast = 350;
             const priceTransfer = 1200;
 
+            const thaiMonthsShort = ["", "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+            
+            // แปลงสตริง ISO (yyyy-MM-dd) เป็นรูปแบบแสดงผลภาษาไทยพร้อมปี พ.ศ. ที่ถูกต้อง
+            function formatThaiDateDisplay(isoStr) {
+                if (!isoStr) return '';
+                const parts = isoStr.split('-');
+                if (parts.length < 3) return isoStr;
+                const y = parseInt(parts[0], 10);
+                const m = parseInt(parts[1], 10);
+                const d = parseInt(parts[2], 10);
+                const thaiYear = y < 2400 ? (y + 543) : (y >= 3000 ? y - 1086 + 543 : y);
+                return `${d} ${thaiMonthsShort[m] || ''} ${thaiYear}`;
+            }
+
+            // จัดการการเปลี่ยนวันเข้าพัก/วันเช็คเอาท์ และคำนวณจำนวนคืนใหม่
+            function syncDatesAndRecalculate() {
+                const inVal = $('#uiCheckInDate').val();
+                let outVal = $('#uiCheckOutDate').val();
+                if (!inVal || !outVal) return;
+
+                const inDate = new Date(inVal + 'T00:00:00');
+                let outDate = new Date(outVal + 'T00:00:00');
+
+                // วันเช็คเอาท์ต้องมากกว่าวันเช็คอินอย่างน้อย 1 คืน
+                if (outDate <= inDate) {
+                    const nextDate = new Date(inDate);
+                    nextDate.setDate(nextDate.getDate() + 1);
+                    const y = nextDate.getFullYear();
+                    const m = String(nextDate.getMonth() + 1).padStart(2, '0');
+                    const d = String(nextDate.getDate()).padStart(2, '0');
+                    outVal = `${y}-${m}-${d}`;
+                    $('#uiCheckOutDate').val(outVal);
+                    outDate = nextDate;
+                }
+
+                // ปรับ min ของช่องเช็คเอาท์ให้อยู่หลังจากวันเช็คอินอย่างน้อย 1 วัน
+                const minOutDate = new Date(inDate);
+                minOutDate.setDate(minOutDate.getDate() + 1);
+                const minY = minOutDate.getFullYear();
+                const minM = String(minOutDate.getMonth() + 1).padStart(2, '0');
+                const minD = String(minOutDate.getDate()).padStart(2, '0');
+                $('#uiCheckOutDate').attr('min', `${minY}-${minM}-${minD}`);
+
+                // คำนวณจำนวนคืนใหม่
+                const diffTime = outDate.getTime() - inDate.getTime();
+                let nights = Math.round(diffTime / (1000 * 3600 * 24));
+                if (nights < 1) nights = 1;
+
+                // ซิงค์ค่าไปยัง Hidden Inputs สำหรับ Submit ข้อมูล
+                $('#CheckInDate').val(inVal);
+                $('#CheckOutDate').val(outVal);
+                $('#hiddenNights').val(nights);
+
+                // อัปเดตข้อความบน UI
+                $('#uiNightsBadge').text(nights);
+                $('#uiHeaderNights').text(`${nights} คืน`);
+                $('#uiSummaryNights').text(`(${nights} คืน${roomsCount > 1 ? ', ' + roomsCount + ' ห้อง' : ''})`);
+                $('#uiCheckInThaiText').html(`<i class="bi bi-calendar2-check text-muted me-1"></i>${formatThaiDateDisplay(inVal)}`);
+                $('#uiCheckOutThaiText').html(`<i class="bi bi-calendar2-check text-muted me-1"></i>${formatThaiDateDisplay(outVal)}`);
+
+                // คำนวณยอดเงินและตรวจสอบโปรโมชั่นใหม่
+                calculateSummary();
+            }
+
+            $('#uiCheckInDate').on('change', syncDatesAndRecalculate);
+            $('#uiCheckOutDate').on('change', syncDatesAndRecalculate);
+
             function calculateSummary() {
-                const totalRoomPrice = baseRoomPrice * nights * roomsCount;
+                const currentNights = parseInt($('#hiddenNights').val()) || 1;
+                const totalRoomPrice = baseRoomPrice * currentNights * roomsCount;
                 let totalAddons = 0;
                 let addonHtml = '';
 
                 // คำนวณบริการเสริมต่างๆ
                 const bedQty = parseInt($('#ExtraBedCount').val()) || 0;
                 if (bedQty > 0) {
-                    totalAddons += bedQty * priceExtraBed * nights;
-                    addonHtml += `<div class="d-flex justify-content-between small mb-2"><span class="text-muted">บริการเสริม: เตียงเสริม</span><span class="fw-bold">฿${(bedQty * priceExtraBed * nights).toLocaleString()}</span></div>`;
+                    totalAddons += bedQty * priceExtraBed * currentNights;
+                    addonHtml += `<div class="d-flex justify-content-between small mb-2"><span class="text-muted">บริการเสริม: เตียงเสริม (${currentNights} คืน)</span><span class="fw-bold">฿${(bedQty * priceExtraBed * currentNights).toLocaleString()}</span></div>`;
                 }
 
                 const bfQty = parseInt($('#BreakfastCount').val()) || 0;
                 if (bfQty > 0) {
-                    totalAddons += bfQty * priceBreakfast * nights;
-                    addonHtml += `<div class="d-flex justify-content-between small mb-2"><span class="text-muted">บริการเสริม: อาหารเช้า</span><span class="fw-bold">฿${(bfQty * priceBreakfast * nights).toLocaleString()}</span></div>`;
+                    totalAddons += bfQty * priceBreakfast * currentNights;
+                    addonHtml += `<div class="d-flex justify-content-between small mb-2"><span class="text-muted">บริการเสริม: อาหารเช้า (${currentNights} คืน)</span><span class="fw-bold">฿${(bfQty * priceBreakfast * currentNights).toLocaleString()}</span></div>`;
                 }
 
                 const transQty = parseInt($('#TransferCount').val()) || 0;
@@ -310,10 +393,10 @@
                 $('#qrCodeImg').attr('src', `https://promptpay.io/0983813674/${subTotal}.png`);
 
                 // 2. ส่งข้อมูลไปถาม Backend เพื่อคำนวณส่วนลดโปรโมชั่น
-                const checkInVal = $('#CheckInDate').val() || '';
+                const checkInVal = $('#CheckInDate').val() || $('#uiCheckInDate').val() || '';
                 const requestData = {
                     BasePrice: baseRoomPrice,
-                    Nights: nights,
+                    Nights: currentNights,
                     Rooms: roomsCount,
                     CheckInDate: checkInVal,
                     CouponCode: $('#PromoCode').val() || '',

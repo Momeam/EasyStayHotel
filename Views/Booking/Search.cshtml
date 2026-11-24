@@ -51,11 +51,11 @@
                 </div>
                 <div class="col-lg-2 col-md-6">
                     <label class="form-label fw-bold text-muted small mb-1">วันที่ Check-in</label>
-                    <input type="date" name="checkIn" id="searchCheckIn" class="form-control" value="@ViewBag.CheckIn" required />
+                    <input type="date" name="checkIn" id="searchCheckIn" class="form-control" value="@ViewBag.CheckIn" min="@DateHelper.ToIsoDate(DateTime.Today)" required />
                 </div>
                 <div class="col-lg-2 col-md-6">
                     <label class="form-label fw-bold text-muted small mb-1">วันที่ Check-out</label>
-                    <input type="date" name="checkOut" id="searchCheckOut" class="form-control" value="@ViewBag.CheckOut" required />
+                    <input type="date" name="checkOut" id="searchCheckOut" class="form-control" value="@ViewBag.CheckOut" min="@DateHelper.ToIsoDate(DateTime.Today.AddDays(1))" required />
                 </div>
                 <div class="col-lg-3 col-md-6">
                     <div class="row g-2">
@@ -86,8 +86,8 @@
             </h4>
             <p class="text-muted small m-0 mt-1">
                 <i class="bi bi-building me-1"></i> กำลังดูสาขา: <strong class="text-primary fs-6">@branchNameTh</strong> |
-                เช็คอิน: <strong>@ViewBag.CheckIn</strong> |
-                เช็คเอาท์: <strong>@ViewBag.CheckOut</strong> (@nights คืน, แขก @ViewBag.GuestsReq ท่าน)
+                เช็คอิน: <strong>@(DateHelper.ToThaiDisplayDate(DateHelper.ParseGregorian(ViewBag.CheckIn as string, DateTime.Today)))</strong> |
+                เช็คเอาท์: <strong>@(DateHelper.ToThaiDisplayDate(DateHelper.ParseGregorian(ViewBag.CheckOut as string, DateTime.Today.AddDays(1))))</strong> (@nights คืน, แขก @ViewBag.GuestsReq ท่าน)
             </p>
         </div>
         <div class="mt-2 mt-md-0">

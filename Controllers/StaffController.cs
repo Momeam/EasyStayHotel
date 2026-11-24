@@ -1,148 +1,161 @@
+// นำเข้า System สำหรับชนิดข้อมูลพื้นฐาน เช่น DateTime, DateOnly, String
 using System;
+// นำเข้า System.Collections.Generic สำหรับการใช้งาน List และ Dictionary
 using System.Collections.Generic;
+// นำเข้า System.Linq สำหรับฟังก์ชันคิวรี LINQ เช่น Where, Count, Sum, OrderBy, FirstOrDefault
 using System.Linq;
+// นำเข้า Microsoft.AspNetCore.Http สำหรับจัดการ Session และ Request Context
 using Microsoft.AspNetCore.Http;
+// นำเข้า Microsoft.AspNetCore.Mvc สำหรับสร้างคอนโทรลเลอร์และ Action Results
 using Microsoft.AspNetCore.Mvc;
+// นำเข้า Microsoft.AspNetCore.Mvc.Filters สำหรับคลาส ActionExecutingContext ใน OnActionExecuting
 using Microsoft.AspNetCore.Mvc.Filters;
+// นำเข้า Microsoft.EntityFrameworkCore สำหรับคำสั่ง Include, ThenInclude, ToList
 using Microsoft.EntityFrameworkCore;
+// นำเข้าโมเดลของ EasyStayHotel
 using EasyStayHotel.Models;
+// นำเข้า ViewModels ที่เกี่ยวข้องกับการทำงานของพนักงาน เช่น WalkinViewModel
 using EasyStayHotel.Models.ViewModels;
+// นำเข้าเซอร์วิสต่างๆ เช่น HousekeepingService, AccountingFeedbackService, RoomPreviewHelper, DateHelper
 using EasyStayHotel.Services;
 
+// กำหนดเนมสเปซ EasyStayHotel.Controllers
 namespace EasyStayHotel.Controllers
 {
-    /// <summary>
-    /// คอนโทรลเลอร์ StaffController: จัดการระบบปฏิบัติการหน้าเคาน์เตอร์ของพนักงานต้อนรับ (Front Desk Operations)
-    /// 
-    /// วงจรการทำงานหลักของพนักงานต้อนรับ (Core Front Desk Workflow):
-    /// 1. ตรวจสอบสิทธิ์ (RBAC): อนุญาตเฉพาะ Role: Staff, Admin, SuperAdmin 
-    ///    โดยพนักงานต้อนรับ (Staff) จะถูกล็อกให้เห็นและจัดการได้เฉพาะสาขาตนเองเท่านั้น (Branch Security Isolation)
-    /// 2. ภาพรวมประจำวัน (Daily Overview): แขกจะเข้าพักวันนี้ (Arrivals), แขกจะเช็คเอาท์ (Departures), แขกพักอยู่จริง (In-House)
-    /// 3. รับเช็คอิน (Check-in Desk & ProcessCheckIn): ยืนยันตัวตนแขก จัดห้องพัก และมอบกุญแจ
-    /// 4. รับเช็คเอาท์ (CheckOutBooking): เปลี่ยนสถานะห้องเป็น "Cleaning" และสร้างใบสั่งงานแม่บ้านให้อัตโนมัติทันที
-    /// 5. จองหน้าร้าน Walk-in (WalkinBooking): ลงทะเบียนแขกด้วยเลขบัตรประชาชน/พาสปอร์ต รับเงินสด/PromptPay และเปิดห้องพักทันที
-    /// 6. จัดการสถานะห้องพัก (Index & QuickUpdateRoomStatus): ดูสถานะห้องและสั่งทำความสะอาด
-    /// 7. รายการจองทั้งหมด (BookingList): ค้นหาและกรองการจองตามสถานะ (All, Pending, In-House, Completed)
-    /// 8. พิมพ์ใบเสร็จ (BookingReceipt) และยืนยันการรับชำระเงิน (ConfirmPayment)
-    /// 9. ส่งยอดปิดกะ (AccountingFeedback): บันทึกยอดเงินสดและเงินโอนส่งต่อให้ฝ่ายบัญชีตรวจสอบ
-    /// </summary>
+    // ตัวควบคุมระบบเคาน์เตอร์พนักงานต้อนรับ (Front Desk Staff Console)
     public class StaffController : Controller
     {
+        // ตัวแปรจัดเก็บ DbContext สำหรับเชื่อมโยงฐานข้อมูล MySQL
         private readonly EasystaydbContext _context;
 
-        /// <summary>
-        /// Constructor รับ EasystaydbContext ผ่าน Dependency Injection
-        /// </summary>
+        // คอนสตรัคเตอร์รับ DbContext ผ่าน Dependency Injection
         public StaffController(EasystaydbContext context)
         {
+            // กำหนดค่า DbContext
             _context = context;
         }
 
-        /// <summary>
-        /// ตัวกรองความปลอดภัย (Action Filter) ตรวจสอบการเข้าสู่ระบบและสิทธิ์การทำงานของพนักงานต้อนรับ
-        /// ป้องกันไม่ให้ลูกค้า ฝ่ายบัญชี หรือแม่บ้านเข้ามาจัดการระบบหน้าเคาน์เตอร์
-        /// </summary>
+        // ตรวจสอบสิทธิ์การเข้าใช้งาน สงวนสิทธิ์เฉพาะพนักงานต้อนรับและผู้ดูแลระบบเท่านั้น
         public override void OnActionExecuting(ActionExecutingContext context)
         {
+            // ดึง UserId ของผู้ใช้จาก Session
             var userId = HttpContext.Session.GetInt32("UserId");
+            // ดึง Role ของผู้ใช้จาก Session
             var role = HttpContext.Session.GetString("Role");
 
-            // 1. ยังไม่ได้เข้าสู่ระบบ -> ส่งไปหน้า Login
+            // ตรวจสอบว่าผู้ใช้ยังไม่ได้เข้าสู่ระบบหรือไม่
             if (userId == null || string.IsNullOrEmpty(role))
             {
+                // แจ้งเตือนให้เข้าสู่ระบบก่อน
                 TempData["ErrorMessage"] = "กรุณาเข้าสู่ระบบก่อนเข้าใช้งานหน้าระบบพนักงาน";
+                // จดจำพาธ URL เดิมที่พยายามเข้าถึง
                 string returnUrl = context.HttpContext.Request.Path + context.HttpContext.Request.QueryString;
+                // สั่งนำทางไปยังหน้า Login
                 context.Result = new RedirectToActionResult("Login", "Account", new { returnUrl });
+                // จบการทำงาน
                 return;
             }
 
-            // 2. ถ้าเป็นพนักงานแม่บ้าน (Housekeeper) พยายามเข้าหน้าพนักงานต้อนรับ -> ส่งกลับหน้าแดชบอร์ดแม่บ้าน
+            // ตรวจสอบกรณีเป็นพนักงานแม่บ้าน ห้ามเข้าหน้าระบบพนักงานต้อนรับ
             if (role == "Housekeeper" || role == "Maid")
             {
+                // แจ้งเตือนเรื่องการปฏิบัติงานข้ามหน้าที่
                 TempData["ErrorMessage"] = "คุณไม่มีสิทธิ์เข้าถึงหน้าระบบพนักงานต้อนรับ สงวนสิทธิ์เฉพาะพนักงานต้อนรับและผู้ดูแลระบบเท่านั้น เพื่อป้องกันการปฏิบัติงานข้ามหน้าที่";
+                // ส่งไปยังหน้า Dashboard ของแม่บ้าน
                 context.Result = new RedirectToActionResult("Dashboard", "Housekeeper", null);
+                // จบการทำงาน
                 return;
             }
 
-            // 3. ฝ่ายบัญชี (Accounting) พยายามเข้าหน้า Staff -> ส่งกลับหน้ารายงานบัญชี
+            // ตรวจสอบกรณีเป็นพนักงานฝ่ายบัญชี
             if (role == "Accounting")
             {
+                // แจ้งเตือนว่าไม่มีสิทธิ์
                 TempData["ErrorMessage"] = "คุณไม่มีสิทธิ์เข้าถึงหน้าระบบพนักงานต้อนรับ";
+                // ส่งไปยังหน้ารายงานรายได้ของบัญชี
                 context.Result = new RedirectToActionResult("RevenueReport", "Accounting", null);
+                // จบการทำงาน
                 return;
             }
 
-            // 4. ผู้ใช้งานทั่วไป (Customer) หรือบทบาทอื่นที่ไม่มีสิทธิ์เข้าถึงหน้าพนักงาน
+            // ตรวจสอบว่าบทบาทไม่ใช่ Staff, Admin หรือ SuperAdmin หรือไม่
             if (role != "Staff" && role != "Admin" && role != "SuperAdmin")
             {
+                // แจ้งเตือนว่าไม่มีสิทธิ์
                 TempData["ErrorMessage"] = "คุณไม่มีสิทธิ์เข้าถึงหน้าระบบพนักงาน สงวนสิทธิ์เฉพาะพนักงานและผู้ดูแลระบบเท่านั้น";
+                // ส่งกลับหน้าแรกของเว็บไซต์
                 context.Result = new RedirectToActionResult("Index", "Home", null);
+                // จบการทำงาน
                 return;
             }
 
+            // เรียกการทำงานของคลาสแม่ตามปกติ
             base.OnActionExecuting(context);
         }
 
-        /// <summary>
-        /// ฟังก์ชันตรวจสอบและดึงสาขาที่พนักงานสังกัด
-        /// กฎความปลอดภัยสำคัญ: หากเป็นพนักงานต้อนรับ (Staff) ระบบจะบังคับล็อกให้อยู่เฉพาะสาขาของตนเองเท่านั้น (IsBranchLocked = true)
-        /// แต่ถ้าเป็นผู้ดูแลระบบ (Admin) จะสามารถสลับดูสาขาอื่นได้
-        /// </summary>
+        // ล็อกสาขาประจำการของพนักงานต้อนรับ ป้องกันการดูหรือแก้ไขข้อมูลข้ามสาขา
         private string GetCurrentBranch(string? branch = null)
         {
+            // ดึงบทบาทของผู้ใช้จาก Session
             var role = HttpContext.Session.GetString("Role");
+            // ดึงสาขาที่ผู้ใช้ประจำการอยู่จาก Session (หากไม่มีให้เป็น Bangkok)
             string userBranch = HttpContext.Session.GetString("Branch") ?? "Bangkok";
 
-            // พนักงานต้อนรับ (Staff) จัดการได้เฉพาะสาขาตนเองเท่านั้น
+            // หากเป็นพนักงานต้อนรับ (Staff) จะถูกล็อกสาขาให้ทำงานเฉพาะสาขาตนเองเท่านั้น
             if (role == "Staff")
             {
+                // ส่งสาขาไปยัง View
                 ViewBag.CurrentBranch = userBranch;
+                // ส่งชื่อภาษาไทยของสาขา
                 ViewBag.CurrentBranchTh = RoomPreviewHelper.GetBranchNameTh(userBranch);
+                // ระบุว่าสาขาถูกล็อก ไม่สามารถสลับสาขาได้
                 ViewBag.IsBranchLocked = true;
+                // คืนค่าสาขาประจำการ
                 return userBranch;
             }
 
-            // ผู้ดูแลระบบ (Admin) สลับดูสาขาอื่นได้
+            // หากเป็น Admin หรือ SuperAdmin สามารถเลือกสลับสาขาเพื่อดูข้อมูลได้
             string currentBranch = userBranch;
             if (!string.IsNullOrEmpty(branch))
             {
                 currentBranch = branch;
+                // บันทึกสาขาใหม่ลง Session
                 HttpContext.Session.SetString("Branch", branch);
             }
+            // ส่งสาขาปัจจุบันไปยัง View
             ViewBag.CurrentBranch = currentBranch;
+            // ส่งชื่อภาษาไทยของสาขาไปยัง View
             ViewBag.CurrentBranchTh = RoomPreviewHelper.GetBranchNameTh(currentBranch);
+            // ระบุว่าไม่ได้ล็อกสาขา (สามารถเลือกดูสาขาอื่นได้)
             ViewBag.IsBranchLocked = false;
+            // คืนค่าสาขาที่เลือก
             return currentBranch;
         }
 
-        // =========================================================================
-        // 1. ภาพรวมการดำเนินงานวันต่อวัน (Daily Operations Overview)
-        // =========================================================================
-        /// <summary>
-        /// หน้าแดชบอร์ดภาพรวมประจำวันของเคาน์เตอร์โรงแรม:
-        /// - สรุปแขกจะเช็คอินวันนี้ (Arrivals)
-        /// - สรุปแขกจะเช็คเอาท์วันนี้ (Departures)
-        /// - สรุปแขกที่พักอยู่ในโรงแรมปัจจุบัน (In-House Guests)
-        /// - สถิติสถานะห้องพัก (ว่าง, พักอยู่, รอทำความสะอาด, ปิดซ่อม)
-        /// - ยอดรายรับประจำวันแยกเงินสดกับเงินโอน
-        /// </summary>
+        // 1. ภาพรวมการปฏิบัติงานประจำวัน แสดงตัวเลขสถิติและรายรับประจำวัน
         [HttpGet]
         public IActionResult DailyOverview(string? date = null, string? branch = null)
         {
+            // ดึงสาขาที่กำลังดูข้อมูล
             string currentBranch = GetCurrentBranch(branch);
 
+            // ตัวแปรวันที่เป้าหมายที่ต้องการดูข้อมูล
             DateOnly targetDate;
+            // ลองแปลงข้อความวันที่ หากไม่สำเร็จให้ใช้วันที่ปัจจุบัน (Today)
             if (!DateOnly.TryParse(date, out targetDate))
             {
                 targetDate = DateOnly.FromDateTime(DateTime.Today);
             }
+            // ปรับเทียบปีให้เป็น ค.ศ. สากล
+            targetDate = DateHelper.NormalizeToGregorian(targetDate);
 
+            // ส่งข้อมูลวันที่ไปยัง View
             ViewBag.TargetDate = targetDate;
-            ViewBag.TargetDateStr = targetDate.ToString("yyyy-MM-dd");
-            ViewBag.TargetDateTh = targetDate.ToString("dd MMMM yyyy");
+            ViewBag.TargetDateStr = DateHelper.ToIsoDate(targetDate);
+            ViewBag.TargetDateTh = DateHelper.ToThaiFullDate(targetDate.ToDateTime(TimeOnly.MinValue));
             ViewBag.IsToday = targetDate == DateOnly.FromDateTime(DateTime.Today);
 
-            // 1. รายการแขกที่กำหนดเช็คอินในวันนี้ (Arrivals)
+            // คิวรีรายการแขกที่จะเช็คอินในวันนี้ (Arrivals Today)
             var arrivalsToday = _context.Bookings
                 .Include(b => b.Room)
                     .ThenInclude(r => r!.RoomType)
@@ -152,7 +165,7 @@ namespace EasyStayHotel.Controllers
                 .OrderBy(b => b.BookingStatus)
                 .ToList();
 
-            // 2. รายการแขกที่กำหนดเช็คเอาท์ในวันนี้ (Departures)
+            // คิวรีรายการแขกที่จะเช็คเอาท์ในวันนี้ (Departures Today)
             var departuresToday = _context.Bookings
                 .Include(b => b.Room)
                     .ThenInclude(r => r!.RoomType)
@@ -161,7 +174,7 @@ namespace EasyStayHotel.Controllers
                 .Where(b => b.Room != null && b.Room.Branch == currentBranch && b.CheckOutDate == targetDate && (b.BookingStatus == "CheckIn" || b.BookingStatus == "CheckedIn"))
                 .ToList();
 
-            // 3. รายการแขกที่พักอยู่ในโรงแรมปัจจุบัน (In-House Guests)
+            // คิวรีรายการแขกที่กำลังพักอยู่ในโรงแรมขณะนี้ (In-House Bookings)
             var inHouseBookings = _context.Bookings
                 .Include(b => b.Room)
                     .ThenInclude(r => r!.RoomType)
@@ -169,12 +182,13 @@ namespace EasyStayHotel.Controllers
                 .Where(b => b.Room != null && b.Room.Branch == currentBranch && (b.BookingStatus == "CheckIn" || b.BookingStatus == "CheckedIn"))
                 .ToList();
 
-            // 4. สรุปสถานะห้องพักทั้งหมดในสาขา
+            // ดึงรายการห้องพักทั้งหมดในสาขานี้
             var rooms = _context.Rooms
                 .Include(r => r.RoomType)
                 .Where(r => r.Branch == currentBranch)
                 .ToList();
 
+            // สรุปจำนวนห้องพักตามสถานะต่างๆ
             int totalRooms = rooms.Count;
             int availableRooms = rooms.Count(r => r.Status == "Available");
             int occupiedRooms = rooms.Count(r => r.Status == "Occupied");
@@ -182,19 +196,24 @@ namespace EasyStayHotel.Controllers
             int maintenanceRooms = rooms.Count(r => r.Status == "Maintenance");
             int reservedRooms = rooms.Count(r => r.Status == "Reserved");
 
-            // 5. สรุปยอดรายได้ที่บันทึกของวันที่นี้
+            // กำหนดช่วงเวลาเริ่มต้นและสิ้นสุดของวันเป้าหมาย
             DateTime startOfDay = targetDate.ToDateTime(TimeOnly.MinValue);
             DateTime endOfDay = targetDate.ToDateTime(TimeOnly.MaxValue);
+            // คิวรีรายการชำระเงินที่เกิดขึ้นในวันนั้น
             var paymentsToday = _context.Payments
                 .Include(p => p.Booking)
                     .ThenInclude(b => b!.Room)
                 .Where(p => p.Booking != null && p.Booking.Room != null && p.Booking.Room.Branch == currentBranch && p.TransferDate >= startOfDay && p.TransferDate <= endOfDay)
                 .ToList();
 
+            // คำนวณรายรับรวมประจำวัน
             decimal totalRevenue = paymentsToday.Where(p => p.PaymentStatus == "Paid" || p.PaymentStatus == "Confirmed").Sum(p => p.Amount);
+            // คำนวณรายรับเงินสด
             decimal cashRevenue = paymentsToday.Where(p => p.PaymentMethod == "Cash").Sum(p => p.Amount);
+            // คำนวณรายรับเงินโอนพร้อมเพย์
             decimal promptPayRevenue = paymentsToday.Where(p => p.PaymentMethod == "PromptPay").Sum(p => p.Amount);
 
+            // ส่งข้อมูลสรุปทั้งหมดไปยัง View
             ViewBag.ArrivalsToday = arrivalsToday;
             ViewBag.DeparturesToday = departuresToday;
             ViewBag.InHouseBookings = inHouseBookings;
@@ -208,25 +227,24 @@ namespace EasyStayHotel.Controllers
             ViewBag.CashRevenue = cashRevenue;
             ViewBag.PromptPayRevenue = promptPayRevenue;
 
+            // แสดงหน้าจอ DailyOverview
             return View();
         }
 
-        // =========================================================================
-        // 2. โต๊ะรับเช็คอินหน้าเคาน์เตอร์ (Check-in Desk & Room Assignment)
-        // =========================================================================
-        /// <summary>
-        /// หน้าจอค้นหาการจองและจัดห้องพักให้แขกตอนมาถึงโรงแรม
-        /// </summary>
+        // 2. หน้าเคาน์เตอร์เช็คอินและจัดสรรหมายเลขห้องพักจริงให้ลูกค้า
         [HttpGet]
         public IActionResult CheckInDesk(string? bookingRef = null, string? search = null, string? branch = null)
         {
+            // ดึงสาขาที่กำลังดูข้อมูล
             string currentBranch = GetCurrentBranch(branch);
+            // ดึงข้อความค้นหา ไม่ว่าจะเป็นรหัสการจอง เบอร์โทร หรือชื่อแขก
             string queryText = !string.IsNullOrWhiteSpace(bookingRef) ? bookingRef.Trim() : (search?.Trim() ?? "");
 
+            // ค้นหาการจองเป้าหมายตามข้อความค้นหา
             Booking? targetBooking = null;
             if (!string.IsNullOrEmpty(queryText))
             {
-                // ค้นหาจากการจองตรงๆ ด้วยหมายเลข BookingRef หรือเบอร์โทร
+                // ค้นหาขั้นที่ 1: ตรวจสอบจาก BookingRef หรือเบอร์โทรศัพท์ในสาขานั้น
                 targetBooking = _context.Bookings
                     .Include(b => b.Room)
                         .ThenInclude(r => r!.RoomType)
@@ -234,6 +252,7 @@ namespace EasyStayHotel.Controllers
                     .Include(b => b.Payments)
                     .FirstOrDefault(b => (b.BookingRef == queryText || (b.User != null && b.User.Phone == queryText) || b.BookingRef.Contains(queryText)) && b.Room != null && b.Room.Branch == currentBranch);
 
+                // ค้นหาขั้นที่ 2: ตรวจสอบแบบมีคำบางส่วน หรือตรงกับชื่อแขก
                 if (targetBooking == null)
                 {
                     targetBooking = _context.Bookings
@@ -244,13 +263,14 @@ namespace EasyStayHotel.Controllers
                         .FirstOrDefault(b => (b.BookingRef.Contains(queryText) || (b.GuestName != null && b.GuestName.Contains(queryText))) && b.Room != null && b.Room.Branch == currentBranch);
                 }
 
+                // หากยังไม่พบข้อมูล ให้แจ้งเตือนผู้ใช้
                 if (targetBooking == null)
                 {
                     ViewBag.SearchError = $"ไม่พบข้อมูลการจองที่ตรงกับ '{queryText}' ในสาขา{ViewBag.CurrentBranchTh}";
                 }
             }
 
-            // ดึงห้องว่างทั้งหมดของสาขานี้ เพื่อให้พนักงานเลือกจัดห้องพักให้ลูกค้า
+            // คิวรีดึงรายการห้องพักที่ว่างพร้อมเข้าพักในสาขานี้ (รวมถึงห้องที่ผูกกับการจองนี้อยู่แล้ว)
             var availableRooms = _context.Rooms
                 .Include(r => r.RoomType)
                 .Where(r => r.Branch == currentBranch && (r.Status == "Available" || (targetBooking != null && r.RoomId == targetBooking.RoomId)))
@@ -258,7 +278,7 @@ namespace EasyStayHotel.Controllers
                 .ThenBy(r => r.RoomNo)
                 .ToList();
 
-            // รายการจองที่รอเข้าพักในวันนี้
+            // ดึงรายการแขกที่รอเช็คอินในวันนี้หรือเลยกำหนดเช็คอิน
             var today = DateOnly.FromDateTime(DateTime.Today);
             var pendingArrivals = _context.Bookings
                 .Include(b => b.Room)
@@ -270,11 +290,13 @@ namespace EasyStayHotel.Controllers
                 .Take(10)
                 .ToList();
 
+            // ส่งข้อมูลไปยัง View
             ViewBag.SearchQuery = queryText;
             ViewBag.TargetBooking = targetBooking;
             ViewBag.AvailableRooms = availableRooms;
             ViewBag.PendingArrivals = pendingArrivals;
 
+            // หากพบรายการจอง ให้คำนวณสถิติสถานะห้องพักในประเภทที่จอง
             if (targetBooking?.Room?.RoomType != null)
             {
                 int? bookedTypeId = targetBooking.Room.RoomTypeId;
@@ -287,30 +309,28 @@ namespace EasyStayHotel.Controllers
                 ViewBag.BookedTypeOccupied = allTypeRooms.Count(r => r.Status == "Occupied");
             }
 
+            // แสดงหน้าจอ CheckInDesk
             return View();
         }
 
-        /// <summary>
-        /// ดำเนินการเช็คอินแขกเข้าห้องพัก:
-        /// 1. หากมีการสลับห้อง จะคืนห้องเดิมกลับเป็น "Available"
-        /// 2. เปลี่ยนสถานะห้องใหม่เป็น "Occupied"
-        /// 3. เปลี่ยนสถานะการจองเป็น "CheckIn"
-        /// 4. ปรับสถานะการชำระเงินเป็น "Paid"
-        /// </summary>
+        // ยืนยันการเช็คอิน ผูกหมายเลขห้อง ปรับสถานะห้องเป็น Occupied และปรับการจองเป็น CheckIn
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult ProcessCheckIn(int bookingId, int roomId, string? notes = null)
         {
+            // ค้นหารายการจองในฐานข้อมูล
             var booking = _context.Bookings
                 .Include(b => b.Room)
                 .FirstOrDefault(b => b.BookingId == bookingId);
 
+            // หากไม่พบรายการจอง
             if (booking == null)
             {
                 TempData["ErrorMessage"] = "ไม่พบรายการจองที่ต้องการเช็คอิน";
                 return RedirectToAction(nameof(CheckInDesk));
             }
 
+            // ค้นหาห้องพักใหม่ที่เลือกมอบให้ลูกค้า
             var newRoom = _context.Rooms.Find(roomId);
             if (newRoom == null)
             {
@@ -318,7 +338,7 @@ namespace EasyStayHotel.Controllers
                 return RedirectToAction(nameof(CheckInDesk), new { bookingRef = booking.BookingRef });
             }
 
-            // ตรวจสอบความปลอดภัยข้ามสาขา
+            // ตรวจสอบสิทธิ์สาขาของพนักงานต้อนรับ
             string currentBranch = GetCurrentBranch();
             var role = HttpContext.Session.GetString("Role");
             if (role == "Staff" && (newRoom.Branch != currentBranch || (booking.Room != null && booking.Room.Branch != currentBranch)))
@@ -327,56 +347,44 @@ namespace EasyStayHotel.Controllers
                 return RedirectToAction(nameof(BookingList));
             }
 
-            // หากมีการเปลี่ยนห้องพัก ให้ปล่อยห้องเดิมกลับเป็น Available
+            // ตรวจสอบว่าได้รับการยืนยันชำระเงิน (ตรวจสลิป) เรียบร้อยแล้วหรือยัง ก่อนอนุญาตให้เช็คอิน
+            var payment = _context.Payments
+                .OrderByDescending(p => p.PaymentId)
+                .FirstOrDefault(p => p.BookingId == bookingId);
+
+            if (payment == null || payment.PaymentStatus != "Paid")
+            {
+                TempData["ErrorMessage"] = $"ไม่สามารถเช็คอินรหัส {booking.BookingRef} ได้ กรุณาตรวจสอบสลิปและกดยืนยันรับชำระเงินก่อนส่งมอบห้องพัก";
+                return RedirectToAction(nameof(CheckInDesk), new { bookingRef = booking.BookingRef });
+            }
+
+            // หากมีการเปลี่ยนห้องพัก ให้ปลดล็อกห้องพักเดิมกลับเป็น Available
             if (booking.RoomId != roomId && booking.Room != null)
             {
                 booking.Room.Status = "Available";
             }
 
-            // ผูกห้องพักใหม่และเปลี่ยนสถานะเป็น Occupied
+            // ผูกหมายเลขห้องใหม่เข้ากับการจอง
             booking.RoomId = roomId;
+            // ปรับสถานะการจองเป็น CheckIn (เข้าพักแล้ว)
             booking.BookingStatus = "CheckIn";
+            // ปรับสถานะห้องพักใหม่เป็น Occupied (มีแขกพักอยู่)
             newRoom.Status = "Occupied";
 
-            // ปรับสถานะการชำระเงินเป็น Paid
-            var payment = _context.Payments.FirstOrDefault(p => p.BookingId == bookingId);
-            if (payment != null)
-            {
-                payment.PaymentStatus = "Paid";
-                if (payment.TransferDate == null) payment.TransferDate = DateTime.Now;
-            }
-            else
-            {
-                payment = new Payment
-                {
-                    BookingId = bookingId,
-                    Amount = booking.TotalPrice,
-                    PaymentMethod = "PromptPay",
-                    PaymentStatus = "Paid",
-                    TransferDate = DateTime.Now
-                };
-                _context.Payments.Add(payment);
-            }
-
+            // บันทึกการเปลี่ยนแปลงทั้งหมดลง MySQL
             _context.SaveChanges();
 
+            // แจ้งข้อความสำเร็จและนำไปยังหน้าพิมพ์ใบเสร็จ BookingReceipt
             TempData["SuccessMessage"] = $"เช็คอินสำเร็จ! แขก: {booking.GuestName} เข้าพักห้อง {newRoom.RoomNo} เรียบร้อยแล้ว";
             return RedirectToAction(nameof(BookingReceipt), new { id = booking.BookingId });
         }
 
-        // =========================================================================
-        // 3. ระบบเช็คเอาท์ (Check-out)
-        // =========================================================================
-        /// <summary>
-        /// เช็คเอาท์แขกออกจากห้องพัก:
-        /// 1. เปลี่ยนสถานะการจองเป็น "Completed"
-        /// 2. เปลี่ยนสถานะห้องพักในตาราง rooms เป็น "Cleaning" (รอทำความสะอาด)
-        /// 3. สร้างใบสั่งงานแม่บ้าน (Housekeeping Task) ลง HousekeepingService อัตโนมัติทันที
-        /// </summary>
+        // 3. เช็คเอาท์ห้องพัก ปรับสถานะการจองเป็น Completed และเปลี่ยนสถานะห้องเป็น Cleaning ส่งต่อให้แม่บ้าน
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult CheckOutBooking(int id)
         {
+            // ค้นหารายการจองพร้อมข้อมูลห้องพักและผู้ใช้
             var booking = _context.Bookings
                 .Include(b => b.Room)
                     .ThenInclude(r => r!.RoomType)
@@ -385,6 +393,7 @@ namespace EasyStayHotel.Controllers
 
             if (booking != null)
             {
+                // ตรวจสอบสิทธิ์สาขา
                 string currentBranch = GetCurrentBranch();
                 var role = HttpContext.Session.GetString("Role");
                 if (role == "Staff" && booking.Room != null && booking.Room.Branch != currentBranch)
@@ -393,16 +402,18 @@ namespace EasyStayHotel.Controllers
                     return RedirectToAction(nameof(BookingList));
                 }
 
+                // ปรับสถานะการจองเป็น Completed (เสร็จสิ้น)
                 booking.BookingStatus = "Completed";
                 if (booking.Room != null)
                 {
-                    // ปรับสถานะห้องเป็น "Cleaning" (รอทำความสะอาด)
+                    // เปลี่ยนสถานะห้องพักเป็น Cleaning (รอทำความสะอาด)
                     booking.Room.Status = "Cleaning";
                     _context.SaveChanges();
 
-                    // ส่งมอบงานทำความสะอาดให้แม่บ้านอัตโนมัติ
+                    // ดึงชื่อพนักงานและชื่อแขก
                     string staffName = HttpContext.Session.GetString("FullName") ?? "พนักงานต้อนรับ";
                     string guestName = booking.User?.FullName ?? "ลูกค้าทั่วไป";
+                    // สร้างงานทำความสะอาดส่งต่อให้แม่บ้านในระบบ HousekeepingService โดยอัตโนมัติ
                     HousekeepingService.CreateTask(
                         booking.Room.RoomId,
                         booking.Room.RoomNo,
@@ -420,6 +431,7 @@ namespace EasyStayHotel.Controllers
                     _context.SaveChanges();
                 }
 
+                // แจ้งข้อความสำเร็จ
                 TempData["SuccessMessage"] = $"เช็คเอาท์แขกห้อง {(booking.Room != null ? booking.Room.RoomNo : "")} เรียบร้อยแล้ว (ส่งรายการทำความสะอาดไปยังฝั่งแม่บ้านแล้ว)";
             }
             else
@@ -427,64 +439,69 @@ namespace EasyStayHotel.Controllers
                 TempData["ErrorMessage"] = "ไม่พบรายการจองที่ต้องการเช็คเอาท์";
             }
 
+            // นำทางกลับไปยังหน้าที่เรียกมา (Referer) หากมี
             string? referer = Request.Headers["Referer"].ToString();
             if (!string.IsNullOrEmpty(referer) && Url.IsLocalUrl(referer))
             {
                 return Redirect(referer);
             }
 
+            // นำส่งกลับไปยังหน้ารายชื่อการจอง BookingList
             return RedirectToAction(nameof(BookingList));
         }
 
-        /// <summary>
-        /// เช็คอินแบบด่วนในคลิกเดียวจากตาราง
-        /// </summary>
+        // เมธอดเช็คอินด่วนจากหน้ารายชื่อการจอง
         public IActionResult CheckInBooking(int id)
         {
+            // ค้นหารายการจอง
             var booking = _context.Bookings.Include(b => b.Room).FirstOrDefault(b => b.BookingId == id);
             if (booking != null)
             {
+                // ปรับสถานะการจองเป็น CheckIn
                 booking.BookingStatus = "CheckIn";
                 if (booking.Room != null)
                 {
+                    // ปรับสถานะห้องเป็น Occupied
                     booking.Room.Status = "Occupied";
                 }
+                // บันทึกการเปลี่ยนแปลง
                 _context.SaveChanges();
                 TempData["SuccessMessage"] = $"รับเช็คอินคุณ {booking.GuestName} เข้าห้อง {(booking.Room != null ? booking.Room.RoomNo : "")} เรียบร้อยแล้ว";
             }
             return RedirectToAction(nameof(BookingList));
         }
 
-        // =========================================================================
-        // 4. หน้าจัดการสถานะห้องพัก (Room Status Management)
-        // =========================================================================
-        /// <summary>
-        /// หน้ารายการห้องพักทั้งหมดของสาขา แสดงสถานะเรียลไทม์ และแขกที่กำลังพักอยู่
-        /// </summary>
+        // หน้ากระดานควบคุมสถานะห้องพักแบบการ์ดเรียลไทม์ (Room Control Board)
         public ActionResult Index(string? branch = null, string? filterStatus = null)
         {
+            // ดึงสาขาที่กำลังดูข้อมูล
             string currentBranch = GetCurrentBranch(branch);
 
+            // คิวรีดึงข้อมูลห้องพักในสาขานี้พร้อมประเภทห้อง
             var query = _context.Rooms
                 .Include(r => r.RoomType)
                 .Where(r => r.Branch == currentBranch);
 
+            // กรองสถานะห้องพักหากมีการระบุ
             if (!string.IsNullOrEmpty(filterStatus) && filterStatus != "ALL")
             {
                 query = query.Where(r => r.Status == filterStatus);
             }
 
+            // เรียงลำดับตามประเภทห้องและหมายเลขห้อง
             var rooms = query.OrderBy(r => r.RoomTypeId).ThenBy(r => r.RoomNo).ToList();
 
-            // ดึงข้อมูลแขกที่พักอยู่ในห้องแบบเรียลไทม์
+            // ค้นหารายการจองที่มีแขกพักอยู่จริงในห้องพักแต่ละห้องขณะนี้
             var activeBookings = _context.Bookings
                 .Where(b => b.Room != null && b.Room.Branch == currentBranch && (b.BookingStatus == "CheckIn" || b.BookingStatus == "CheckedIn") && b.RoomId.HasValue)
                 .GroupBy(b => b.RoomId!.Value)
                 .ToDictionary(g => g.Key, g => g.First());
 
+            // ส่งข้อมูลการจองปัจจุบันไปยัง View
             ViewBag.ActiveBookings = activeBookings;
             ViewBag.FilterStatus = filterStatus ?? "ALL";
 
+            // สรุปจำนวนห้องพักในแต่ละสถานะสำหรับแสดงผลการ์ดสรุปด้านบน
             var allBranchRooms = _context.Rooms.Where(r => r.Branch == currentBranch).ToList();
             ViewBag.CountAvailable = allBranchRooms.Count(r => r.Status == "Available");
             ViewBag.CountOccupied = allBranchRooms.Count(r => r.Status == "Occupied");
@@ -492,21 +509,20 @@ namespace EasyStayHotel.Controllers
             ViewBag.CountMaintenance = allBranchRooms.Count(r => r.Status == "Maintenance");
             ViewBag.CountTotal = allBranchRooms.Count;
 
+            // แสดงหน้าจอ Index
             return View(rooms);
         }
 
-        /// <summary>
-        /// อัปเดตสถานะห้องพักใน 1 คลิก พร้อมซิงค์ระบบงานแม่บ้าน:
-        /// - หากเปลี่ยนเป็น Cleaning -> สร้างงานแม่บ้าน
-        /// - หากเปลี่ยนเป็น Available -> ปิดงานแม่บ้านเดิม
-        /// </summary>
+        // เมธอดสำหรับเปลี่ยนสถานะห้องพักด่วนจากหน้าการ์ดห้องพัก
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult QuickUpdateRoomStatus(int roomId, string newStatus)
         {
+            // ค้นหาห้องพักในฐานข้อมูล
             var room = _context.Rooms.Include(r => r.RoomType).FirstOrDefault(r => r.RoomId == roomId);
             if (room != null)
             {
+                // ตรวจสอบสิทธิ์สาขา
                 string currentBranch = GetCurrentBranch();
                 var role = HttpContext.Session.GetString("Role");
                 if (role == "Staff" && room.Branch != currentBranch)
@@ -515,11 +531,13 @@ namespace EasyStayHotel.Controllers
                     return RedirectToAction(nameof(Index));
                 }
 
+                // ปรับสถานะห้องพักใหม่
                 room.Status = newStatus;
                 _context.SaveChanges();
 
                 string staffName = HttpContext.Session.GetString("FullName") ?? "พนักงาน";
 
+                // หากปรับสถานะเป็น Cleaning ให้สร้างงานทำความสะอาดส่งให้แม่บ้านทันที
                 if (newStatus == "Cleaning")
                 {
                     HousekeepingService.CreateTask(
@@ -534,6 +552,7 @@ namespace EasyStayHotel.Controllers
                         "FrontDesk"
                     );
                 }
+                // หากปรับสถานะเป็น Available ให้ปิดงานแม่บ้านที่ค้างอยู่ของห้องนี้
                 else if (newStatus == "Available")
                 {
                     var activeTask = HousekeepingService.GetAllTasks(room.Branch)
@@ -549,16 +568,16 @@ namespace EasyStayHotel.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        /// <summary>
-        /// พนักงานต้อนรับส่งคำขอทำความสะอาดห้องพักไปยังแดชบอร์ดแม่บ้านโดยตรง
-        /// </summary>
+        // เมธอดส่งงานแจ้งแม่บ้านทำความสะอาดห้องพักด่วน
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult RequestCleaning(int roomId, string priority = "Normal", string? notes = null)
         {
+            // ค้นหาห้องพัก
             var room = _context.Rooms.Include(r => r.RoomType).FirstOrDefault(r => r.RoomId == roomId);
             if (room != null)
             {
+                // ตรวจสอบสิทธิ์สาขา
                 string currentBranch = GetCurrentBranch();
                 var role = HttpContext.Session.GetString("Role");
                 if (role == "Staff" && room.Branch != currentBranch)
@@ -567,10 +586,12 @@ namespace EasyStayHotel.Controllers
                     return RedirectToAction(nameof(Index));
                 }
 
+                // ปรับสถานะห้องเป็น Cleaning
                 room.Status = "Cleaning";
                 _context.SaveChanges();
 
                 string staffName = HttpContext.Session.GetString("FullName") ?? "พนักงานต้อนรับ";
+                // สร้างงานทำความสะอาดระบุระดับความด่วน (Normal, Urgent, VIP) และหมายเหตุ
                 HousekeepingService.CreateTask(
                     room.RoomId,
                     room.RoomNo,
@@ -590,6 +611,7 @@ namespace EasyStayHotel.Controllers
                 TempData["ErrorMessage"] = "ไม่พบห้องพักที่ระบุ";
             }
 
+            // นำทางกลับหน้าเดิม
             string? referer = Request.Headers["Referer"].ToString();
             if (!string.IsNullOrEmpty(referer) && Url.IsLocalUrl(referer))
             {
@@ -599,9 +621,7 @@ namespace EasyStayHotel.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        /// <summary>
-        /// แสดงฟอร์มเพิ่มห้องพักใหม่ประจำสาขา
-        /// </summary>
+        // หน้าจอเพิ่มห้องพักใหม่
         public IActionResult CreateRoom()
         {
             string currentBranch = GetCurrentBranch();
@@ -614,9 +634,7 @@ namespace EasyStayHotel.Controllers
             return View(room);
         }
 
-        /// <summary>
-        /// บันทึกห้องพักใหม่
-        /// </summary>
+        // บันทึกห้องพักใหม่ลงในฐานข้อมูล MySQL
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult CreateRoom(Room newRoom)
@@ -637,9 +655,7 @@ namespace EasyStayHotel.Controllers
             return View(newRoom);
         }
 
-        /// <summary>
-        /// แสดงฟอร์มแก้ไขห้องพัก
-        /// </summary>
+        // หน้าจอแก้ไขข้อมูลห้องพัก
         public IActionResult EditRoom(int id)
         {
             var room = _context.Rooms.Include(r => r.RoomType).FirstOrDefault(r => r.RoomId == id);
@@ -651,9 +667,7 @@ namespace EasyStayHotel.Controllers
             return View(room);
         }
 
-        /// <summary>
-        /// บันทึกการแก้ไขห้องพัก
-        /// </summary>
+        // บันทึกการแก้ไขข้อมูลห้องพัก
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult EditRoom(Room updatedRoom)
@@ -673,9 +687,7 @@ namespace EasyStayHotel.Controllers
             return View(updatedRoom);
         }
 
-        /// <summary>
-        /// ลบห้องพักออกจากระบบ
-        /// </summary>
+        // ลบห้องพักออกจากระบบ
         public IActionResult DeleteRoom(int id)
         {
             var room = _context.Rooms.Find(id);
@@ -688,18 +700,14 @@ namespace EasyStayHotel.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        // =========================================================================
-        // 5. ระบบรับแขกหน้าร้านแบบ Walk-in (Walk-in Booking & Instant Check-in)
-        // =========================================================================
-        /// <summary>
-        /// แสดงหน้าจอทำรายการ Walk-in สำหรับแขกที่มาติดต่อเปิดห้องพักโดยตรงที่เคาน์เตอร์
-        /// </summary>
+        // 4. ระบบเปิดห้องพักหน้าเคาน์เตอร์สำหรับลูกค้า Walk-in
         [HttpGet]
         public IActionResult WalkinBooking(string? branch = null, int? preselectedRoomId = null)
         {
+            // ดึงสาขาปัจจุบัน
             string currentBranch = GetCurrentBranch(branch);
 
-            // ดึงเฉพาะห้องที่ว่างและสังกัดสาขาที่พนักงานประจำการ
+            // ดึงเฉพาะห้องที่ว่าง (Available) ในสาขานั้น
             var availableRooms = _context.Rooms
                 .Include(r => r.RoomType)
                 .Where(r => r.Status == "Available" && r.Branch == currentBranch)
@@ -707,12 +715,14 @@ namespace EasyStayHotel.Controllers
                 .ThenBy(r => r.RoomNo)
                 .ToList();
 
+            // ดึงประเภทห้องทั้งหมด
             var roomTypes = _context.Roomtypes.OrderBy(rt => rt.BasePrice).ToList();
 
             ViewBag.AvailableRooms = availableRooms;
             ViewBag.RoomTypes = roomTypes;
             ViewBag.PreselectedRoomId = preselectedRoomId;
 
+            // กำหนดค่าเริ่มต้นของแบบฟอร์ม WalkinViewModel
             var model = new WalkinViewModel
             {
                 CheckInDate = DateOnly.FromDateTime(DateTime.Today),
@@ -721,31 +731,27 @@ namespace EasyStayHotel.Controllers
                 PaymentMethod = "Cash"
             };
 
+            // หากมีการเลือกห้องมาจากหน้าอื่น
             if (preselectedRoomId.HasValue)
             {
                 model.RoomId = preselectedRoomId.Value;
             }
 
+            // แสดงหน้าจอ WalkinBooking
             return View(model);
         }
 
-        /// <summary>
-        /// ประมวลผลการจองแบบ Walk-in:
-        /// 1. ตรวจสอบหรือสร้างโปรไฟล์ลูกค้าในฐานข้อมูล
-        /// 2. บันทึกการจองด้วยสถานะ "CheckIn" ทันที
-        /// 3. บันทึกการชำระเงิน (Cash/PromptPay) เป็น "Paid"
-        /// 4. เปลี่ยนสถานะห้องพักเป็น "Occupied"
-        /// 5. นำทางไปยังหน้าพิมพ์ใบเสร็จ (BookingReceipt)
-        /// </summary>
+        // บันทึกการเปิดห้องพัก Walk-in พร้อมคิดเงินค่าห้องและบริการเสริม Add-on
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult WalkinBooking(WalkinViewModel model)
         {
             string currentBranch = GetCurrentBranch();
 
+            // ตรวจสอบความถูกต้องของข้อมูล
             if (ModelState.IsValid)
             {
-                // คำนวณราคาห้องพักและบริการเสริม
+                // ตรวจสอบระบบ Fallback คำนวณราคาฝั่ง Server ป้องกันยอดเป็น 0 บาท
                 if (model.TotalPrice <= 0)
                 {
                     var selectedRoom = _context.Rooms.Include(r => r.RoomType).FirstOrDefault(r => r.RoomId == model.RoomId);
@@ -753,20 +759,25 @@ namespace EasyStayHotel.Controllers
                     int nights = model.CheckOutDate.DayNumber - model.CheckInDate.DayNumber;
                     if (nights <= 0) nights = 1;
                     decimal calculated = basePrice * nights;
+                    // คิดค่าอาหารเช้า
                     if (model.AddBreakfast) calculated += (300 * nights);
+                    // คิดค่าเตียงเสริม
                     if (model.AddExtraBed) calculated += (500 * nights);
+                    // คิดค่ารถรับส่ง
                     if (model.AddAirportTransfer) calculated += 800;
+                    // คิดค่าเลทเช็คเอาท์
                     if (model.AddLateCheckout) calculated += 300;
                     model.TotalPrice = calculated;
                 }
 
-                // 1. จัดการข้อมูลลูกค้า (Guest Account)
+                // ค้นหาบัญชีลูกค้าจากเลขบัตรประชาชนหรืออีเมล
                 var guest = _context.Users.FirstOrDefault(u => u.IdCardOrPassport == model.IdCardOrPassport);
                 if (guest == null && !string.IsNullOrEmpty(model.Email))
                 {
                     guest = _context.Users.FirstOrDefault(u => u.Email == model.Email);
                 }
 
+                // หากยังไม่มีบัญชี ให้สร้างบัญชีลูกค้าใหม่
                 if (guest == null)
                 {
                     guest = new User
@@ -783,7 +794,7 @@ namespace EasyStayHotel.Controllers
                     _context.SaveChanges();
                 }
 
-                // 2. จัดการข้อมูลการจอง (Booking)
+                // สร้างข้อมูลการจองในตาราง Bookings ด้วยรหัส WK-...
                 var newBooking = new Booking
                 {
                     BookingRef = "WK-" + DateTime.Now.ToString("yyyyMMddHHmmss"),
@@ -793,12 +804,12 @@ namespace EasyStayHotel.Controllers
                     CheckInDate = model.CheckInDate,
                     CheckOutDate = model.CheckOutDate,
                     TotalPrice = model.TotalPrice,
-                    BookingStatus = "CheckIn" // Walk-in เข้าพักทันที
+                    BookingStatus = "CheckIn"
                 };
                 _context.Bookings.Add(newBooking);
                 _context.SaveChanges();
 
-                // 3. ระบบชำระเงิน (Payment)
+                // สร้างข้อมูลการชำระเงินในตาราง Payments
                 var newPayment = new Payment
                 {
                     BookingId = newBooking.BookingId,
@@ -809,19 +820,22 @@ namespace EasyStayHotel.Controllers
                 };
                 _context.Payments.Add(newPayment);
 
-                // 4. เปลี่ยนสถานะห้องพักเป็น Occupied
+                // ปรับสถานะห้องพักเป็น Occupied (มีแขกพัก) ทันที
                 var room = _context.Rooms.Find(model.RoomId);
                 if (room != null)
                 {
                     room.Status = "Occupied";
                 }
 
+                // บันทึกข้อมูลลงฐานข้อมูล MySQL
                 _context.SaveChanges();
 
+                // แจ้งเตือนความสำเร็จและนำไปยังหน้าใบเสร็จ
                 TempData["SuccessMessage"] = $"บันทึกการเข้าพักแบบ Walk-in สำเร็จ (รหัสอ้างอิง: {newBooking.BookingRef})";
                 return RedirectToAction(nameof(BookingReceipt), new { id = newBooking.BookingId });
             }
 
+            // กรณีข้อมูลไม่ถูกต้อง โหลดห้องพักว่างกลับมาแสดงใหม่
             ViewBag.AvailableRooms = _context.Rooms
                 .Include(r => r.RoomType)
                 .Where(r => r.Status == "Available" && r.Branch == currentBranch)
@@ -830,21 +844,14 @@ namespace EasyStayHotel.Controllers
             return View(model);
         }
 
-        // =========================================================================
-        // 6. หน้ารายชื่อการจองทั้งหมด (Booking List & Search)
-        // =========================================================================
-        /// <summary>
-        /// แสดงรายการการจองทั้งหมดในสาขา พร้อมแท็บแยกสถานะ:
-        /// - แท็บ All: การจองทั้งหมด
-        /// - แท็บ Pending: รอชำระเงินหรือรอวันเข้าพัก
-        /// - แท็บ InHouse: กำลังพักอยู่ในห้องขณะนี้
-        /// - แท็บ Completed: เช็คเอาท์เรียบร้อยแล้ว
-        /// พร้อมระบบค้นหาด้วย หมายเลขการจอง, ชื่อแขก, เบอร์โทรศัพท์ หรือเลขห้อง
-        /// </summary>
+        // 5. หน้ารายชื่อการจองทั้งหมดในสาขา รองรับการกรองตามสถานะและการค้นหา
+        [HttpGet]
         public IActionResult BookingList(string? tab = null, string? search = null, string? branch = null)
         {
+            // ดึงสาขาที่กำลังดูข้อมูล
             string currentBranch = GetCurrentBranch(branch);
 
+            // คิวรีดึงรายการจองในสาขานี้พร้อมข้อมูลห้องพัก ผู้ใช้ และการชำระเงิน
             var query = _context.Bookings
                 .Include(b => b.Room)
                     .ThenInclude(r => r!.RoomType)
@@ -853,7 +860,7 @@ namespace EasyStayHotel.Controllers
                 .Where(b => b.Room != null && b.Room.Branch == currentBranch)
                 .AsQueryable();
 
-            // ค้นหาตามคำสำคัญ
+            // กรองตามคำค้นหา (รหัสจอง ชื่อแขก เบอร์โทร หรือเลขห้อง)
             if (!string.IsNullOrWhiteSpace(search))
             {
                 string s = search.Trim();
@@ -865,14 +872,17 @@ namespace EasyStayHotel.Controllers
                 );
             }
 
+            // ดึงข้อมูลการจองทั้งหมดเรียงตาม BookingId จากใหม่ไปเก่า
             var allBranchBookings = query.OrderByDescending(b => b.BookingId).ToList();
 
+            // นับจำนวนการจองในแต่ละแท็บ
             var today = DateOnly.FromDateTime(DateTime.Today);
             int countAll = allBranchBookings.Count;
             int countPending = allBranchBookings.Count(b => b.BookingStatus == "Pending" || b.BookingStatus == "Confirmed" || b.BookingStatus == "Reserved");
             int countInHouse = allBranchBookings.Count(b => b.BookingStatus == "CheckIn" || b.BookingStatus == "CheckedIn");
             int countCompleted = allBranchBookings.Count(b => b.BookingStatus == "Completed");
 
+            // กรองข้อมูลตามแท็บที่เลือก (All, Pending, InHouse, Completed)
             string activeTab = tab ?? "All";
             List<Booking> filteredList;
             switch (activeTab)
@@ -892,6 +902,7 @@ namespace EasyStayHotel.Controllers
                     break;
             }
 
+            // ส่งข้อมูลสรุปไปยัง View
             ViewBag.ActiveTab = activeTab;
             ViewBag.SearchText = search;
             ViewBag.CountAll = countAll;
@@ -899,22 +910,20 @@ namespace EasyStayHotel.Controllers
             ViewBag.CountInHouse = countInHouse;
             ViewBag.CountCompleted = countCompleted;
 
+            // ส่งรายการห้องว่างสำหรับใช้ใน Modal จัดห้องตอนเช็คอิน
             ViewBag.AvailableRooms = _context.Rooms
                 .Include(r => r.RoomType)
                 .Where(r => r.Branch == currentBranch && r.Status == "Available")
                 .ToList();
 
+            // แสดงหน้ารายชื่อการจอง BookingList
             return View(filteredList);
         }
 
-        // =========================================================================
-        // 7. พิมพ์ใบเสร็จรับเงิน (Booking Receipt)
-        // =========================================================================
-        /// <summary>
-        /// แสดงหน้าพิมพ์ใบเสร็จรับเงิน/ใบส่งมอบกุญแจห้องพักสำหรับลูกค้าหน้าร้าน
-        /// </summary>
+        // หน้าแสดงเอกสารยืนยันและใบเสร็จรับเงินขนาดมาตรฐาน A4 (BookingReceipt)
         public IActionResult BookingReceipt(int id)
         {
+            // ค้นหาข้อมูลการจอง
             var booking = _context.Bookings
                 .Include(b => b.Room)
                     .ThenInclude(r => r!.RoomType)
@@ -927,6 +936,7 @@ namespace EasyStayHotel.Controllers
                 return NotFound();
             }
 
+            // ตรวจสอบสิทธิ์สาขา
             string currentBranch = GetCurrentBranch();
             var role = HttpContext.Session.GetString("Role");
             if (role == "Staff" && booking.Room != null && booking.Room.Branch != currentBranch)
@@ -935,23 +945,21 @@ namespace EasyStayHotel.Controllers
                 return RedirectToAction(nameof(BookingList));
             }
 
+            // ดึงรายการชำระเงินล่าสุด
             var payment = booking.Payments.OrderByDescending(p => p.PaymentId).FirstOrDefault()
                           ?? _context.Payments.FirstOrDefault(p => p.BookingId == id);
             ViewBag.Payment = payment;
 
+            // แสดงหน้าจอใบเสร็จ
             return View(booking);
         }
 
-        // =========================================================================
-        // 8. ยืนยันการรับชำระเงิน (Confirm Payment)
-        // =========================================================================
-        /// <summary>
-        /// ยืนยันการรับชำระเงินของลูกค้า (เปลี่ยนสถานะเป็น Paid และเปลี่ยนสถานะการจองเป็น Confirmed)
-        /// </summary>
+        // ยืนยันการรับชำระเงินหน้าเคาน์เตอร์ (เงินสด หรือเงินโอน)
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult ConfirmPayment(int bookingId, string paymentMethod = "Cash")
         {
+            // ค้นหารายการจอง
             var booking = _context.Bookings
                 .Include(b => b.Payments)
                 .FirstOrDefault(b => b.BookingId == bookingId);
@@ -962,9 +970,11 @@ namespace EasyStayHotel.Controllers
                 return RedirectToAction(nameof(BookingList));
             }
 
+            // ค้นหารายการชำระเงินเดิม
             var payment = booking.Payments.OrderByDescending(p => p.PaymentId).FirstOrDefault()
                           ?? _context.Payments.FirstOrDefault(p => p.BookingId == bookingId);
 
+            // หากมีรายการเดิม ให้อัปเดตสถานะเป็น Paid
             if (payment != null)
             {
                 payment.PaymentStatus = "Paid";
@@ -977,6 +987,7 @@ namespace EasyStayHotel.Controllers
                     payment.TransferDate = DateTime.Now;
                 }
             }
+            // หากยังไม่มี ให้สร้างรายการชำระเงินใหม่
             else
             {
                 payment = new Payment
@@ -990,15 +1001,18 @@ namespace EasyStayHotel.Controllers
                 _context.Payments.Add(payment);
             }
 
+            // ปรับสถานะการจองจาก Pending เป็น Confirmed
             if (booking.BookingStatus == "Pending")
             {
                 booking.BookingStatus = "Confirmed";
             }
 
+            // บันทึกข้อมูลลงฐานข้อมูล MySQL
             _context.SaveChanges();
 
             TempData["SuccessMessage"] = $"บันทึกยืนยันการรับชำระเงินสำเร็จ (รหัส {booking.BookingRef} ยอด ฿{booking.TotalPrice:N2})";
 
+            // นำทางกลับหน้าเดิม
             string? referer = Request.Headers["Referer"].ToString();
             if (!string.IsNullOrEmpty(referer) && Url.IsLocalUrl(referer))
             {
@@ -1008,42 +1022,44 @@ namespace EasyStayHotel.Controllers
             return RedirectToAction(nameof(BookingReceipt), new { id = bookingId });
         }
 
-        // =========================================================================
-        // 9. รายงานรอบกะและการสื่อสารกับฝ่ายบัญชี (Shift Handover Feedback)
-        // =========================================================================
-        /// <summary>
-        /// แสดงหน้าจอส่งยอดปิดกะของพนักงานต้อนรับหน้าร้าน คำนวณยอดเงินสดและเงินโอนของวันนี้ให้อัตโนมัติ
-        /// </summary>
+        // 6. ส่งรายงานปิดรอบกะและยอดเงินสดประจำวันให้ฝ่ายบัญชีตรวจสอบ
         [HttpGet]
         public IActionResult AccountingFeedback(string? branch = null)
         {
+            // ดึงสาขาปัจจุบัน
             string currentBranch = GetCurrentBranch(branch);
             var today = DateOnly.FromDateTime(DateTime.Today);
             DateTime startOfDay = today.ToDateTime(TimeOnly.MinValue);
             DateTime endOfDay = today.ToDateTime(TimeOnly.MaxValue);
 
-            // คำนวณยอดเงินสดและเงินโอนของวันนี้ในสาขานี้
+            // ดึงรายการชำระเงินในวันนี้ของสาขานี้
             var paymentsToday = _context.Payments
                 .Include(p => p.Booking)
                     .ThenInclude(b => b!.Room)
                 .Where(p => p.Booking != null && p.Booking.Room != null && p.Booking.Room.Branch == currentBranch && p.TransferDate >= startOfDay && p.TransferDate <= endOfDay && (p.PaymentStatus == "Paid" || p.PaymentStatus == "Confirmed"))
                 .ToList();
 
+            // คำนวณยอดเงินสดรับจริงในกะ
             decimal cashTotal = paymentsToday.Where(p => p.PaymentMethod == "Cash").Sum(p => p.Amount);
+            // คำนวณยอดเงินโอนดิจิทัล
             decimal transferTotal = paymentsToday.Where(p => p.PaymentMethod == "PromptPay" || p.PaymentMethod == "CreditCard").Sum(p => p.Amount);
 
+            // นับจำนวนแขกที่เช็คอินในวันนี้
             int checkInsToday = _context.Bookings
                 .Count(b => b.Room != null && b.Room.Branch == currentBranch && b.CheckInDate == today && (b.BookingStatus == "CheckIn" || b.BookingStatus == "CheckedIn"));
 
+            // นับจำนวนแขกที่เช็คเอาท์ในวันนี้
             int checkOutsToday = _context.Bookings
                 .Count(b => b.Room != null && b.Room.Branch == currentBranch && b.CheckOutDate == today && b.BookingStatus == "Completed");
 
+            // ส่งค่ายอดเงินและจำนวนสถิติไปยัง View
             ViewBag.SuggestedCash = cashTotal;
             ViewBag.SuggestedTransfer = transferTotal;
             ViewBag.CheckInsCount = checkInsToday;
             ViewBag.CheckOutsCount = checkOutsToday;
             ViewBag.RecentFeedbacks = AccountingFeedbackService.GetAll(currentBranch);
 
+            // สร้างโมเดล AccountingFeedback พร้อมค่าแนะนำ
             var model = new AccountingFeedback
             {
                 Branch = currentBranch,
@@ -1055,22 +1071,23 @@ namespace EasyStayHotel.Controllers
                 Shift = DateTime.Now.Hour >= 18 || DateTime.Now.Hour < 6 ? "รอบค่ำ/ปิดกะ (Night Shift)" : (DateTime.Now.Hour >= 12 ? "รอบบ่าย (Afternoon Shift)" : "รอบเช้า (Morning Shift)")
             };
 
+            // แสดงหน้าจอ AccountingFeedback
             return View(model);
         }
 
-        /// <summary>
-        /// บันทึกรายงานส่งยอดเงินประจำกะส่งต่อไปยังฝ่ายบัญชี
-        /// </summary>
+        // บันทึกและส่งรายงานปิดกะไปยังฝ่ายบัญชี
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult AccountingFeedback(AccountingFeedback model)
         {
             if (ModelState.IsValid)
             {
+                // บันทึกวันเวลาที่ส่งรายงาน
                 model.CreatedAt = DateTime.Now;
                 model.StaffName = HttpContext.Session.GetString("FullName") ?? model.StaffName ?? "พนักงานต้อนรับ";
                 model.Branch = GetCurrentBranch(model.Branch);
 
+                // บันทึกข้อมูลลง JSON Micro-Datastore ผ่าน AccountingFeedbackService
                 AccountingFeedbackService.Add(model);
 
                 TempData["SuccessMessage"] = "ส่งรายงานและ Feedback ถึงฝ่ายบัญชีเรียบร้อยแล้ว!";

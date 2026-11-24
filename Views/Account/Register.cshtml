@@ -173,7 +173,7 @@
                                 <!-- 4. วันเดือนปีเกิด -->
                                 <div class="col-12">
                                     <label asp-for="DateOfBirth" class="form-label small fw-bold text-dark">
-                                        วันเดือนปีเกิด <span class="badge bg-success bg-opacity-10 text-success fw-normal ms-1">รับส่วนลดเดือนเกิด 10% อัตโนมัติ</span>
+                                        วันเดือนปีเกิด
                                     </label>
                                     <div class="input-group">
                                         <span class="input-group-text bg-light border-end-0 text-muted field-icon">
@@ -275,14 +275,6 @@
                     เราได้ส่งรหัส OTP ไปยังอีเมล: <br>
                     <strong class="text-dark" id="otpTargetEmailText">-</strong>
                 </p>
-
-                <!-- กล่องจำลอง OTP สำหรับโหมดทดสอบ (Local Dev Helper) -->
-                <div id="devOtpBox" class="alert alert-info border-0 py-2 px-3 small rounded-3 mb-3 text-start d-none">
-                    <div class="d-flex align-items-center justify-content-between">
-                        <span><i class="bi bi-lightning-charge-fill text-warning me-1"></i> รหัส OTP สำหรับทดสอบ:</span>
-                        <strong class="fs-6 text-primary" id="devOtpCodeText"></strong>
-                    </div>
-                </div>
 
                 <!-- ช่องกรอก OTP 6 หลัก -->
                 <div class="mb-3">
@@ -428,14 +420,6 @@
                             $('#otpTargetEmailText').text(res.email);
                             $('#otpCodeInput').val('').focus();
                             $('#otpErrorMsg').addClass('d-none');
-
-                            // แสดง Dev OTP ช่วยอำนวยความสะดวกในการทดสอบ
-                            if (res.devOtp) {
-                                $('#devOtpCodeText').text(res.devOtp);
-                                $('#devOtpBox').removeClass('d-none');
-                            } else {
-                                $('#devOtpBox').addClass('d-none');
-                            }
 
                             // เปิด Modal OTP
                             const modal = new bootstrap.Modal(document.getElementById('otpModal'));

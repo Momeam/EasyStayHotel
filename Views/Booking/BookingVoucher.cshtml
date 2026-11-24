@@ -225,25 +225,39 @@
     }
 
     @@media print {
-        body {
+        html, body {
             background-color: white !important;
+            overflow: visible !important;
+            height: auto !important;
+            min-height: 0 !important;
+            display: block !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
         }
 
         .no-print, header, footer, .navbar {
             display: none !important;
         }
 
+        main,
         .container {
+            display: block !important;
             width: 100% !important;
             max-width: 100% !important;
+            height: auto !important;
+            min-height: 0 !important;
+            overflow: visible !important;
             padding: 0 !important;
             margin: 0 !important;
         }
 
         .voucher-paper {
+            display: block !important;
             box-shadow: none !important;
             border: none !important;
             padding: 0 !important;
+            margin: 0 !important;
+            width: 100% !important;
             max-width: 100% !important;
         }
 

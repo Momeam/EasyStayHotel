@@ -2,107 +2,94 @@ using EasyStayHotel.Models;
 using EasyStayHotel.Services;
 using Microsoft.EntityFrameworkCore;
 
-// =================================================================================================
-// ไฟล์: Program.cs
-// หน้าที่: จุดเริ่มต้นการทำงานของระบบ (Entry Point) และการตั้งค่า Configuration ทั้งหมดของ ASP.NET Core
-// คำถามที่อาจารย์มักถาม:
-// 1. Dependency Injection (DI) คืออะไร และลงทะเบียนอย่างไร?
-//    -> คือการส่ง Object หรือ Service ที่คลาสต้องการผ่าน Constructor โดยลงทะเบียนผ่าน builder.Services
-// 2. AddControllersWithViews(), AddSession(), AddDbContext() มีหน้าที่อะไร?
-// 3. ทำไม app.UseSession() ต้องอยู่ก่อน app.UseAuthorization()?
-//    -> เพื่อให้ระบบโหลดข้อมูล Session ของผู้ใช้ขึ้นมาก่อนที่จะทำการตรวจสอบสิทธิ์การเข้าถึง
-// =================================================================================================
-
 var builder = WebApplication.CreateBuilder(args);
 
-// -------------------------------------------------------------------------------------------------
-// 1. การลงทะเบียนบริการ MVC (Model-View-Controller)
-// -------------------------------------------------------------------------------------------------
-// ลงทะเบียน Controllers พร้อมกับ Razor Views เพื่อรองรับการทำงานแบบ Web Application เต็มรูปแบบ
-builder.Services.AddControllersWithViews();
+// กำหนด Culture ภาษาไทย (th-TH) แต่ใช้ปฏิทิน Gregorian (ค.ศ.) ป้องกันปัญหาปี 3112
+var defaultCulture = new System.Globalization.CultureInfo("th-TH");
+defaultCulture.DateTimeFormat.Calendar = new System.Globalization.GregorianCalendar();
+System.Globalization.CultureInfo.DefaultThreadCurrentCulture = defaultCulture;
+System.Globalization.CultureInfo.DefaultThreadCurrentUICulture = defaultCulture;
 
-// -------------------------------------------------------------------------------------------------
-// 2. การลงทะเบียนและตั้งค่า Session (ระบบจัดเก็บข้อมูลเซสชันของผู้ใช้)
-// -------------------------------------------------------------------------------------------------
-// ใช้สำหรับจดจำสถานะการเข้าสู่ระบบของผู้ใช้ (UserId, Role, Branch) ระหว่างการใช้งาน
-builder.Services.AddSession(options => {
-    options.IdleTimeout = TimeSpan.FromMinutes(60); // เซสชันหมดอายุอัตโนมัติหากไม่มีการใช้งานต่อเนื่องเกิน 60 นาที
-    options.Cookie.HttpOnly = true;                 // ป้องกันการเข้าถึงคุกกี้เซสชันผ่านทาง Client-side JavaScript (ป้องกัน XSS)
-    options.Cookie.IsEssential = true;             // บังคับใช้งานคุกกี้นี้แม้ผู้ใช้จะไม่ได้เปิดรับคุกกี้ทั่วไป (จำเป็นต่อการทำงานของระบบ)
+builder.Services.Configure<RequestLocalizationOptions>(options =>
+{
+    options.DefaultRequestCulture = new Microsoft.AspNetCore.Localization.RequestCulture(defaultCulture);
+    options.SupportedCultures = new List<System.Globalization.CultureInfo> { defaultCulture };
+    options.SupportedUICultures = new List<System.Globalization.CultureInfo> { defaultCulture };
 });
 
-// -------------------------------------------------------------------------------------------------
-// 3. การตั้งค่าการเชื่อมต่อฐานข้อมูล MySQL ด้วย Entity Framework Core (EF Core)
-// -------------------------------------------------------------------------------------------------
-// ใช้ Pomelo.EntityFrameworkCore.MySql เชื่อมต่อไปยังฐานข้อมูล easystaydb ที่พอร์ต 3306
-// ServerVersion.AutoDetect จะตรวจสอบเวอร์ชันของ MySQL Server อัตโนมัติ เพื่อปรับคำสั่ง SQL ให้เหมาะสม
+// ลงทะเบียนบริการ MVC Controllers และ Views พร้อมบังคับโหลด Compiled Razor Views เสมอ
+builder.Services.AddControllersWithViews()
+    .ConfigureApplicationPartManager(manager =>
+    {
+        var asm = typeof(Program).Assembly;
+        var factory = new Microsoft.AspNetCore.Mvc.ApplicationParts.ConsolidatedAssemblyApplicationPartFactory();
+        foreach (var part in factory.GetApplicationParts(asm))
+        {
+            if (!manager.ApplicationParts.Any(p => p.GetType() == part.GetType() && p.Name == part.Name))
+            {
+                manager.ApplicationParts.Add(part);
+            }
+        }
+    });
+
+// ตั้งค่าระบบ Session สำหรับจำกัดสิทธิ์ผู้ใช้และเก็บข้อมูลล็อกอิน (อายุ 60 นาที)
+builder.Services.AddSession(options => {
+    options.IdleTimeout = TimeSpan.FromMinutes(60);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+});
+
+// เชื่อมต่อฐานข้อมูล MySQL (easystaydb) ผ่าน Entity Framework Core
 builder.Services.AddDbContext<EasystaydbContext>(options =>
     options.UseMySql("server=localhost;port=3306;database=easystaydb;user=root;password=1234;",
-    ServerVersion.AutoDetect("server=localhost;port=3306;database=easystaydb;user=root;password=1234;")));
+    ServerVersion.Parse("8.0.46-mysql")));
 
-// -------------------------------------------------------------------------------------------------
-// 4. การลงทะเบียน IHttpContextAccessor
-// -------------------------------------------------------------------------------------------------
-// ช่วยให้สามารถเข้าถึง HttpContext (เช่น Session, Request, User) ได้จากหน้า Razor View หรือ Service อื่นๆ
 builder.Services.AddHttpContextAccessor();
 
-// -------------------------------------------------------------------------------------------------
-// 5. การลงทะเบียน Dependency Injection สำหรับ Service ภายในระบบ
-// -------------------------------------------------------------------------------------------------
-// AddScoped: สร้าง Instance ใหม่ 1 ครั้งต่อ 1 HTTP Request (เหมาะสำหรับ Service ที่ทำงานกับข้อมูลคำขอของผู้ใช้)
+// ลงทะเบียน EmailService สำหรับส่งอีเมลยืนยันการจองและรหัส OTP
 builder.Services.AddScoped<IEmailService, EmailService>();
 
-// สร้าง WebApplication Object ตามการตั้งค่าที่กำหนดไว้
 var app = builder.Build();
 
-// -------------------------------------------------------------------------------------------------
-// 6. การตรวจสอบและเตรียมความพร้อมของฐานข้อมูลเบื้องต้น (Database Seeding)
-// -------------------------------------------------------------------------------------------------
-// CreateScope: สร้าง Scope ชั่วคราวเพื่อดึง DbContext ออกมาใช้งานก่อนที่เซิร์ฟเวอร์จะเปิดรับคำขอ
-using (var scope = app.Services.CreateScope())
+try
 {
-    var context = scope.ServiceProvider.GetRequiredService<EasystaydbContext>();
-    
-    // ตรวจสอบและสร้างห้องพักจำลองสถานะว่างสำหรับสาขา ชลบุรี และภูเก็ต หากยังไม่มี
+    using (var scope = app.Services.CreateScope())
+    {
+        var context = scope.ServiceProvider.GetRequiredService<EasystaydbContext>();
+
+    // เตรียมข้อมูลห้องพักเริ่มต้นทั้ง 3 สาขาและผู้ใช้เริ่มต้นในระบบ
     DatabaseInitializer.EnsureBranchRooms(context);
-    
-    // ตรวจสอบและสร้างบัญชีผู้ดูแลระบบ (Admin) และพนักงานแม่บ้าน (Housekeeper) เริ่มต้น
-    DatabaseInitializer.EnsureHousekeeperUser(context);
+
+        DatabaseInitializer.EnsureHousekeeperUser(context);
+    }
+}
+catch (Exception ex)
+{
+    var logger = app.Services.GetRequiredService<ILogger<Program>>();
+    logger.LogWarning("ยังไม่สามารถเชื่อมต่อฐานข้อมูล MySQL ได้ในขณะเริ่มต้นระบบ: {Message}", ex.Message);
 }
 
-// -------------------------------------------------------------------------------------------------
-// 7. การกำหนด HTTP Request Pipeline (Middleware)
-// -------------------------------------------------------------------------------------------------
-// ตรวจสอบสภาพแวดล้อม (Environment)
 if (!app.Environment.IsDevelopment())
 {
-    // เมื่อทำงานบน Production: นำทางไปยังหน้าแจ้งข้อผิดพลาดแบบสวยงาม และเปิดใช้ HSTS (ความปลอดภัย HTTPS)
     app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
 }
 
-// บังคับเปลี่ยนเส้นทางคำขอเป็น HTTPS เพื่อความปลอดภัย
 app.UseHttpsRedirection();
 
-// เปิดใช้งานระบบ Routing เพื่อจับคู่ URL กับ Controller และ Action
+app.UseRequestLocalization();
+
 app.UseRouting();
 
-// ข้อควรระวัง: UseSession ต้องถูกเรียก "ก่อน" UseAuthorization เสมอ
-// เพื่อให้ข้อมูลสถานะผู้ใช้และสิทธิ์ใน Session พร้อมใช้งานก่อนที่ระบบตรวจสอบสิทธิ์จะทำงาน
-app.UseSession(); 
+// เปิดใช้งาน Session และระบบ Routing ใน Middleware Pipeline
+app.UseSession();
 app.UseAuthorization();
 
-// ให้บริการ Static Files (CSS, JavaScript, รูปภาพ) จากโฟลเดอร์ wwwroot
 app.MapStaticAssets();
 
-// -------------------------------------------------------------------------------------------------
-// 8. การกำหนดเส้นทางเริ่มต้นของระบบ (Default Route)
-// -------------------------------------------------------------------------------------------------
-// หากผู้ใช้ไม่ได้ระบุ URL ระบบจะเรียกใช้ HomeController -> Index Action
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}")
     .WithStaticAssets();
 
-// เริ่มต้นรันเว็บแอปพลิเคชัน
 app.Run();

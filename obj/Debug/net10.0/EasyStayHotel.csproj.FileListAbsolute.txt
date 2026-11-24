@@ -92,7 +92,6 @@ C:\Users\LENOVO\EasyStayHotel\obj\Debug\net10.0\scopedcss\Views\Shared\_Layout.c
 C:\Users\LENOVO\EasyStayHotel\obj\Debug\net10.0\scopedcss\bundle\EasyStayHotel.styles.css
 C:\Users\LENOVO\EasyStayHotel\obj\Debug\net10.0\scopedcss\projectbundle\EasyStayHotel.bundle.scp.css
 C:\Users\LENOVO\EasyStayHotel\obj\Debug\net10.0\compressed\8iut9k52qw-{0}-61n19gt1b8-61n19gt1b8.gz
-C:\Users\LENOVO\EasyStayHotel\obj\Debug\net10.0\compressed\i0ttnqjzl3-{0}-xtxxf3hu2r-xtxxf3hu2r.gz
 C:\Users\LENOVO\EasyStayHotel\obj\Debug\net10.0\compressed\ckdpdo2dse-{0}-bqjiyaj88i-bqjiyaj88i.gz
 C:\Users\LENOVO\EasyStayHotel\obj\Debug\net10.0\compressed\yai4iwkaev-{0}-c2jlpeoesf-c2jlpeoesf.gz
 C:\Users\LENOVO\EasyStayHotel\obj\Debug\net10.0\compressed\zldga5akld-{0}-erw9l3u2r3-erw9l3u2r3.gz
@@ -169,8 +168,10 @@ C:\Users\LENOVO\EasyStayHotel\bin\Debug\net10.0\MySqlConnector.dll
 C:\Users\LENOVO\EasyStayHotel\bin\Debug\net10.0\Pomelo.EntityFrameworkCore.MySql.dll
 C:\Users\LENOVO\EasyStayHotel\obj\Debug\net10.0\EasyStayHotel.csproj.AssemblyReference.cache
 C:\Users\LENOVO\EasyStayHotel\bin\Debug\net10.0\Microsoft.Bcl.AsyncInterfaces.dll
-C:\Users\LENOVO\EasyStayHotel\obj\Debug\net10.0\compressed\gw19npzw6b-{0}-pt271w3pnn-pt271w3pnn.gz
-C:\Users\LENOVO\EasyStayHotel\obj\Debug\net10.0\compressed\wgivtrot88-{0}-aha49ruqbn-aha49ruqbn.gz
-C:\Users\LENOVO\EasyStayHotel\obj\Debug\net10.0\compressed\f0zfxdsy1d-{0}-6niblfiraj-6niblfiraj.gz
 C:\Users\LENOVO\EasyStayHotel\obj\Debug\net10.0\compressed\fgyd5kyota-{0}-8duwnopi6g-8duwnopi6g.gz
-C:\Users\LENOVO\EasyStayHotel\obj\Debug\net10.0\compressed\f2nxppo319-{0}-8gxt496ojh-8gxt496ojh.gz
+C:\Users\LENOVO\EasyStayHotel\obj\Debug\net10.0\compressed\i0ttnqjzl3-{0}-khq9vjz4nn-khq9vjz4nn.gz
+C:\Users\LENOVO\EasyStayHotel\obj\Debug\net10.0\compressed\wgivtrot88-{0}-ppjf8d1a2l-ppjf8d1a2l.gz
+C:\Users\LENOVO\EasyStayHotel\obj\Debug\net10.0\compressed\f0zfxdsy1d-{0}-pazkvb4ylm-pazkvb4ylm.gz
+C:\Users\LENOVO\EasyStayHotel\obj\Debug\net10.0\compressed\f2nxppo319-{0}-1dimnzpa95-1dimnzpa95.gz
+C:\Users\LENOVO\EasyStayHotel\obj\Debug\net10.0\compressed\ph9x29axkx-{0}-k3btlp49u2-k3btlp49u2.gz
+C:\Users\LENOVO\EasyStayHotel\obj\Debug\net10.0\compressed\gw19npzw6b-{0}-cia815mrif-cia815mrif.gz

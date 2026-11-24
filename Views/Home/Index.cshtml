@@ -2,8 +2,8 @@
 @using EasyStayHotel.Services
 @{
     ViewData["Title"] = "หน้าแรก - ค้นหาและพรีวิวห้องพักที่ดีที่สุด";
-    string defaultCheckIn = DateTime.Today.ToString("yyyy-MM-dd");
-    string defaultCheckOut = DateTime.Today.AddDays(1).ToString("yyyy-MM-dd");
+    string defaultCheckIn = DateHelper.ToIsoDate(DateTime.Today);
+    string defaultCheckOut = DateHelper.ToIsoDate(DateTime.Today.AddDays(1));
 }
 
 <style>
@@ -364,50 +364,59 @@
                                         <i class="bi bi-eye me-1"></i> ดูรายละเอียด
                                     </button>
                                     
-                                    <!-- ปุ่มจองเลย พร้อม Dropdown เลือกสาขาอื่นได้ทันที -->
-                                    <div class="btn-group">
-                                        <a asp-controller="Booking"
-                                           asp-action="Search"
-                                           asp-route-branch="@preferredBranch"
-                                           asp-route-checkIn="@defaultCheckIn"
-                                           asp-route-checkOut="@defaultCheckOut"
-                                           asp-route-rooms="1"
-                                           asp-route-guests="@defaultGuests"
-                                           asp-route-roomTypeId="@roomType.RoomTypeId"
-                                           class="btn btn-primary rounded-start-3 px-3 fw-bold quick-book-btn">
-                                            จองเลย
-                                        </a>
-                                        <button type="button" class="btn btn-primary dropdown-toggle dropdown-toggle-split rounded-end-3 px-2" data-bs-toggle="dropdown" aria-expanded="false">
-                                            <span class="visually-hidden">เลือกสาขา</span>
+                                    @if (availTotal > 0)
+                                    {
+                                        <!-- ปุ่มจองเลย พร้อม Dropdown เลือกสาขาอื่นได้ทันที -->
+                                        <div class="btn-group">
+                                            <a asp-controller="Booking"
+                                               asp-action="Search"
+                                               asp-route-branch="@preferredBranch"
+                                               asp-route-checkIn="@defaultCheckIn"
+                                               asp-route-checkOut="@defaultCheckOut"
+                                               asp-route-rooms="1"
+                                               asp-route-guests="@defaultGuests"
+                                               asp-route-roomTypeId="@roomType.RoomTypeId"
+                                               class="btn btn-primary rounded-start-3 px-3 fw-bold quick-book-btn">
+                                                จองเลย
+                                            </a>
+                                            <button type="button" class="btn btn-primary dropdown-toggle dropdown-toggle-split rounded-end-3 px-2" data-bs-toggle="dropdown" aria-expanded="false">
+                                                <span class="visually-hidden">เลือกสาขา</span>
+                                            </button>
+                                            <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 rounded-3 mt-1 py-2">
+                                                <li class="dropdown-header small text-muted"><i class="bi bi-geo-alt-fill text-primary me-1"></i> เลือกสาขาที่ต้องการจอง</li>
+                                                <li>
+                                                    <a class="dropdown-item d-flex justify-content-between align-items-center py-2 small"
+                                                       asp-controller="Booking" asp-action="Search"
+                                                       asp-route-branch="Bangkok" asp-route-checkIn="@defaultCheckIn" asp-route-checkOut="@defaultCheckOut" asp-route-rooms="1" asp-route-guests="@defaultGuests" asp-route-roomTypeId="@roomType.RoomTypeId">
+                                                        <span><i class="bi bi-building me-2 text-primary"></i> กรุงเทพมหานคร</span>
+                                                        <span class="badge @(availBkk > 0 ? "bg-success" : "bg-secondary") rounded-pill ms-2">ว่าง @availBkk</span>
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item d-flex justify-content-between align-items-center py-2 small"
+                                                       asp-controller="Booking" asp-action="Search"
+                                                       asp-route-branch="Chonburi" asp-route-checkIn="@defaultCheckIn" asp-route-checkOut="@defaultCheckOut" asp-route-rooms="1" asp-route-guests="@defaultGuests" asp-route-roomTypeId="@roomType.RoomTypeId">
+                                                        <span><i class="bi bi-water me-2 text-info"></i> ชลบุรี (พัทยา)</span>
+                                                        <span class="badge @(availChon > 0 ? "bg-success" : "bg-secondary") rounded-pill ms-2">ว่าง @availChon</span>
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item d-flex justify-content-between align-items-center py-2 small"
+                                                       asp-controller="Booking" asp-action="Search"
+                                                       asp-route-branch="Phuket" asp-route-checkIn="@defaultCheckIn" asp-route-checkOut="@defaultCheckOut" asp-route-rooms="1" asp-route-guests="@defaultGuests" asp-route-roomTypeId="@roomType.RoomTypeId">
+                                                        <span><i class="bi bi-brightness-high me-2 text-warning"></i> ภูเก็ต</span>
+                                                        <span class="badge @(availPhuket > 0 ? "bg-success" : "bg-secondary") rounded-pill ms-2">ว่าง @availPhuket</span>
+                                                    </a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <button type="button" class="btn btn-secondary rounded-3 px-3 fw-bold disabled" disabled>
+                                            <i class="bi bi-x-circle me-1"></i> ห้องพักเต็ม
                                         </button>
-                                        <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 rounded-3 mt-1 py-2">
-                                            <li class="dropdown-header small text-muted"><i class="bi bi-geo-alt-fill text-primary me-1"></i> เลือกสาขาที่ต้องการจอง</li>
-                                            <li>
-                                                <a class="dropdown-item d-flex justify-content-between align-items-center py-2 small"
-                                                   asp-controller="Booking" asp-action="Search"
-                                                   asp-route-branch="Bangkok" asp-route-checkIn="@defaultCheckIn" asp-route-checkOut="@defaultCheckOut" asp-route-rooms="1" asp-route-guests="@defaultGuests" asp-route-roomTypeId="@roomType.RoomTypeId">
-                                                    <span><i class="bi bi-building me-2 text-primary"></i> กรุงเทพมหานคร</span>
-                                                    <span class="badge @(availBkk > 0 ? "bg-success" : "bg-secondary") rounded-pill ms-2">ว่าง @availBkk</span>
-                                                </a>
-                                            </li>
-                                            <li>
-                                                <a class="dropdown-item d-flex justify-content-between align-items-center py-2 small"
-                                                   asp-controller="Booking" asp-action="Search"
-                                                   asp-route-branch="Chonburi" asp-route-checkIn="@defaultCheckIn" asp-route-checkOut="@defaultCheckOut" asp-route-rooms="1" asp-route-guests="@defaultGuests" asp-route-roomTypeId="@roomType.RoomTypeId">
-                                                    <span><i class="bi bi-water me-2 text-info"></i> ชลบุรี (พัทยา)</span>
-                                                    <span class="badge @(availChon > 0 ? "bg-success" : "bg-secondary") rounded-pill ms-2">ว่าง @availChon</span>
-                                                </a>
-                                            </li>
-                                            <li>
-                                                <a class="dropdown-item d-flex justify-content-between align-items-center py-2 small"
-                                                   asp-controller="Booking" asp-action="Search"
-                                                   asp-route-branch="Phuket" asp-route-checkIn="@defaultCheckIn" asp-route-checkOut="@defaultCheckOut" asp-route-rooms="1" asp-route-guests="@defaultGuests" asp-route-roomTypeId="@roomType.RoomTypeId">
-                                                    <span><i class="bi bi-brightness-high me-2 text-warning"></i> ภูเก็ต</span>
-                                                    <span class="badge @(availPhuket > 0 ? "bg-success" : "bg-secondary") rounded-pill ms-2">ว่าง @availPhuket</span>
-                                                </a>
-                                            </li>
-                                        </ul>
-                                    </div>
+                                    }
                                 </div>
                             </div>
                         </div>

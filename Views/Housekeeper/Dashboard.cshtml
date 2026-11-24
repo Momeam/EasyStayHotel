@@ -448,8 +448,11 @@
 
 <!-- Modal ส่งงานทำความสะอาด (Complete Cleaning & Ready for Sale Modal) -->
 <div class="modal fade" id="completeTaskModal" tabindex="-1" aria-labelledby="completeTaskModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered" style="max-width: 520px;">
-        <div class="modal-content border-0 rounded-4 shadow-lg overflow-hidden">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" style="max-width: 540px;">
+        <form asp-action="CompleteTask" method="post" class="modal-content border-0 rounded-4 shadow-lg overflow-hidden">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="taskId" id="modalTaskId" />
+
             <div class="modal-header bg-success text-white border-0 py-3 px-4">
                 <div class="d-flex align-items-center gap-2">
                     <i class="bi bi-check2-circle fs-4 text-warning"></i>
@@ -461,74 +464,69 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
 
-            <form asp-action="CompleteTask" method="post">
-                @Html.AntiForgeryToken()
-                <input type="hidden" name="taskId" id="modalTaskId" />
-
-                <div class="modal-body p-4">
-                    <!-- ข้อมูลห้องที่กำลังส่งงาน -->
-                    <div class="bg-light p-3 rounded-3 mb-4 border d-flex justify-content-between align-items-center">
-                        <div>
-                            <span class="text-muted small">ห้องพักที่ส่งมอบ:</span>
-                            <h3 class="fw-bold text-dark mb-0" id="modalRoomDisplay">ห้อง -</h3>
-                        </div>
-                        <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill small">
-                            <i class="bi bi-stars me-1"></i>ตรวจรับความสะอาด
-                        </span>
+            <div class="modal-body p-4" style="max-height: calc(85vh - 130px); overflow-y: auto;">
+                <!-- ข้อมูลห้องที่กำลังส่งงาน -->
+                <div class="bg-light p-3 rounded-3 mb-4 border d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="text-muted small">ห้องพักที่ส่งมอบ:</span>
+                        <h3 class="fw-bold text-dark mb-0" id="modalRoomDisplay">ห้อง -</h3>
                     </div>
+                    <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill small">
+                        <i class="bi bi-stars me-1"></i>ตรวจรับความสะอาด
+                    </span>
+                </div>
 
-                    <!-- รายการตรวจสอบความสะอาด (Checklist) -->
-                    <div class="mb-4">
-                        <label class="form-label small fw-bold text-dark mb-2">
-                            <i class="bi bi-card-checklist text-primary me-1"></i>รายการตรวจสอบความสะอาดตามมาตรฐานโรงแรม:
+                <!-- รายการตรวจสอบความสะอาด (Checklist) -->
+                <div class="mb-4">
+                    <label class="form-label small fw-bold text-dark mb-2">
+                        <i class="bi bi-card-checklist text-primary me-1"></i>รายการตรวจสอบความสะอาดตามมาตรฐานโรงแรม:
+                    </label>
+                    <div class="list-group list-group-flush rounded-3 border">
+                        <label class="list-group-item d-flex gap-2 align-items-center py-2">
+                            <input class="form-check-input flex-shrink-0 mt-0" type="checkbox" name="checklist" value="เปลี่ยนผ้าปูที่นอนและปลอกหมอนใหม่" checked>
+                            <span class="small">เปลี่ยนผ้าปูที่นอน ปลอกหมอน และผ้าห่มใหม่</span>
                         </label>
-                        <div class="list-group list-group-flush rounded-3 border">
-                            <label class="list-group-item d-flex gap-2 align-items-center py-2">
-                                <input class="form-check-input flex-shrink-0 mt-0" type="checkbox" name="checklist" value="เปลี่ยนผ้าปูที่นอนและปลอกหมอนใหม่" checked>
-                                <span class="small">เปลี่ยนผ้าปูที่นอน ปลอกหมอน และผ้าห่มใหม่</span>
-                            </label>
-                            <label class="list-group-item d-flex gap-2 align-items-center py-2">
-                                <input class="form-check-input flex-shrink-0 mt-0" type="checkbox" name="checklist" value="ทำความสะอาดห้องน้ำ ขัดสุขภัณฑ์ และเปลี่ยนผ้าเช็ดตัว" checked>
-                                <span class="small">ล้างทำความสะอาดห้องน้ำ ขัดสุขภัณฑ์ เปลี่ยนผ้าเช็ดตัว</span>
-                            </label>
-                            <label class="list-group-item d-flex gap-2 align-items-center py-2">
-                                <input class="form-check-input flex-shrink-0 mt-0" type="checkbox" name="checklist" value="เติมของใช้ Amenities (สบู่, แชมพู, น้ำดื่ม, ชา/กาแฟ)" checked>
-                                <span class="small">เติมชุดของใช้ Amenities ครบเซ็ต (สบู่, แชมพู, น้ำดื่ม)</span>
-                            </label>
-                            <label class="list-group-item d-flex gap-2 align-items-center py-2">
-                                <input class="form-check-input flex-shrink-0 mt-0" type="checkbox" name="checklist" value="ดูดฝุ่น ถูพื้น และจัดระเบียบเฟอร์นิเจอร์" checked>
-                                <span class="small">ดูดฝุ่น ถูพื้นฆ่าเชื้อ และจัดโต๊ะ/เตียงเป็นระเบียบ</span>
-                            </label>
-                            <label class="list-group-item d-flex gap-2 align-items-center py-2">
-                                <input class="form-check-input flex-shrink-0 mt-0" type="checkbox" name="checklist" value="ตรวจสอบระบบไฟ เครื่องปรับอากาศ และความเย็น" checked>
-                                <span class="small">ตรวจสอบระบบไฟ รีโมท แอร์เย็นปกติ ไม่มีกลิ่นอับ</span>
-                            </label>
-                        </div>
-                    </div>
-
-                    <!-- หมายเหตุเพิ่มเติม -->
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold text-dark mb-1">
-                            บันทึกการส่งงาน / หมายเหตุเพิ่มเติม:
+                        <label class="list-group-item d-flex gap-2 align-items-center py-2">
+                            <input class="form-check-input flex-shrink-0 mt-0" type="checkbox" name="checklist" value="ทำความสะอาดห้องน้ำ ขัดสุขภัณฑ์ และเปลี่ยนผ้าเช็ดตัว" checked>
+                            <span class="small">ล้างทำความสะอาดห้องน้ำ ขัดสุขภัณฑ์ เปลี่ยนผ้าเช็ดตัว</span>
                         </label>
-                        <textarea name="completionNotes" class="form-control" rows="2"
-                                  placeholder="เช่น ตรวจเช็คห้องเรียบร้อย ของใช้ครบ แอร์ทำงานปกติ ห้องพร้อมเปิดขายต่อค่ะ"></textarea>
-                    </div>
-
-                    <div class="alert alert-info border-0 rounded-3 p-3 small mb-0">
-                        <i class="bi bi-info-circle-fill text-primary me-1"></i>
-                        เมื่อกดยืนยัน ระบบจะปรับสถานะห้องพักในฐานข้อมูลเป็น <strong>"ว่าง" (Available)</strong> ทันที ทำให้ลูกค้าหน้าเว็บและพนักงานต้อนรับสามารถนำห้องนี้ไปขายต่อได้ทันที
+                        <label class="list-group-item d-flex gap-2 align-items-center py-2">
+                            <input class="form-check-input flex-shrink-0 mt-0" type="checkbox" name="checklist" value="เติมของใช้ Amenities (สบู่, แชมพู, น้ำดื่ม, ชา/กาแฟ)" checked>
+                            <span class="small">เติมชุดของใช้ Amenities ครบเซ็ต (สบู่, แชมพู, น้ำดื่ม)</span>
+                        </label>
+                        <label class="list-group-item d-flex gap-2 align-items-center py-2">
+                            <input class="form-check-input flex-shrink-0 mt-0" type="checkbox" name="checklist" value="ดูดฝุ่น ถูพื้น และจัดระเบียบเฟอร์นิเจอร์" checked>
+                            <span class="small">ดูดฝุ่น ถูพื้นฆ่าเชื้อ และจัดโต๊ะ/เตียงเป็นระเบียบ</span>
+                        </label>
+                        <label class="list-group-item d-flex gap-2 align-items-center py-2">
+                            <input class="form-check-input flex-shrink-0 mt-0" type="checkbox" name="checklist" value="ตรวจสอบระบบไฟ เครื่องปรับอากาศ และความเย็น" checked>
+                            <span class="small">ตรวจสอบระบบไฟ รีโมท แอร์เย็นปกติ ไม่มีกลิ่นอับ</span>
+                        </label>
                     </div>
                 </div>
 
-                <div class="modal-footer border-top px-4 py-3 bg-light">
-                    <button type="button" class="btn btn-light border rounded-pill px-3" data-bs-dismiss="modal">ยกเลิก</button>
-                    <button type="submit" class="btn btn-success fw-bold rounded-pill px-4 shadow-sm">
-                        <i class="bi bi-check2-circle me-1"></i> ยืนยันส่งงาน (เปิดขายต่อทันที)
-                    </button>
+                <!-- หมายเหตุเพิ่มเติม -->
+                <div class="mb-3">
+                    <label class="form-label small fw-bold text-dark mb-1">
+                        บันทึกการส่งงาน / หมายเหตุเพิ่มเติม:
+                    </label>
+                    <textarea name="completionNotes" class="form-control" rows="2"
+                              placeholder="เช่น ตรวจเช็คห้องเรียบร้อย ของใช้ครบ แอร์ทำงานปกติ ห้องพร้อมเปิดขายต่อค่ะ"></textarea>
                 </div>
-            </form>
-        </div>
+
+                <div class="alert alert-info border-0 rounded-3 p-3 small mb-0">
+                    <i class="bi bi-info-circle-fill text-primary me-1"></i>
+                    เมื่อกดยืนยัน ระบบจะปรับสถานะห้องพักในฐานข้อมูลเป็น <strong>"ว่าง" (Available)</strong> ทันที ทำให้ลูกค้าหน้าเว็บและพนักงานต้อนรับสามารถนำห้องนี้ไปขายต่อได้ทันที
+                </div>
+            </div>
+
+            <div class="modal-footer border-top px-4 py-3 bg-light">
+                <button type="button" class="btn btn-light border rounded-pill px-3" data-bs-dismiss="modal">ยกเลิก</button>
+                <button type="submit" class="btn btn-success fw-bold rounded-pill px-4 shadow-sm">
+                    <i class="bi bi-check2-circle me-1"></i> ยืนยันส่งงาน (เปิดขายต่อทันที)
+                </button>
+            </div>
+        </form>
     </div>
 </div>
 
