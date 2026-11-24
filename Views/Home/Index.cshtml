@@ -347,18 +347,28 @@
                                 </div>
                             </div>
 
-                            <!-- ราคาและปุ่มกด -->
-                            <div class="pt-3 border-top d-flex justify-content-between align-items-center">
-                                <div>
-                                    <span class="text-muted d-block" style="font-size: 0.75rem;">ราคาเริ่มต้น</span>
-                                    <h4 class="fw-bold text-primary mb-0">
-                                        ฿@roomType.BasePrice.ToString("N0")
-                                        <span class="fs-6 fw-normal text-muted">/ คืน</span>
-                                    </h4>
+                            <!-- ราคาและปุ่มกด (ปรับสไตล์ให้ราคาโดดเด่น ไม่เบียดตกบรรทัด) -->
+                            <div class="pt-3 border-top mt-auto">
+                                <div class="d-flex justify-content-between align-items-end mb-3">
+                                    <div>
+                                        <span class="text-muted d-block small mb-1" style="font-size: 0.75rem;">ราคาเริ่มต้น</span>
+                                        <div class="d-flex align-items-baseline gap-1">
+                                            <span class="fw-bolder text-primary fs-3 text-nowrap" style="letter-spacing: -0.5px; line-height: 1;">
+                                                ฿@roomType.BasePrice.ToString("N0")
+                                            </span>
+                                            <span class="text-muted small fw-medium text-nowrap">/ คืน</span>
+                                        </div>
+                                    </div>
+                                    <div class="text-end">
+                                        <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 rounded-pill px-2 py-1 small text-nowrap">
+                                            <i class="bi bi-cup-hot-fill me-1"></i>รวมอาหารเช้า
+                                        </span>
+                                        <div class="text-muted mt-1 text-nowrap" style="font-size: 0.68rem;">รวมภาษีและค่าบริการ</div>
+                                    </div>
                                 </div>
                                 <div class="d-flex gap-2">
                                     <button type="button"
-                                            class="btn btn-outline-primary rounded-3 px-3 fw-medium"
+                                            class="btn btn-outline-primary rounded-3 py-2 px-3 fw-medium flex-fill text-nowrap"
                                             data-bs-toggle="modal"
                                             data-bs-target="#roomPreviewModal-@roomType.RoomTypeId">
                                         <i class="bi bi-eye me-1"></i> ดูรายละเอียด
@@ -367,7 +377,7 @@
                                     @if (availTotal > 0)
                                     {
                                         <!-- ปุ่มจองเลย พร้อม Dropdown เลือกสาขาอื่นได้ทันที -->
-                                        <div class="btn-group">
+                                        <div class="btn-group flex-fill">
                                             <a asp-controller="Booking"
                                                asp-action="Search"
                                                asp-route-branch="@preferredBranch"
@@ -376,8 +386,8 @@
                                                asp-route-rooms="1"
                                                asp-route-guests="@defaultGuests"
                                                asp-route-roomTypeId="@roomType.RoomTypeId"
-                                               class="btn btn-primary rounded-start-3 px-3 fw-bold quick-book-btn">
-                                                จองเลย
+                                               class="btn btn-primary rounded-start-3 py-2 px-3 fw-bold quick-book-btn w-100 text-nowrap">
+                                                <i class="bi bi-calendar-check me-1"></i> จองเลย
                                             </a>
                                             <button type="button" class="btn btn-primary dropdown-toggle dropdown-toggle-split rounded-end-3 px-2" data-bs-toggle="dropdown" aria-expanded="false">
                                                 <span class="visually-hidden">เลือกสาขา</span>

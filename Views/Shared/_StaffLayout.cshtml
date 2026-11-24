@@ -18,6 +18,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@ViewData["Title"] - Easy Stay Staff Console</title>
+    <link rel="icon" type="image/png" href="~/images/logo.png" />
     
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css"/>
@@ -198,15 +199,15 @@
         <aside class="sidebar text-white d-flex flex-column p-3" id="staffSidebar">
             
             <!-- โลโก้และชื่อระบบ -->
-            <div class="d-flex align-items-center mb-3 mt-1 px-1">
-                <div class="bg-primary text-white rounded-3 p-2 me-2 d-flex align-items-center justify-content-center brand-icon-box shadow-sm" style="width: 36px; height: 36px;">
-                    <i class="bi bi-building"></i>
+            <a asp-controller="Staff" asp-action="DailyOverview" class="d-flex align-items-center mb-3 mt-1 px-1 text-decoration-none">
+                <div class="brand-logo-box me-2 brand-icon-box shadow-sm">
+                    <img src="~/images/logo.png" alt="Easy Stay Hotel" />
                 </div>
                 <div class="brand-text">
                     <h6 class="m-0 fw-bold text-white lh-1">Easy Stay</h6>
                     <small class="text-info" style="font-size: 0.7rem; letter-spacing: 0.8px;">STAFF CONSOLE</small>
                 </div>
-            </div>
+            </a>
 
             <!-- กล่องข้อมูลพนักงาน ดึงจาก Session -->
             <div class="user-profile-box">

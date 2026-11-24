@@ -9,6 +9,9 @@
     if (nights <= 0) nights = 1;
     DateTime bookingDate = RefundService.GetBookingDate(Model);
     bool isCheckedIn = Model.BookingStatus == "CheckIn" || Model.BookingStatus == "CheckedIn" || Model.BookingStatus == "Completed";
+    var groupBookings = ViewBag.GroupBookings as List<EasyStayHotel.Models.Booking> ?? new List<EasyStayHotel.Models.Booking> { Model };
+    string baseGroupRef = ViewBag.BaseGroupRef as string ?? Model.BookingRef;
+    decimal combinedTotalPrice = groupBookings.Count > 1 ? groupBookings.Sum(b => b.TotalPrice) : Model.TotalPrice;
 }
 
 <div class="container py-4">
@@ -39,8 +42,8 @@
         <div class="row align-items-center mb-4 pb-3 border-bottom">
             <div class="col-8">
                 <div class="d-flex align-items-center">
-                    <div class="bg-primary text-white rounded-3 d-flex align-items-center justify-content-center me-3 shadow-sm" style="width: 58px; height: 58px;">
-                        <i class="bi bi-buildings fs-2"></i>
+                    <div class="brand-logo-box border me-3 shadow-sm">
+                        <img src="~/images/logo.png" alt="Easy Stay Hotel" />
                     </div>
                     <div>
                         <h4 class="fw-bold m-0 text-dark">Easy Stay Hotel & Resort</h4>
@@ -117,40 +120,59 @@
             </div>
         </div>
 
-        <!-- รายละเอียดห้องพักที่จอง -->
+        <!-- รายละเอียดห้องพักที่จอง (รองรับทั้งจองห้องเดี่ยวและจองหลายห้องพร้อมกัน) -->
         <div class="card border rounded-3 mb-4 overflow-hidden">
             <div class="card-header bg-light py-2 px-3 fw-bold small text-dark d-flex justify-content-between align-items-center">
-                <span><i class="bi bi-door-open-fill text-primary me-1"></i> รายละเอียดห้องพัก (Room Details)</span>
+                <span>
+                    <i class="bi bi-door-open-fill text-primary me-1"></i> รายละเอียดห้องพัก (Room Details)
+                    @if (groupBookings.Count > 1)
+                    {
+                        <span class="badge bg-primary text-white rounded-pill ms-1">จองพร้อมกัน @groupBookings.Count ห้อง</span>
+                    }
+                </span>
                 <span class="badge bg-white text-primary border">สาขา @branchTh</span>
             </div>
             <div class="card-body p-3">
-                <div class="row align-items-center">
-                    <div class="col-sm-8">
-                        <h5 class="fw-bold text-dark mb-1">@roomTypeName</h5>
-                        <div class="text-muted small mb-2">
-                            ความจุ: ผู้เข้าพัก 2 ท่าน • ฟรีอาหารเช้าและสิ่งอำนวยความสะดวกตามมาตรฐานโรงแรม
+                @for (int idx = 0; idx < groupBookings.Count; idx++)
+                {
+                    var itemBooking = groupBookings[idx];
+                    string itemRoomType = itemBooking.Room?.RoomType?.TypeName ?? roomTypeName;
+                    bool itemCheckedIn = itemBooking.BookingStatus == "CheckIn" || itemBooking.BookingStatus == "CheckedIn" || itemBooking.BookingStatus == "Completed";
+                    <div class="row align-items-center @(idx > 0 ? "mt-3 pt-3 border-top" : "")">
+                        <div class="col-sm-8">
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                @if (groupBookings.Count > 1)
+                                {
+                                    <span class="badge bg-primary bg-opacity-10 text-primary border border-primary">ห้องที่ @(idx + 1)</span>
+                                    <span class="small font-monospace text-muted">(@itemBooking.BookingRef)</span>
+                                }
+                                <h5 class="fw-bold text-dark m-0">@itemRoomType</h5>
+                            </div>
+                            <div class="text-muted small mb-2">
+                                ความจุ: ผู้เข้าพัก @(itemBooking.Room?.RoomType?.Capacity ?? 2) ท่าน • ฟรีอาหารเช้าและสิ่งอำนวยความสะดวกตามมาตรฐานโรงแรม
+                            </div>
+                            <div>
+                                <span class="text-muted small">หมายเลขห้องพัก:</span>
+                                @if (itemCheckedIn && itemBooking.Room != null)
+                                {
+                                    <span class="badge bg-success fs-6 rounded-pill px-3 py-1 ms-1">
+                                        <i class="bi bi-door-closed-fill me-1"></i> ห้อง @itemBooking.Room.RoomNo
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary bg-opacity-10 text-secondary border rounded-pill px-3 py-1 ms-1">
+                                        <i class="bi bi-clock-history me-1"></i> พนักงานต้อนรับจะจัดสรรห้องให้ ณ วันเช็คอิน
+                                    </span>
+                                }
+                            </div>
                         </div>
-                        <div>
-                            <span class="text-muted small">หมายเลขห้องพัก:</span>
-                            @if (isCheckedIn && Model.Room != null)
-                            {
-                                <span class="badge bg-success fs-6 rounded-pill px-3 py-1 ms-1">
-                                    <i class="bi bi-door-closed-fill me-1"></i> ห้อง @Model.Room.RoomNo
-                                </span>
-                            }
-                            else
-                            {
-                                <span class="badge bg-secondary bg-opacity-10 text-secondary border rounded-pill px-3 py-1 ms-1">
-                                    <i class="bi bi-clock-history me-1"></i> พนักงานต้อนรับจะจัดสรรห้องให้ ณ วันเช็คอิน
-                                </span>
-                            }
+                        <div class="col-sm-4 text-sm-end mt-3 mt-sm-0 border-top border-sm-top-0 pt-2 pt-sm-0">
+                            <div class="text-muted small">ยอดรวมค่าห้องพัก (@nights คืน)</div>
+                            <h4 class="fw-bold text-primary m-0">฿@itemBooking.TotalPrice.ToString("N2")</h4>
                         </div>
                     </div>
-                    <div class="col-sm-4 text-sm-end mt-3 mt-sm-0 border-top border-sm-top-0 pt-2 pt-sm-0">
-                        <div class="text-muted small">ยอดรวมค่าห้องพัก (@nights คืน)</div>
-                        <h4 class="fw-bold text-primary m-0">฿@Model.TotalPrice.ToString("N2")</h4>
-                    </div>
-                </div>
+                }
             </div>
         </div>
 
@@ -184,14 +206,14 @@
             <div class="col-sm-6">
                 <div class="p-3 rounded-3 border bg-light h-100 text-sm-end">
                     <span class="text-muted small d-block mb-1">ยอดชำระสุทธิ (Total Amount):</span>
-                    <h3 class="fw-bold text-success mb-1">฿@Model.TotalPrice.ToString("N2")</h3>
+                    <h3 class="fw-bold text-success mb-1">฿@combinedTotalPrice.ToString("N2")</h3>
                     <div class="small text-muted">ราคารวมภาษีมูลค่าเพิ่มและค่าบริการแล้ว</div>
                 </div>
             </div>
         </div>
 
         <!-- เงื่อนไขและข้อแนะนำในการเข้าพัก -->
-        <div class="p-3 rounded-3 border mb-4 bg-light small">
+        <div class="p-3 rounded-3 border mb-0 bg-light small">
             <div class="fw-bold text-dark mb-1">
                 <i class="bi bi-info-circle-fill text-primary me-1"></i> ข้อกำหนดและคำแนะนำสำหรับการเข้าพัก (Check-in Terms):
             </div>
@@ -201,20 +223,6 @@
                 <li><strong>การจัดห้องพัก:</strong> หมายเลขห้องพักจะถูกจัดสรรจากห้องที่พร้อมให้บริการตามประเภทห้องที่ท่านจองไว้ ณ วันที่ท่านเดินทางมาถึง</li>
                 <li><strong>การยกเลิก / ขอคืนเงิน:</strong> สามารถยื่นเรื่องขอคืนเงินได้ภายใน 7 วันหลังจากการจองผ่านหน้าเว็บไซต์</li>
             </ul>
-        </div>
-
-        <!-- ส่วนลงนามเพื่อเป็นหลักฐานการเข้าพัก (สำหรับพิมพ์) -->
-        <div class="row text-center mt-5 pt-3">
-            <div class="col-6">
-                <div class="border-bottom border-dark mx-auto mb-2" style="max-width: 220px; height: 35px;"></div>
-                <div class="small text-muted fw-bold">ลายมือชื่อผู้เข้าพัก (Guest Signature)</div>
-                <div class="text-muted" style="font-size: 0.72rem;">วันที่: _____ / _____ / _________</div>
-            </div>
-            <div class="col-6">
-                <div class="border-bottom border-dark mx-auto mb-2" style="max-width: 220px; height: 35px;"></div>
-                <div class="small text-muted fw-bold">ลายมือชื่อพนักงานต้อนรับ (Staff Signature)</div>
-                <div class="text-muted" style="font-size: 0.72rem;">วันที่: _____ / _____ / _________</div>
-            </div>
         </div>
     </div>
 </div>

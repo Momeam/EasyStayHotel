@@ -398,3 +398,36 @@ h4, .h4 {
 .lang-select-item:hover {
   background-color: #f1f5f9;
 }
+
+/* 12. Standardized Top-Left Brand Logo Box (ขนาดเท่ากันทุกหน้า 46x36px) */
+.brand-logo-box {
+  width: 46px !important;
+  height: 36px !important;
+  background-color: #ffffff;
+  border-radius: 0.5rem;
+  padding: 2px 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.brand-logo-box img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+/* 13. Navbar & Dropdown Stacking Order (ป้องกันการ์ด sticky-top ในเนื้อหาบังเมนูเปลี่ยนภาษา/โปรไฟล์) */
+header.sticky-top,
+nav.navbar.sticky-top,
+.staff-topbar {
+  z-index: 1045 !important;
+}
+header .dropdown-menu,
+.navbar .dropdown-menu {
+  z-index: 1050 !important;
+}
+main .sticky-top {
+  z-index: 990 !important;
+}

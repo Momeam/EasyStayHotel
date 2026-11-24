@@ -7,7 +7,9 @@
     string roomMainImg = RoomPreviewHelper.GetMainImage(Model.RoomTypeName, rtId);
     string roomSize = RoomPreviewHelper.GetRoomSize(Model.RoomTypeName, rtId);
     string bedType = RoomPreviewHelper.GetBedType(Model.RoomTypeName, rtId);
-    int roomsCount = ViewBag.RoomsCount != null ? (int)ViewBag.RoomsCount : 1;
+    int roomsCount = ViewBag.RoomsCount != null ? (int)ViewBag.RoomsCount : (Model.RoomsCount > 0 ? Model.RoomsCount : 1);
+    int maxAvailableRooms = ViewBag.MaxAvailableRooms != null ? (int)ViewBag.MaxAvailableRooms : 10;
+    string branchAvailTypesJson = ViewBag.BranchAvailableRoomTypesJson as string ?? "[]";
     int nights = Model.Nights > 0 ? Model.Nights : 1;
     decimal initialRoomPrice = Model.BasePrice * nights * roomsCount;
 }
@@ -35,7 +37,7 @@
         <input type="hidden" asp-for="Guests" />
         <input type="hidden" name="BasePrice" id="hiddenBasePrice" value="@Model.BasePrice.ToString(System.Globalization.CultureInfo.InvariantCulture)" />
         <input type="hidden" name="TotalPrice" id="hiddenTotalPrice" value="@initialRoomPrice.ToString(System.Globalization.CultureInfo.InvariantCulture)" />
-        <input type="hidden" id="hiddenRoomsCount" value="@roomsCount" />
+        <input type="hidden" name="RoomsCount" id="hiddenRoomsCount" value="@roomsCount" />
 
         <div class="row g-4">
             <!-- คอลัมน์ซ้าย: รายละเอียด, บริการเสริม, ชำระเงิน -->
@@ -105,6 +107,51 @@
                                 <span class="badge bg-primary bg-opacity-10 text-primary border border-primary px-3 py-2 rounded-pill mt-md-3 d-inline-block">
                                     <i class="bi bi-moon-stars me-1"></i> <span id="uiNightsBadge">@nights</span> คืน
                                 </span>
+                            </div>
+                        </div>
+
+                        <!-- ส่วนเลือกจำนวนห้องพัก และปุ่ม "+ จองห้องพักเพิ่ม" สำหรับจองหลายห้องพร้อมกัน -->
+                        <div class="bg-primary bg-opacity-10 border border-primary border-opacity-25 rounded-3 p-3 mt-3">
+                            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+                                <div>
+                                    <div class="fw-bold text-dark small d-flex align-items-center gap-2">
+                                        <i class="bi bi-buildings-fill text-primary"></i>
+                                        <span>จำนวนห้องพักที่ต้องการจองพร้อมกัน</span>
+                                        <span class="badge bg-white text-primary border rounded-pill px-2 py-1" style="font-size: 0.72rem;">
+                                            ว่าง @maxAvailableRooms ห้องในสาขานี้
+                                        </span>
+                                    </div>
+                                    <small class="text-muted">สามารถเพิ่มจำนวนห้องประเภทนี้ หรือกดเพิ่มห้องพักประเภทอื่นเพื่อจองพร้อมกันในครั้งเดียว</small>
+                                </div>
+
+                                <div class="d-flex flex-wrap align-items-center gap-2">
+                                    <!-- ปุ่มปรับจำนวนห้องหลัก (- / +) -->
+                                    <div class="input-group input-group-sm shadow-xs" style="width: 135px;">
+                                        <button type="button" class="btn btn-white bg-white border fw-bold" id="btnPrimaryRoomMinus">-</button>
+                                        <input type="number" id="uiPrimaryRoomsInput" class="form-control text-center fw-bold text-primary bg-white"
+                                               value="@roomsCount" min="1" max="@maxAvailableRooms" readonly />
+                                        <button type="button" class="btn btn-white bg-white border fw-bold" id="btnPrimaryRoomPlus">+</button>
+                                    </div>
+
+                                    <!-- ปุ่มเพิ่มห้องพักที่ 2 / ประเภทอื่น -->
+                                    <button type="button" class="btn btn-primary btn-sm rounded-pill px-3 fw-bold shadow-xs text-nowrap" id="btnAddExtraRoomRow">
+                                        <i class="bi bi-plus-circle-fill me-1"></i> จองห้องพักเพิ่ม
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- รายการห้องพักที่กดเพิ่มเข้ามา (Extra Rooms Container) -->
+                            <div id="extraRoomsContainer" class="mt-2"></div>
+
+                            <!-- แถบแจ้งเตือนสิทธิ์ส่วนลดกลุ่ม 15% อัตโนมัติเมื่อจองตั้งแต่ 2 ห้องขึ้นไป -->
+                            <div id="groupPromoHintBanner" class="alert alert-success border-0 rounded-3 py-2 px-3 mt-3 mb-0 d-none d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 small">
+                                <div>
+                                    <i class="bi bi-stars text-warning me-1"></i>
+                                    <strong>สิทธิพิเศษจอง 2 ห้องขึ้นไป!</strong> รับส่วนลดกลุ่มทันที <strong>15% ทุกห้อง</strong> ด้วยโค้ด <code>GROUP15</code>
+                                </div>
+                                <button type="button" class="btn btn-success btn-sm rounded-pill px-3 py-1 fw-bold text-nowrap" id="btnAutoApplyGroup15">
+                                    ใช้โค้ด GROUP15 ทันที
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -199,7 +246,7 @@
 
             <!-- คอลัมน์ขวา: สรุปค่าใช้จ่าย -->
             <div class="col-md-4">
-                <div class="card border-0 shadow-sm rounded-4 sticky-top" style="top: 20px;">
+                <div class="card border-0 shadow-sm rounded-4 sticky-top" style="top: 85px; z-index: 990;">
                     <div class="card-body p-4">
                         <h5 class="fw-bold text-primary mb-4">สรุปค่าใช้จ่ายทั้งหมด</h5>
                         
@@ -285,13 +332,140 @@
         $(document).ready(function () {
             const rawBase = $('#hiddenBasePrice').val() || '0';
             const baseRoomPrice = parseFloat(rawBase) || 0;
-            const roomsCount = parseInt($('#hiddenRoomsCount').val()) || 1;
+            const primaryRoomTypeId = @rtId;
+            const maxPrimaryAvail = @maxAvailableRooms;
+            const branchRoomTypes = @Html.Raw(branchAvailTypesJson);
+            let roomsCount = parseInt($('#hiddenRoomsCount').val()) || 1;
             
             const priceExtraBed = 800;
             const priceBreakfast = 350;
             const priceTransfer = 1200;
 
             const thaiMonthsShort = ["", "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+
+            // คำนวณจำนวนห้องรวมและราคารวมต่อคืนจากห้องหลัก + ห้องที่กดเพิ่ม
+            function getMultiRoomTotals() {
+                const primaryQty = parseInt($('#uiPrimaryRoomsInput').val()) || 1;
+                $('#hiddenRoomsCount').val(primaryQty);
+
+                let totalRooms = primaryQty;
+                let totalPricePerNight = primaryQty * baseRoomPrice;
+                let extraRoomsBreakdown = [];
+
+                $('.extra-room-row').each(function () {
+                    const rtId = parseInt($(this).find('.extra-room-type-select').val()) || 0;
+                    const qty = parseInt($(this).find('.extra-room-qty-input').val()) || 1;
+                    const foundType = branchRoomTypes.find(x => x.RoomTypeId === rtId);
+                    const rtPrice = foundType ? parseFloat(foundType.BasePrice) : baseRoomPrice;
+                    const rtName = foundType ? foundType.TypeName : 'Extra Room';
+
+                    totalRooms += qty;
+                    totalPricePerNight += (rtPrice * qty);
+                    extraRoomsBreakdown.push({
+                        roomTypeId: rtId,
+                        typeName: rtName,
+                        pricePerNight: rtPrice,
+                        count: qty
+                    });
+                });
+
+                // ปรับจำนวนเตียงเสริมสูงสุดตามจำนวนห้องที่จอง (1 เตียงต่อห้อง)
+                $('#ExtraBedCount').attr('max', totalRooms);
+                const currentBeds = parseInt($('#ExtraBedCount').val()) || 0;
+                if (currentBeds > totalRooms) {
+                    $('#ExtraBedCount').val(totalRooms);
+                }
+
+                // แสดงแบนเนอร์แนะนำคูปอง GROUP15 เมื่อจองตั้งแต่ 2 ห้องขึ้นไป
+                if (totalRooms >= 2) {
+                    $('#groupPromoHintBanner').removeClass('d-none');
+                } else {
+                    $('#groupPromoHintBanner').addClass('d-none');
+                }
+
+                roomsCount = totalRooms;
+                return {
+                    primaryQty: primaryQty,
+                    totalRooms: totalRooms,
+                    totalPricePerNight: totalPricePerNight,
+                    extraRoomsBreakdown: extraRoomsBreakdown
+                };
+            }
+
+            // ปุ่มลด/เพิ่มจำนวนห้องพักหลัก
+            $('#btnPrimaryRoomMinus').click(function () {
+                const current = parseInt($('#uiPrimaryRoomsInput').val()) || 1;
+                if (current > 1) {
+                    $('#uiPrimaryRoomsInput').val(current - 1);
+                    calculateSummary();
+                }
+            });
+
+            $('#btnPrimaryRoomPlus').click(function () {
+                const current = parseInt($('#uiPrimaryRoomsInput').val()) || 1;
+                if (current < maxPrimaryAvail) {
+                    $('#uiPrimaryRoomsInput').val(current + 1);
+                    calculateSummary();
+                } else {
+                    alert(`ห้องพักประเภทนี้มีห้องว่างในสาขานี้สูงสุด ${maxPrimaryAvail} ห้อง (คุณสามารถกด "+ จองห้องพักเพิ่ม" เพื่อเลือกประเภทห้องอื่นเพิ่มเติมได้)`);
+                }
+            });
+
+            // ปุ่ม "+ จองห้องพักเพิ่ม" (เพิ่มแถวเลือกห้องที่ 2 / ประเภทห้องอื่นในสาขาเดียวกัน)
+            $('#btnAddExtraRoomRow').click(function () {
+                if (!branchRoomTypes || branchRoomTypes.length === 0) return;
+
+                let optionsHtml = '';
+                branchRoomTypes.forEach(function (rt) {
+                    const selectedAttr = rt.RoomTypeId !== primaryRoomTypeId ? 'selected' : '';
+                    optionsHtml += `<option value="${rt.RoomTypeId}" data-max="${rt.AvailableCount}" data-price="${rt.BasePrice}" ${selectedAttr}>${rt.TypeName} (฿${Number(rt.BasePrice).toLocaleString()}/คืน • ว่าง ${rt.AvailableCount} ห้อง)</option>`;
+                });
+
+                const rowHtml = `
+                    <div class="extra-room-row bg-white border rounded-3 p-2 mt-2 d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-2 shadow-xs">
+                        <div class="d-flex align-items-center gap-2 flex-grow-1">
+                            <span class="badge bg-primary rounded-pill px-2 py-1">+ ห้องเสริม</span>
+                            <select name="ExtraRoomTypeIds" class="form-select form-select-sm fw-semibold extra-room-type-select">
+                                ${optionsHtml}
+                            </select>
+                        </div>
+                        <div class="d-flex align-items-center gap-2 justify-content-end">
+                            <span class="small text-muted text-nowrap">จำนวน:</span>
+                            <input type="number" name="ExtraRoomCounts" class="form-control form-control-sm text-center fw-bold extra-room-qty-input" value="1" min="1" max="5" style="width: 68px;" />
+                            <button type="button" class="btn btn-outline-danger btn-sm rounded-pill px-2 btn-remove-extra-room" title="ลบห้องนี้">
+                                <i class="bi bi-trash3"></i>
+                            </button>
+                        </div>
+                    </div>`;
+
+                $('#extraRoomsContainer').append(rowHtml);
+                calculateSummary();
+            });
+
+            // เมื่อเปลี่ยนประเภทห้องหรือจำนวนในแถวห้องที่เพิ่ม
+            $(document).on('change', '.extra-room-type-select, .extra-room-qty-input', function () {
+                const row = $(this).closest('.extra-room-row');
+                const selectedOpt = row.find('.extra-room-type-select option:selected');
+                const maxAvail = parseInt(selectedOpt.data('max')) || 5;
+                const qtyInput = row.find('.extra-room-qty-input');
+                let val = parseInt(qtyInput.val()) || 1;
+                if (val < 1) val = 1;
+                if (val > maxAvail) val = maxAvail;
+                qtyInput.attr('max', maxAvail).val(val);
+                calculateSummary();
+            });
+
+            // ลบแถวห้องที่กดเพิ่ม
+            $(document).on('click', '.btn-remove-extra-room', function () {
+                $(this).closest('.extra-room-row').remove();
+                calculateSummary();
+            });
+
+            // ปุ่มกดใช้โค้ด GROUP15 ทันทีจากแบนเนอร์
+            $('#btnAutoApplyGroup15').click(function () {
+                $('#PromoCode').val('GROUP15');
+                calculateSummary();
+            });
             
             // แปลงสตริง ISO (yyyy-MM-dd) เป็นรูปแบบแสดงผลภาษาไทยพร้อมปี พ.ศ. ที่ถูกต้อง
             function formatThaiDateDisplay(isoStr) {
@@ -360,9 +534,21 @@
 
             function calculateSummary() {
                 const currentNights = parseInt($('#hiddenNights').val()) || 1;
-                const totalRoomPrice = baseRoomPrice * currentNights * roomsCount;
+                const multiInfo = getMultiRoomTotals();
+                const totalRoomPrice = multiInfo.totalPricePerNight * currentNights;
                 let totalAddons = 0;
                 let addonHtml = '';
+
+                // อัปเดตป้ายจำนวนคืนและจำนวนห้องรวม
+                $('#uiSummaryNights').text(`(${currentNights} คืน${multiInfo.totalRooms > 1 ? ', รวม ' + multiInfo.totalRooms + ' ห้อง' : ''})`);
+
+                // หากมีการกด "+ จองห้องพักเพิ่ม" ให้แสดงรายละเอียดแยกแต่ละห้องในฝั่งสรุปค่าใช้จ่าย
+                if (multiInfo.extraRoomsBreakdown.length > 0) {
+                    addonHtml += `<div class="d-flex justify-content-between small mb-1 text-muted ps-2 border-start border-2 border-primary"><span>• @Html.Raw(Model.RoomTypeName) x${multiInfo.primaryQty} ห้อง</span><span>฿${(baseRoomPrice * multiInfo.primaryQty * currentNights).toLocaleString()}</span></div>`;
+                    multiInfo.extraRoomsBreakdown.forEach(function (item) {
+                        addonHtml += `<div class="d-flex justify-content-between small mb-1 text-muted ps-2 border-start border-2 border-primary"><span>• ${item.typeName} x${item.count} ห้อง</span><span>฿${(item.pricePerNight * item.count * currentNights).toLocaleString()}</span></div>`;
+                    });
+                }
 
                 // คำนวณบริการเสริมต่างๆ
                 const bedQty = parseInt($('#ExtraBedCount').val()) || 0;
@@ -396,8 +582,9 @@
                 const checkInVal = $('#CheckInDate').val() || $('#uiCheckInDate').val() || '';
                 const requestData = {
                     BasePrice: baseRoomPrice,
+                    TotalRoomPricePerNight: multiInfo.totalPricePerNight,
                     Nights: currentNights,
-                    Rooms: roomsCount,
+                    Rooms: multiInfo.totalRooms,
                     CheckInDate: checkInVal,
                     CouponCode: $('#PromoCode').val() || '',
                     Email: $('#Email').val() || '',

@@ -13,6 +13,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - Easy Stay Hotel</title>
+    <link rel="icon" type="image/png" href="~/images/logo.png" />
     <script type="importmap"></script>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
@@ -36,8 +37,12 @@
         .nav-link-custom {
             color: #475569 !important;
             font-weight: 500;
-            padding: 0.5rem 1rem !important;
+            font-size: 0.94rem;
+            padding: 0.45rem 0.8rem !important;
             border-radius: 8px;
+            white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
             transition: all 0.2s ease;
         }
         .nav-link-custom:hover, .nav-link-custom.active {
@@ -52,21 +57,21 @@
     </style>
 </head>
 <body>
-    <header class="sticky-top">
-        <nav class="navbar navbar-expand-lg navbar-light navbar-custom py-3">
-            <div class="container">
-                <a class="navbar-brand d-flex align-items-center gap-2 fw-bold text-primary fs-4" asp-area="" asp-controller="Home" asp-action="Index">
-                    <span class="bg-primary text-white rounded-3 d-inline-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
-                        <i class="bi bi-building-check fs-5"></i>
+    <header class="sticky-top" style="z-index: 1045;">
+        <nav class="navbar navbar-expand-lg navbar-light navbar-custom py-2">
+            <div class="container-fluid px-3 px-lg-4 px-xxl-5">
+                <a class="navbar-brand d-flex align-items-center gap-2 fw-bold text-primary fs-5 py-0 me-2 text-nowrap" asp-area="" asp-controller="Home" asp-action="Index">
+                    <span class="brand-logo-box border border-light shadow-xs">
+                        <img src="~/images/logo.png" alt="Easy Stay Hotel" />
                     </span>
-                    <span>Easy Stay <span class="fw-light text-dark fs-6 d-none d-sm-inline">Hotel & Resort</span></span>
+                    <span>Easy Stay <span class="fw-light text-dark fs-6 d-none d-xl-inline">Hotel & Resort</span></span>
                 </a>
                 <button class="navbar-toggler border-0 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar" aria-controls="mainNavbar"
                         aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
                 <div class="navbar-collapse collapse" id="mainNavbar">
-                    <ul class="navbar-nav mx-auto mb-2 mb-lg-0 gap-1">
+                    <ul class="navbar-nav mx-auto mb-2 mb-lg-0 gap-1 flex-lg-nowrap">
                         <li class="nav-item">
                             <a class="nav-link nav-link-custom @(currentController == "Home" && currentAction == "Index" ? "active" : "")"
                                asp-controller="Home" asp-action="Index">
@@ -91,11 +96,11 @@
                         </li>
                     </ul>
 
-                    <div class="d-flex flex-wrap align-items-center gap-2 mt-2 mt-lg-0">
+                    <div class="d-flex flex-wrap flex-lg-nowrap align-items-center gap-2 mt-2 mt-lg-0">
                         <!-- ปุ่มเปลี่ยนภาษา (ไทย / English / 中文) สำหรับลูกค้าต่างชาติ -->
-                        <div class="dropdown me-1 notranslate" translate="no">
-                            <button class="btn btn-light border rounded-pill px-3 py-2 dropdown-toggle d-flex align-items-center gap-2 lang-switcher-btn shadow-xs"
-                                    type="button" id="langDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false" title="Change Language / เปลี่ยนภาษา / 切换语言">
+                        <div class="dropdown notranslate" translate="no">
+                            <button class="btn btn-light border rounded-pill px-3 py-1 dropdown-toggle d-flex align-items-center gap-2 lang-switcher-btn shadow-xs text-nowrap"
+                                    type="button" id="langDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false" title="Change Language / เปลี่ยนภาษา / 切换语言" style="height: 38px;">
                                 <i class="bi bi-globe2 text-primary"></i>
                                 <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill px-2 py-1 fw-bold" id="currentLangBadge">TH</span>
                                 <span class="small fw-medium d-none d-xl-inline text-dark" id="currentLangLabel">ไทย</span>
@@ -167,7 +172,7 @@
                             }
 
                             <div class="dropdown">
-                                <button class="btn btn-light border rounded-pill px-3 py-2 dropdown-toggle d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <button class="btn btn-light border rounded-pill px-3 py-1 dropdown-toggle d-flex align-items-center gap-2 text-nowrap" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="height: 38px;">
                                     <i class="bi bi-person-circle text-primary fs-5"></i>
                                     <span class="fw-medium small">คุณ @userFullName</span>
                                 </button>
@@ -248,10 +253,10 @@
                         }
                         else
                         {
-                            <a asp-controller="Account" asp-action="Login" class="btn btn-outline-primary rounded-pill px-4 fw-medium">
+                            <a asp-controller="Account" asp-action="Login" class="btn btn-outline-primary rounded-pill px-3 py-1 fw-medium text-nowrap d-inline-flex align-items-center" style="height: 38px;">
                                 <i class="bi bi-box-arrow-in-right me-1"></i> เข้าสู่ระบบ
                             </a>
-                            <a asp-controller="Account" asp-action="Register" class="btn btn-primary rounded-pill px-4 fw-medium shadow-sm">
+                            <a asp-controller="Account" asp-action="Register" class="btn btn-primary rounded-pill px-3 py-1 fw-medium shadow-sm text-nowrap d-inline-flex align-items-center" style="height: 38px;">
                                 <i class="bi bi-person-plus me-1"></i> สมัครสมาชิก
                             </a>
                         }
@@ -288,7 +293,10 @@
             <div class="row g-4 mb-4">
                 <div class="col-md-4">
                     <div class="d-flex align-items-center gap-2 text-white fw-bold fs-5 mb-3">
-                        <i class="bi bi-building-check text-primary"></i> Easy Stay Hotel
+                        <span class="brand-logo-box shadow-sm">
+                            <img src="~/images/logo.png" alt="Easy Stay Hotel" />
+                        </span>
+                        <span>Easy Stay Hotel</span>
                     </div>
                     <p class="small mb-3">
                         เครือโรงแรมและรีสอร์ทชั้นนำในประเทศไทย มอบประสบการณ์การพักผ่อนที่เหนือระดับ ในทำเลศักยภาพทั้งกรุงเทพมหานคร ชลบุรี (พัทยา) และภูเก็ต

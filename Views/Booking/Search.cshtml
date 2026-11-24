@@ -298,17 +298,19 @@
                                     <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-end mt-4 pt-3 border-top gap-3">
                                         <div>
                                             <div class="d-flex align-items-baseline gap-1">
-                                                <h4 class="fw-bold text-dark m-0">฿@basePrice.ToString("N0")</h4>
-                                                <span class="small text-muted">/ คืน</span>
+                                                <span class="fw-bolder text-primary fs-3 text-nowrap" style="letter-spacing: -0.5px; line-height: 1;">
+                                                    ฿@basePrice.ToString("N0")
+                                                </span>
+                                                <span class="small text-muted fw-medium text-nowrap">/ คืน</span>
                                             </div>
-                                            <small class="text-primary fw-medium">
+                                            <small class="text-primary fw-medium d-block mt-1">
                                                 รวม @nights คืน: ฿@totalForStay.ToString("N0") (ก่อนหักส่วนลดโปรโมชั่น)
                                             </small>
                                         </div>
 
                                         <div class="d-flex gap-2">
                                             <button type="button"
-                                                    class="btn btn-outline-primary px-3 py-2 rounded-3"
+                                                    class="btn btn-outline-primary px-3 py-2 rounded-3 text-nowrap"
                                                     data-bs-toggle="modal"
                                                     data-bs-target="#searchPreviewModal-@rtId">
                                                 <i class="bi bi-eye me-1"></i> พรีวิวห้อง
@@ -319,7 +321,7 @@
                                                asp-route-checkOut="@ViewBag.CheckOut"
                                                asp-route-guests="@ViewBag.GuestsReq"
                                                asp-route-rooms="@ViewBag.RoomsReq"
-                                               class="btn btn-primary fw-bold px-4 py-2 rounded-3 shadow-sm">
+                                               class="btn btn-primary fw-bold px-4 py-2 rounded-3 shadow-sm text-nowrap">
                                                 เลือกห้องนี้ <i class="bi bi-chevron-right ms-1"></i>
                                             </a>
                                         </div>
