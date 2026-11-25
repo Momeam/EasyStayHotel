@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>คู่มือเจาะลึก Controller ทั้ง 7 ไฟล์ - EasyStayHotel</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Kanit', sans-serif;
+            background-color: #f8fafc;
+            color: #1e293b;
+            line-height: 1.7;
+        }
+        code, pre {
+            font-family: 'Fira Code', monospace;
+        }
+        .guide-container {
+            max-width: 1040px;
+            margin: 0 auto;
+        }
+        .header-card {
+            background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);
+            border-radius: 1.25rem;
+            color: #ffffff;
+            box-shadow: 0 10px 25px rgba(15, 23, 42, 0.15);
+        }
+        .section-card {
+            background: #ffffff;
+            border-radius: 1rem;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+            margin-bottom: 2rem;
+            overflow: hidden;
+        }
+        .section-header {
+            padding: 1.25rem 1.75rem;
+            border-bottom: 1px solid #f1f5f9;
+            background-color: #f8fafc;
+        }
+        .section-body {
+            padding: 1.75rem;
+        }
+        .code-pill {
+            background-color: #f1f5f9;
+            color: #0f172a;
+            padding: 0.2rem 0.5rem;
+            border-radius: 0.375rem;
+            font-size: 0.88rem;
+            font-weight: 600;
+        }
+        .table-custom thead th {
+            background-color: #0f172a;
+            color: #ffffff;
+            font-weight: 500;
+            padding: 0.85rem 1rem;
+        }
+        .table-custom tbody td {
+            padding: 1rem;
+            vertical-align: top;
+        }
+        .rule-badge {
+            background: rgba(13, 110, 253, 0.1);
+            color: #0d6efd;
+            border: 1px solid rgba(13, 110, 253, 0.2);
+            font-weight: 600;
+            border-radius: 2rem;
+            padding: 0.35rem 0.85rem;
+            font-size: 0.82rem;
+        }
+        @media print {
+            .no-print { display: none !important; }
+            body { background: #ffffff; }
+            .section-card { box-shadow: none; border: 1px solid #ccc; page-break-inside: avoid; }
+        }
+    </style>
+</head>
+<body class="py-4 py-md-5">
+
+<div class="guide-container px-3">
+
+    <!-- Header Card -->
+    <div class="header-card p-4 p-md-5 mb-4 position-relative">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+            <div>
+                <span class="badge bg-warning text-dark px-3 py-1 rounded-pill fw-bold mb-2">
+                    <i class="bi bi-mortarboard-fill me-1"></i> วิชา CSI402 การเชื่อมต่อโปรแกรมส่วนหน้ากับส่วนหลัง
+                </span>
+                <h2 class="fw-bold m-0">คู่มือเจาะลึกการทำงานของ Controller ทั้ง 7 ไฟล์</h2>
+                <p class="text-white-50 mt-2 mb-0 small">
+                    ระบบ Easy Stay Hotel PMS & Multi-branch Booking Web Application (ASP.NET Core 10.0 MVC + MySQL)
+                </p>
+            </div>
+            <div class="no-print text-md-end">
+                <button onclick="window.print()" class="btn btn-light fw-bold rounded-pill px-4 shadow-sm">
+                    <i class="bi bi-printer-fill me-1"></i> พิมพ์ / ดาวน์โหลด PDF
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- สูตรตอบคำถาม 3 สเต็ป -->
+    <div class="alert alert-primary border-0 rounded-4 shadow-sm p-4 mb-4">
+        <h5 class="fw-bold text-primary mb-2"><i class="bi bi-lightbulb-fill me-2"></i>สูตรลับ 3 สเต็ปตอบอาจารย์เวลาโดนสุ่มจิ้มโค้ด 1 บรรทัด</h5>
+        <div class="row g-3 mt-1 small">
+            <div class="col-md-4">
+                <div class="bg-white p-3 rounded-3 h-100 border">
+                    <strong class="text-primary d-block mb-1">1. บรรทัดนี้คืออะไร (Type):</strong>
+                    ระบุประเภทคำสั่ง เช่น คำสั่ง LINQ, Dependency Injection, Session, หรือคำขอ AJAX/JSON
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="bg-white p-3 rounded-3 h-100 border">
+                    <strong class="text-primary d-block mb-1">2. ทำหน้าที่อะไร (Function):</strong>
+                    อธิบายสิ่งที่คำสั่งทำ เช่น ดึงข้อมูลห้องว่าง, คำนวณส่วนลด, หรือเปลี่ยนสถานะห้อง
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="bg-white p-3 rounded-3 h-100 border">
+                    <strong class="text-success d-block mb-1">3. ทำไมต้องมี (Why / Impact):</strong>
+                    บอกผลกระทบเพื่อเอาคะแนนเต็ม เช่น "ถ้าไม่มี .Include หน้าเว็บจะเกิด NullReferenceException"
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 1. HomeController -->
+    <div class="section-card">
+        <div class="section-header d-flex justify-content-between align-items-center">
+            <h5 class="fw-bold m-0 text-primary"><i class="bi bi-house-door-fill me-2"></i>1. HomeController.cs (ระบบหน้าแรก)</h5>
+            <span class="badge bg-secondary rounded-pill">98 บรรทัด</span>
+        </div>
+        <div class="section-body">
+            <p class="text-muted small"><strong>หน้าที่หลัก:</strong> จัดการหน้า Landing Page แรกสุดของเว็บไซต์ (`/`), การแสดงพรีวิวห้องพักพร้อมแกลเลอรีรูปภาพแยกตามสาขา และหน้านโยบายความเป็นส่วนตัว</p>
+            <ul class="small mb-0">
+                <li class="mb-2"><strong>Constructor Injection (บรรทัด 13-18):</strong> รับ <code>EasystaydbContext</code> เข้ามาเพื่อใช้คิวรีฐานข้อมูล MySQL ผ่าน Entity Framework Core</li>
+                <li class="mb-2"><strong>Action `Index()` (บรรทัด 20-86):</strong>
+                    <ul>
+                        <li>ใช้ LINQ <code>_context.Roomtypes.Include(rt => rt.Rooms).OrderBy(rt => rt.BasePrice).ToList();</code> ดึงประเภทห้องพร้อมตารางลูก <code>rooms</code> เพื่อนำไปนับจำนวนห้องว่างของแต่ละสาขา (กรุงเทพฯ, ชลบุรี, ภูเก็ต)</li>
+                        <li>มีกลไก <strong>Fallback Mock Data</strong> ในกรณีที่ฐานข้อมูลยังว่างเปล่า ระบบจะสร้างข้อมูลจำลองมาตรฐาน 3 ประเภทขึ้นมาเพื่อไม่ให้หน้าเว็บล่ม</li>
+                    </ul>
+                </li>
+                <li><strong>Action `Privacy()` & `Error()` (บรรทัด 88-97):</strong> แสดงหน้านโยบาย และจัดการ Error Id โดยปิดการแคชด้วย <code>[ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]</code></li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- 2. AccountController -->
+    <div class="section-card">
+        <div class="section-header d-flex justify-content-between align-items-center">
+            <h5 class="fw-bold m-0 text-primary"><i class="bi bi-shield-lock-fill me-2"></i>2. AccountController.cs (ระบบยืนยันตัวตน & OTP)</h5>
+            <span class="badge bg-secondary rounded-pill">432 บรรทัด</span>
+        </div>
+        <div class="section-body">
+            <p class="text-muted small"><strong>หน้าที่หลัก:</strong> จัดการการยืนยันตัวตนสมาชิก: เข้าสู่ระบบ, ส่งรหัส OTP ทางอีเมล, สมัครสมาชิก, จัดการโปรไฟล์, รีเซ็ตรหัสผ่าน, และออกจากระบบ</p>
+            <ul class="small mb-0">
+                <li class="mb-2"><strong>`Login` (GET / POST - บรรทัด 23-98):</strong>
+                    <ul>
+                        <li>เช็ค Session เดิม ถ้าล็อกอินอยู่แล้วให้ส่งเข้าหน้าแรกทันที</li>
+                        <li>เมื่อล็อกอินสำเร็จ จะบันทึก <code>UserId</code>, <code>FullName</code>, <code>Role</code>, <code>Branch</code> ลงใน Server-Side Session</li>
+                        <li><strong>Role-Based Redirection:</strong> แยกส่งผู้ใช้ตามบทบาททันที: แอดมินไป <code>/Admin/Dashboard</code>, พนักงานไป <code>/Staff/BookingList</code>, บัญชีไป <code>/Accounting/RevenueReport</code>, แม่บ้านไป <code>/Housekeeper/Dashboard</code>, ลูกค้าทั่วไปไปหน้าแรกหรือ <code>returnUrl</code></li>
+                    </ul>
+                </li>
+                <li class="mb-2"><strong>`SendOtp` (POST AJAX - บรรทัด 111-149):</strong>
+                    <ul>
+                        <li>รับข้อมูล JSON <code>[FromBody] SendOtpRequest request</code></li>
+                        <li>สุ่มรหัสตัวเลข 6 หลัก <code>Random.Shared.Next(100000, 999999)</code> บันทึกลง Session พร้อมอายุ 5 นาที <code>AddMinutes(5)</code></li>
+                        <li>เรียกใช้ <code>_emailService.SendOtpEmailAsync(...)</code> ส่งอีเมลยืนยันตัวตนหาผู้ใช้จริง</li>
+                    </ul>
+                </li>
+                <li class="mb-2"><strong>`Register` (POST - บรรทัด 151-220):</strong>
+                    <ul>
+                        <li>ตรวจสอบความถูกต้องของรหัส OTP และเช็คว่าไม่หมดอายุ</li>
+                        <li>บันทึกบัญชีใหม่ลงตาราง <code>users</code> ด้วย Role = "Customer" แล้วล้าง Session OTP เพื่อความปลอดภัย</li>
+                    </ul>
+                </li>
+                <li class="mb-2"><strong>`Profile` (GET / POST - บรรทัด 222-316):</strong> อ่านและอัปเดตข้อมูลผู้ใช้ พร้อมตรวจสอบรหัสผ่านเดิมก่อนอนุญาตให้ตั้งรหัสผ่านใหม่</li>
+                <li class="mb-2"><strong>`ForgotPassword` & `ResetPassword` (บรรทัด 318-423):</strong> ส่งรหัส OTP ไปที่อีเมลเดิมเพื่อรีเซ็ตรหัสผ่าน</li>
+                <li><strong>`Logout` (บรรทัด 425-430):</strong> สั่ง <code>HttpContext.Session.Clear();</code> เพื่อล้างเซสชันทั้งหมด คืนความปลอดภัย</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- 3. BookingController -->
+    <div class="section-card">
+        <div class="section-header d-flex justify-content-between align-items-center">
+            <h5 class="fw-bold m-0 text-primary"><i class="bi bi-calendar-check-fill me-2"></i>3. BookingController.cs (ระบบค้นหา & จองห้องพัก)</h5>
+            <span class="badge bg-secondary rounded-pill">753 บรรทัด</span>
+        </div>
+        <div class="section-body">
+            <p class="text-muted small"><strong>หน้าที่หลัก:</strong> คอร์หลักของระบบการจอง: ค้นหาห้องว่าง, สรุปรายการจอง, ระบบจองหลายห้องพร้อมกัน (Multi-Room), คำนวณโปรโมชั่นแบบ Real-time, แนบสลิป, ออก Voucher, และยื่นขอคืนเงิน</p>
+            <ul class="small mb-0">
+                <li class="mb-2"><strong>`Search` (บรรทัด 27-104):</strong>
+                    <ul>
+                        <li>ปรับเทียบวันที่เช็คอิน/เช็คเอาท์เป็น ค.ศ. สากลด้วย <code>DateHelper.NormalizeToGregorian</code> ป้องกันบั๊กปี พ.ศ. 2569/3112</li>
+                        <li>คิวรีดึงเฉพาะห้องว่าง <code>Status == "Available"</code> ในสาขาที่เลือก และใช้ <code>GroupBy(r => r.RoomType)</code> เพื่อนับจำนวนห้องว่างที่เหลือในแต่ละประเภท</li>
+                    </ul>
+                </li>
+                <li class="mb-2"><strong>`Checkout` (บรรทัด 106-218):</strong>
+                    <ul>
+                        <li><strong>บังคับล็อกอิน:</strong> เช็ค <code>HttpContext.Session.GetInt32("UserId")</code> หากยังไม่ล็อกอิน ให้เก็บ <code>returnUrl</code> แล้ว Redirect ไปหน้า Login</li>
+                        <li><strong>Anti-Overbooking:</strong> ตรวจสอบว่าห้องยังว่างอยู่จริงหรือไม่ ถ้าไม่ว่างจะแจ้งเตือนและส่งกลับหน้าค้นหาทันที</li>
+                        <li>ดึงข้อมูลประเภทห้องว่างทั้งหมดในสาขาแปลงเป็น JSON ส่งไปให้ Frontend เพื่อรองรับการกด <strong>"+ จองห้องพักเพิ่ม"</strong></li>
+                    </ul>
+                </li>
+                <li class="mb-2"><strong>`CalculateDiscount` (POST AJAX - บรรทัด 220-271):</strong>
+                    <ul>
+                        <li>รับข้อมูล JSON จากหน้าจอแบบ <code>[FromBody] PromoRequestData data</code></li>
+                        <li>คำนวณส่วนลด 5 รูปแบบ (Early Bird, Long Stay, Birthday Month, Group Stay 15%, Weekday Stay 5%) ผ่าน <code>PromotionService</code> และคืนค่าเป็น JSON อัปเดตราคาบนหน้าจอทันทีโดยไม่ต้องรีโหลดหน้าเว็บ</li>
+                    </ul>
+                </li>
+                <li class="mb-2"><strong>`ConfirmBooking` (POST - บรรทัด 273-488):</strong>
+                    <ul>
+                        <li><strong>Multi-Room Booking:</strong> รวบรวมจำนวนห้องที่ลูกค้าเลือกทั้งหมด ค้นหาห้องว่างจริงในสาขานั้นมาล็อกไว้</li>
+                        <li>อัปโหลดรูปสลิปไปที่ <code>wwwroot/uploads/slips/</code> โดยตั้งชื่อด้วย <code>Guid.NewGuid()</code> ป้องกันชื่อไฟล์ซ้ำ</li>
+                        <li>สร้างข้อมูลลงตาราง <code>bookings</code> (สถานะ <code>Pending</code>) และตาราง <code>payments</code> พร้อมปรับสถานะห้องพักในตาราง <code>rooms</code> เป็น <strong>`Reserved`</strong> ทันที</li>
+                        <li>ส่งอีเมลยืนยันการจองพร้อมลิงก์ Booking Voucher ให้ลูกค้าอัตโนมัติ</li>
+                    </ul>
+                </li>
+                <li class="mb-2"><strong>`BookingVoucher` (บรรทัด 512-563):</strong> แสดงเอกสารยืนยันการจองขนาด A4 สำหรับพิมพ์หรือเซฟเป็น PDF รองรับการแจกแจงรายการทุกห้องที่จองในครั้งเดียว</li>
+                <li><strong>`RequestRefund` (บรรทัด 620-698):</strong> ตรวจสอบเงื่อนไขการขอคืนเงิน (ต้องไม่เกิน 7 วันหลังจองและยังไม่เช็คอิน) บันทึกลงระบบ และส่งแจ้งเตือนเข้ากระดานฝ่ายบัญชี</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- 4. StaffController -->
+    <div class="section-card">
+        <div class="section-header d-flex justify-content-between align-items-center">
+            <h5 class="fw-bold m-0 text-primary"><i class="bi bi-briefcase-fill me-2"></i>4. StaffController.cs (ระบบเคาน์เตอร์พนักงานต้อนรับ)</h5>
+            <span class="badge bg-secondary rounded-pill">910 บรรทัด</span>
+        </div>
+        <div class="section-body">
+            <p class="text-muted small"><strong>หน้าที่หลัก:</strong> เคาน์เตอร์ Front Desk PMS: แดชบอร์ดประจำวัน, ตรวจสอบสลิป, เช็คอิน, เช็คเอาท์, วอล์กอิน, ยืนยันเงินสด, และส่งยอดกะให้บัญชี</p>
+            <ul class="small mb-0">
+                <li class="mb-2"><strong>`OnActionExecuting` (บรรทัด 23-84):</strong> ล็อกสิทธิ์เฉพาะ Role Staff/Admin และจำกัดให้พนักงานดูได้เฉพาะสาขาของตนเอง</li>
+                <li class="mb-2"><strong>`ProcessCheckIn` (บรรทัด 238-290):</strong>
+                    <ul>
+                        <li><strong>กฎความปลอดภัย:</strong> บล็อกไม่ให้เช็คอินถ้าสลิปยังไม่ได้รับการอนุมัติ หรือยังไม่ได้จ่ายเงิน</li>
+                        <li>เมื่อเช็คอิน: ปรับห้องพักเป็น <strong>`Occupied`</strong> และปรับการจองเป็น <strong>`CheckedIn`</strong></li>
+                    </ul>
+                </li>
+                <li class="mb-2"><strong>`CheckOutBooking` (บรรทัด 292-349):</strong> ปรับการจองเป็น <code>Completed</code> และปรับสถานะห้องพักเป็น <strong>`Cleaning`</strong> พร้อมเปิดใบงานส่งไปยังระบบแม่บ้านอัตโนมัติ</li>
+                <li class="mb-2"><strong>`ConfirmPayment` (บรรทัด 789-846):</strong> พนักงานต้อนรับกดยืนยันการตรวจสอบสลิป หรือรับชำระเป็นเงินสดหน้าเคาน์เตอร์ ปรับสถานะเป็น <code>Paid</code></li>
+                <li><strong>`WalkinBooking` (บรรทัด 571-691):</strong> ฟอร์มเปิดจองห้องพักด่วนสำหรับแขกที่เดินเข้ามาจองหน้าโรงแรมโดยตรง บันทึกการจองและเช็คอินได้ทันที</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- 5. AccountingController -->
+    <div class="section-card">
+        <div class="section-header d-flex justify-content-between align-items-center">
+            <h5 class="fw-bold m-0 text-primary"><i class="bi bi-calculator-fill me-2"></i>5. AccountingController.cs (ระบบการเงินและบัญชี)</h5>
+            <span class="badge bg-secondary rounded-pill">494 บรรทัด</span>
+        </div>
+        <div class="section-body">
+            <p class="text-muted small"><strong>หน้าที่หลัก:</strong> จัดการรายงานรายได้: สรุปภาพรวมรายวัน รายสัปดาห์ รายเดือน, สมดุลบัญชี Cash vs Digital, ส่งรายงานให้ผู้จัดการ และพิจารณาคืนเงิน</p>
+            <ul class="small mb-0">
+                <li class="mb-2"><strong>`RevenueReport` (บรรทัด 77-301):</strong>
+                    <ul>
+                        <li>รองรับตัวกรอง 3 โหมด: <code>Daily</code> (วันเดียว), <code>Weekly</code> (จันทร์-อาทิตย์), <code>Monthly</code> (ทั้งเดือน) พร้อมเลื่อนย้อนหลัง-ถัดไป</li>
+                        <li>แปลงวันที่ธุรกรรมเป็นปี ค.ศ. สากลเสมอ ป้องกันปัญหาตัวเลขไม่ขึ้นจากบั๊กปี 2569</li>
+                        <li><strong>สมการบัญชีสมดุล 100%:</strong> <code>CashTotal + TransferTotal = TotalRevenue</code></li>
+                        <li>เตรียมข้อมูลสำหรับ Chart.js: กราฟแท่งแนวโน้มรายได้ และกราฟโดนัทเปรียบเทียบสัดส่วนรายได้ 3 สาขา</li>
+                    </ul>
+                </li>
+                <li class="mb-2"><strong>`SendReportToAdmin` (บรรทัด 303-394):</strong> บันทึก Snapshot ตัวเลขรายได้ ณ ขณะนั้น ส่งรายงานสรุปอย่างเป็นทางการเข้ากระดานของผู้จัดการ (Admin)</li>
+                <li><strong>`ApproveRefund` & `RejectRefund` (บรรทัด 411-493):</strong> อนุมัติการคืนเงินเข้าบัญชีลูกค้า ปรับสถานะการจองเป็น <code>Refunded</code> และปลดห้องกลับเป็น <code>Available</code> พร้อมขายต่อ</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- 6. AdminController -->
+    <div class="section-card">
+        <div class="section-header d-flex justify-content-between align-items-center">
+            <h5 class="fw-bold m-0 text-primary"><i class="bi bi-speedometer2 me-2"></i>6. AdminController.cs (ระบบผู้ดูแลระบบ & ผู้บริหาร)</h5>
+            <span class="badge bg-secondary rounded-pill">434 บรรทัด</span>
+        </div>
+        <div class="section-body">
+            <p class="text-muted small"><strong>หน้าที่หลัก:</strong> แดชบอร์ดภาพรวมโรงแรม: อัตราการเข้าพัก (Occupancy Rate), อนุมัติรายงานการเงิน, จัดการผู้ใช้งาน/พนักงาน (CRUD), และจัดการห้องพัก (CRUD)</p>
+            <ul class="small mb-0">
+                <li class="mb-2"><strong>`Dashboard` (บรรทัด 68-151):</strong> คำนวณอัตราการเข้าพัก <code>OccupancyRate = (Occupied / Total) * 100</code>, แสดงกราฟรายรับย้อนหลัง 7 วัน, และรายการอนุมัติรายงานการเงินที่ส่งมาจากฝ่ายบัญชี</li>
+                <li class="mb-2"><strong>`UserManagement` & `AddUser` / `EditUser` / `DeleteUser` (บรรทัด 154-307):</strong>
+                    <ul>
+                        <li>จัดการผู้ใช้และพนักงานทุกตำแหน่ง โดยมีกฎความปลอดภัย: ห้ามลบบัญชี SuperAdmin และห้ามแอดมินลบบัญชีแอดมินด้วยกันเอง</li>
+                    </ul>
+                </li>
+                <li><strong>`RoomManagement` & `CreateRoom` / `EditRoom` / `DeleteRoom` (บรรทัด 310-433):</strong> จัดการห้องพัก เพิ่ม ลบ แก้ไขหมายเลขห้อง ประเภทห้อง ราคา และสถานะ</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- 7. HousekeeperController -->
+    <div class="section-card">
+        <div class="section-header d-flex justify-content-between align-items-center">
+            <h5 class="fw-bold m-0 text-primary"><i class="bi bi-stars me-2"></i>7. HousekeeperController.cs (ระบบฝ่ายแม่บ้าน)</h5>
+            <span class="badge bg-secondary rounded-pill">201 บรรทัด</span>
+        </div>
+        <div class="section-body">
+            <p class="text-muted small"><strong>หน้าที่หลัก:</strong> แดชบอร์ดงานทำความสะอาด: ตรวจสอบห้องที่ต้องล้าง, บันทึกเวลาเริ่มงาน, เช็กลิสต์ความสะอาด, และปลดล็อกห้องกลับเป็นว่าง</p>
+            <ul class="small mb-0">
+                <li class="mb-2"><strong>`Dashboard` (บรรทัด 65-115):</strong> ซิงค์ข้อมูลห้องพักที่มีสถานะ <code>Cleaning</code> เข้ามาเป็นใบงานอัตโนมัติผ่าน <code>HousekeepingService.SyncWithRooms</code> และจัดกลุ่มตามสถานะและชั้น</li>
+                <li class="mb-2"><strong>`StartTask` (บรรทัด 117-141):</strong> แม่บ้านกดเริ่มงาน ปรับสถานะเป็น <code>InProgress</code> และบันทึกเวลาเริ่ม</li>
+                <li><strong>`CompleteTask` (บรรทัด 143-174):</strong> แม่บ้านตรวจเช็กลิสต์และกดส่งงาน -> ระบบจะไปอัปเดตตาราง <code>rooms</code> ใน MySQL ปรับสถานะห้องจาก <code>Cleaning</code> กลับเป็น <strong>`Available` (ว่างพร้อมขาย)</strong> ทันที</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- 10 คำถามยอดฮิต -->
+    <div class="section-card">
+        <div class="section-header bg-dark text-white">
+            <h5 class="fw-bold m-0"><i class="bi bi-question-circle-fill me-2 text-warning"></i>10 คำถามยอดฮิตที่อาจารย์ชอบสุ่มชี้โค้ด 1 บรรทัด</h5>
+        </div>
+        <div class="p-0">
+            <div class="table-responsive">
+                <table class="table table-custom table-hover m-0 small">
+                    <thead>
+                        <tr>
+                            <th style="width: 28%;">บรรทัดคำสั่งที่อาจารย์ชี้</th>
+                            <th style="width: 30%;">คำตอบแบบมืออาชีพ</th>
+                            <th style="width: 42%;">ทำไมต้องเขียนแบบนี้ (เหตุผลสำคัญ)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>private readonly EasystaydbContext _context;</code></td>
+                            <td>การทำ <strong>Dependency Injection (DI)</strong></td>
+                            <td>ให้ ASP.NET Core จัดการ Lifecycle ของ Connection ฐานข้อมูลแทนการ <code>new</code> เอง ช่วยประหยัด Memory และป้องกันการเชื่อมต่อค้างใน MySQL ครับ</td>
+                        </tr>
+                        <tr>
+                            <td><code>.Include(r => r.RoomType)</code></td>
+                            <td>การทำ <strong>Eager Loading</strong> ใน EF Core</td>
+                            <td>สั่งให้เขียน SQL JOIN ดึงตารางลูกมาพร้อมกันในคิวรีเดียว ถ้าไม่มีบรรทัดนี้ ตอนหน้าเว็บเรียก <code>r.RoomType.TypeName</code> จะแครชด้วย <code>NullReferenceException</code> ครับ</td>
+                        </tr>
+                        <tr>
+                            <td><code>[ValidateAntiForgeryToken]</code></td>
+                            <td>ระบบความปลอดภัยป้องกัน <strong>CSRF</strong></td>
+                            <td>ตรวจสอบว่าฟอร์มที่ส่งมา มาจากหน้าเว็บของเราจริง ไม่ได้ถูกสคริปต์จากเว็บแฮกเกอร์หลอกยิงข้ามเว็บเข้ามาครับ</td>
+                        </tr>
+                        <tr>
+                            <td><code>[HttpPost]</code></td>
+                            <td>การระบุ <strong>HTTP Method Constraint</strong></td>
+                            <td>รับเฉพาะคำขอแบบ POST (Submit Form) ป้องกันไม่ให้มีคนพิมพ์ URL ส่งค่าผ่าน Address Bar (GET) ตรงๆ ครับ</td>
+                        </tr>
+                        <tr>
+                            <td><code>[FromBody] PromoRequestData data</code></td>
+                            <td>การทำ <strong>JSON Model Binding</strong></td>
+                            <td>สั่งให้ ASP.NET Core แปลงข้อมูล JSON Body ที่ส่งมาจากคำขอ AJAX ของ JavaScript ให้เป็น C# Object อัตโนมัติครับ</td>
+                        </tr>
+                        <tr>
+                            <td><code>DateHelper.NormalizeToGregorian(...)</code></td>
+                            <td>การปรับเทียบปี พ.ศ. เป็น <strong>ค.ศ. สากล</strong></td>
+                            <td>ป้องกันบั๊กปี พ.ศ. คลาดเคลื่อน (เช่น พ.ศ. 2569 แปลงเป็น ค.ศ. อาจกระโดดไป 3112) ทำให้การบันทึกและคิวรีใน MySQL ถูกต้อง 100% ครับ</td>
+                        </tr>
+                        <tr>
+                            <td><code>HttpContext.Session.SetInt32(...)</code></td>
+                            <td>การบันทึก <strong>Server-Side Session</strong></td>
+                            <td>เก็บข้อมูลระบุตัวตนของผู้ใช้ (UserId/Role) ไว้บนเซิร์ฟเวอร์ เพื่อตรวจสอบว่าผู้ใช้ล็อกอินอยู่ตลอดเวลาที่เปิดใช้งานเว็บครับ</td>
+                        </tr>
+                        <tr>
+                            <td><code>if (!ModelState.IsValid) return View(model);</code></td>
+                            <td>การทำ <strong>Server-Side Validation</strong></td>
+                            <td>ตรวจสอบ Data Annotations (เช่น [Required], [EmailAddress]) หากกรอกไม่ครบจะไม่ทำงานต่อและส่งข้อความเตือนกลับไปที่หน้าจอทันทีครับ</td>
+                        </tr>
+                        <tr>
+                            <td><code>return RedirectToAction(...)</code></td>
+                            <td>การทำ <strong>Post-Redirect-Get (PRG)</strong></td>
+                            <td>ส่ง HTTP Status 302 ให้เบราว์เซอร์วิ่งไปเปิดหน้าใหม่ ป้องกันปัญหาผู้ใช้กด F5 แล้วฟอร์มส่งซ้ำ (Duplicate Submission) ครับ</td>
+                        </tr>
+                        <tr>
+                            <td><code>Guid.NewGuid().ToString() + "_" + fileName</code></td>
+                            <td>การสร้างชื่อไฟล์ที่ไม่ซ้ำกัน</td>
+                            <td>ป้องกันปัญหาชื่อไฟล์สลิปซ้ำกันเมื่อมีลูกค้าหลายคนอัปโหลดไฟล์ชื่อเดียวกัน เช่น <code>slip.jpg</code> ไม่ให้ไปเซฟทับไฟล์ของลูกค้าคนอื่นครับ</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+</body>
+</html>

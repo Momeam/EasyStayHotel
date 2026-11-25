@@ -335,7 +335,6 @@
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        // กราฟแท่ง รายรับย้อนหลัง 7 วัน (Bar Chart)
         const revCtx = document.getElementById('revenueChart').getContext('2d');
         const revenueChart = new Chart(revCtx, {
             type: 'bar',
@@ -344,7 +343,7 @@
                 datasets: [{
                     label: 'รายรับ (บาท)',
                     data: @Html.Raw(Json.Serialize(ViewBag.RevenueData)),
-                    backgroundColor: '#0d6efd', // สีฟ้าธีม Bootstrap Primary
+                    backgroundColor: '#0d6efd',
                     borderRadius: 4,
                     barThickness: 30
                 }]
@@ -359,7 +358,6 @@
             }
         });
 
-        // กราฟโดนัท สัดส่วนประเภทห้องพัก (Doughnut Chart)
         const typeCtx = document.getElementById('roomTypeChart').getContext('2d');
         const roomTypeChart = new Chart(typeCtx, {
             type: 'doughnut',
@@ -367,7 +365,7 @@
                 labels: @Html.Raw(Json.Serialize(ViewBag.RoomTypeLabels)),
                 datasets: [{
                     data: @Html.Raw(Json.Serialize(ViewBag.RoomTypeData)),
-                    backgroundColor: ['#0d6efd', '#0dcaf0', '#ffc107', '#6c757d'], // ใช้โทนฟ้า-เหลือง
+                    backgroundColor: ['#0d6efd', '#0dcaf0', '#ffc107', '#6c757d'],
                     borderWidth: 0
                 }]
             },

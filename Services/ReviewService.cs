@@ -1,50 +1,34 @@
-// นำเข้า System สำหรับชนิดข้อมูลพื้นฐานและฟังก์ชัน DateTime, Math
 using System;
-// นำเข้า System.Collections.Generic สำหรับการใช้งาน List
 using System.Collections.Generic;
-// นำเข้า System.IO สำหรับอ่านและเขียนไฟล์บนดิสก์
 using System.IO;
-// นำเข้า System.Linq สำหรับฟังก์ชัน LINQ เช่น Where, Average, FirstOrDefault
 using System.Linq;
-// นำเข้า System.Text.Json สำหรับ Serialization ข้อมูลเป็น JSON
 using System.Text.Json;
-// นำเข้าโมเดลของ EasyStayHotel
 using EasyStayHotel.Models;
 
-// กำหนดเนมสเปซ EasyStayHotel.Services
 namespace EasyStayHotel.Services
 {
-    // คลาสสแตติก ReviewService สำหรับบันทึกและจัดการรีวิวความประทับใจของลูกค้า
     public static class ReviewService
     {
-        // พาธไดเรกทอรีเก็บข้อมูล (wwwroot/data)
         private static readonly string DataDirectory = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "data");
-        // พาธไฟล์ JSON สำหรับบันทึกรีวิว (wwwroot/data/guest_reviews.json)
         private static readonly string FilePath = Path.Combine(DataDirectory, "guest_reviews.json");
-        // อ็อบเจกต์ล็อกเธรดเพื่อความปลอดภัยในการเข้าถึงไฟล์
         private static readonly object FileLock = new object();
 
-        // สแตติกคอนสตรัคเตอร์ ตรวจสอบและสร้างไฟล์ข้อมูลเริ่มต้นเมื่อคลาสถูกเรียกใช้ครั้งแรก
         static ReviewService()
         {
             EnsureDataFileExists();
         }
 
-        // เมธอดส่วนตัวสำหรับตรวจสอบและสร้างข้อมูลรีวิวตัวอย่างเริ่มต้น
         private static void EnsureDataFileExists()
         {
             lock (FileLock)
             {
-                // ตรวจสอบว่าไดเรกทอรี data มีอยู่แล้วหรือไม่
                 if (!Directory.Exists(DataDirectory))
                 {
                     Directory.CreateDirectory(DataDirectory);
                 }
 
-                // ตรวจสอบว่าไฟล์ guest_reviews.json มีอยู่แล้วหรือไม่
                 if (!File.Exists(FilePath))
                 {
-                    // กำหนดข้อมูลรีวิวตัวอย่าง 5 รายการจากทั้ง 3 สาขา
                     var initialReviews = new List<GuestReview>
                     {
                         new GuestReview
@@ -138,13 +122,11 @@ namespace EasyStayHotel.Services
                         }
                     };
 
-                    // บันทึกรีวิวเริ่มต้นลงไฟล์
                     SaveReviewsToFile(initialReviews);
                 }
             }
         }
 
-        // เมธอดดึงรีวิวทั้งหมด
         public static List<GuestReview> GetAllReviews()
         {
             lock (FileLock)
@@ -162,7 +144,6 @@ namespace EasyStayHotel.Services
             }
         }
 
-        // เมธอดดึงรีวิวแยกตามสาขา
         public static List<GuestReview> GetReviewsByBranch(string branch)
         {
             var all = GetAllReviews();
@@ -170,7 +151,6 @@ namespace EasyStayHotel.Services
             return all.Where(r => r.Branch.Equals(branch, StringComparison.OrdinalIgnoreCase)).ToList();
         }
 
-        // เมธอดดึงรีวิวแยกตามประเภทห้องพัก
         public static List<GuestReview> GetReviewsByRoomType(string roomTypeName)
         {
             var all = GetAllReviews();
@@ -179,13 +159,11 @@ namespace EasyStayHotel.Services
                                   roomTypeName.IndexOf(r.RoomTypeName, StringComparison.OrdinalIgnoreCase) >= 0).ToList();
         }
 
-        // เมธอดค้นหารีวิวตาม BookingId
         public static GuestReview? GetReviewByBookingId(int bookingId)
         {
             return GetAllReviews().FirstOrDefault(r => r.BookingId == bookingId);
         }
 
-        // เมธอดคำนวณคะแนนเฉลี่ย (Average Rating)
         public static double GetAverageRating(string? roomTypeName = null)
         {
             var list = string.IsNullOrEmpty(roomTypeName) ? GetAllReviews() : GetReviewsByRoomType(roomTypeName);
@@ -193,14 +171,12 @@ namespace EasyStayHotel.Services
             return Math.Round(list.Average(r => r.Rating), 1);
         }
 
-        // เมธอดนับจำนวนรีวิวทั้งหมด
         public static int GetReviewCount(string? roomTypeName = null)
         {
             var list = string.IsNullOrEmpty(roomTypeName) ? GetAllReviews() : GetReviewsByRoomType(roomTypeName);
             return list.Count;
         }
 
-        // เมธอดเพิ่มรีวิวใหม่หรืออัปเดตรีวิวเดิม
         public static void AddReview(GuestReview review)
         {
             lock (FileLock)
@@ -225,7 +201,6 @@ namespace EasyStayHotel.Services
             }
         }
 
-        // เมธอดสำหรับพนักงานในการตอบกลับรีวิวของลูกค้า
         public static void ReplyReview(string reviewId, string reply)
         {
             lock (FileLock)
@@ -241,7 +216,6 @@ namespace EasyStayHotel.Services
             }
         }
 
-        // เมธอดบันทึกข้อมูลรีวิวลงไฟล์ JSON
         private static void SaveReviewsToFile(List<GuestReview> reviews)
         {
             string json = JsonSerializer.Serialize(reviews, new JsonSerializerOptions { WriteIndented = true });

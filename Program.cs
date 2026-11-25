@@ -4,7 +4,6 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// กำหนด Culture ภาษาไทย (th-TH) แต่ใช้ปฏิทิน Gregorian (ค.ศ.) ป้องกันปัญหาปี 3112
 var defaultCulture = new System.Globalization.CultureInfo("th-TH");
 defaultCulture.DateTimeFormat.Calendar = new System.Globalization.GregorianCalendar();
 System.Globalization.CultureInfo.DefaultThreadCurrentCulture = defaultCulture;
@@ -17,7 +16,6 @@ builder.Services.Configure<RequestLocalizationOptions>(options =>
     options.SupportedUICultures = new List<System.Globalization.CultureInfo> { defaultCulture };
 });
 
-// ลงทะเบียนบริการ MVC Controllers และ Views พร้อมบังคับโหลด Compiled Razor Views เสมอ
 builder.Services.AddControllersWithViews()
     .ConfigureApplicationPartManager(manager =>
     {
@@ -32,21 +30,18 @@ builder.Services.AddControllersWithViews()
         }
     });
 
-// ตั้งค่าระบบ Session สำหรับจำกัดสิทธิ์ผู้ใช้และเก็บข้อมูลล็อกอิน (อายุ 60 นาที)
 builder.Services.AddSession(options => {
     options.IdleTimeout = TimeSpan.FromMinutes(60);
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
 });
 
-// เชื่อมต่อฐานข้อมูล MySQL (easystaydb) ผ่าน Entity Framework Core
 builder.Services.AddDbContext<EasystaydbContext>(options =>
     options.UseMySql("server=localhost;port=3306;database=easystaydb;user=root;password=1234;",
     ServerVersion.Parse("8.0.46-mysql")));
 
 builder.Services.AddHttpContextAccessor();
 
-// ลงทะเบียน EmailService สำหรับส่งอีเมลยืนยันการจองและรหัส OTP
 builder.Services.AddScoped<IEmailService, EmailService>();
 
 var app = builder.Build();
@@ -57,7 +52,6 @@ try
     {
         var context = scope.ServiceProvider.GetRequiredService<EasystaydbContext>();
 
-    // เตรียมข้อมูลห้องพักเริ่มต้นทั้ง 3 สาขาและผู้ใช้เริ่มต้นในระบบ
     DatabaseInitializer.EnsureBranchRooms(context);
 
         DatabaseInitializer.EnsureHousekeeperUser(context);
@@ -81,7 +75,6 @@ app.UseRequestLocalization();
 
 app.UseRouting();
 
-// เปิดใช้งาน Session และระบบ Routing ใน Middleware Pipeline
 app.UseSession();
 app.UseAuthorization();
 

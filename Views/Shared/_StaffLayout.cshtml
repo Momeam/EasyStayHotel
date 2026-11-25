@@ -7,7 +7,7 @@
     var userBranch = HttpContextAccessor.HttpContext?.Session.GetString("Branch") ?? "Bangkok";
     var userBranchTh = EasyStayHotel.Services.RoomPreviewHelper.GetBranchNameTh(userBranch);
     var displayName = userFullName?.StartsWith("คุณ") == true ? userFullName : $"คุณ {userFullName}";
-    
+
     var currentController = ViewContext.RouteData.Values["Controller"]?.ToString();
     var currentAction = ViewContext.RouteData.Values["Action"]?.ToString();
 }
@@ -19,11 +19,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@ViewData["Title"] - Easy Stay Staff Console</title>
     <link rel="icon" type="image/png" href="~/images/logo.png" />
-    
+
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css"/>
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true">
-    
+
     <!-- นำเข้า Bootstrap Icons และ Google Fonts (Kanit) -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -35,7 +35,7 @@
             background-color: #f8fafc;
             overflow-x: clip;
         }
-        
+
         /* แถบเมนูด้านข้าง (Sidebar) ล็อกติดขอบบนเสมอเมื่อเลื่อนหน้าจอลง */
         .sidebar {
             background-color: #0f172a; 
@@ -194,10 +194,10 @@
 </head>
 <body>
     <div class="d-flex" style="min-height: 100vh;">
-        
+
         <!-- Sidebar ด้านซ้าย -->
         <aside class="sidebar text-white d-flex flex-column p-3" id="staffSidebar">
-            
+
             <!-- โลโก้และชื่อระบบ -->
             <a asp-controller="Staff" asp-action="DailyOverview" class="d-flex align-items-center mb-3 mt-1 px-1 text-decoration-none">
                 <div class="brand-logo-box me-2 brand-icon-box shadow-sm">
@@ -323,7 +323,7 @@
 
         <!-- Main Content Area ด้านขวา -->
         <div class="main-wrapper">
-            
+
             <!-- Top Bar สำหรับ Laptop/PC -->
             <header class="staff-topbar d-flex justify-content-between align-items-center">
                 <div class="d-flex align-items-center gap-3">
@@ -397,7 +397,6 @@
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         $(document).ready(function () {
-            // ปุ่มย่อ/ขยาย Sidebar
             $('#sidebarToggleBtn').on('click', function () {
                 const sidebar = $('#staffSidebar');
                 sidebar.toggleClass('collapsed');
@@ -410,7 +409,6 @@
                 }
             });
 
-            // ดึงค่าการย่อเมนูเดิมที่เคยตั้งไว้ หรือย่ออัตโนมัติเมื่อหน้าจอแคบ (< 1100px)
             function syncStaffSidebarByViewport() {
                 if (window.innerWidth < 1100) {
                     $('#staffSidebar').addClass('collapsed');
@@ -426,7 +424,6 @@
             syncStaffSidebarByViewport();
             $(window).on('resize', syncStaffSidebarByViewport);
 
-            // นาฬิกา Real-time Top Bar
             setInterval(function () {
                 const now = new Date();
                 const hours = String(now.getHours()).padStart(2, '0');

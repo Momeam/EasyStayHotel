@@ -1,7 +1,3 @@
-
-// Easy Stay Hotel & Resort - Complete Trilingual I18n Engine (ไทย / English / 中文)
-// ครอบคลุมทุกหน้าฝั่งลูกค้า โมดอล ป้ายสถานะ ข้อความไดนามิก รีวิว และข้อมูลจากฐานข้อมูล
-
 (function () {
     const STORAGE_KEY = 'easystay_lang';
     const SUPPORTED_LANGS = {
@@ -10,9 +6,7 @@
         zh: { code: '中文', label: '中文', htmlLang: 'zh-CN' }
     };
 
-    // 1. คลังคำศัพท์แปลตรงตัว (Exact Dictionary: Thai -> English & Simplified Chinese)
     const EXACT_DICT = {
-        // --- Navbar & User Menu & Footer ---
         "หน้าแรก": { en: "Home", zh: "首页" },
         "พรีวิวห้องพัก": { en: "Room Previews", zh: "客房预览" },
         "โปรโมชั่น": { en: "Promotions", zh: "优惠活动" },
@@ -48,7 +42,6 @@
         "อีเมล: contact@easystayhotel.com": { en: "Email: contact@easystayhotel.com", zh: "邮箱：contact@easystayhotel.com" },
         "นโยบายความเป็นส่วนตัว": { en: "Privacy Policy", zh: "隐私政策" },
 
-        // --- Hero & Search Form ---
         "เครือโรงแรมและรีสอร์ทมาตรฐาน 5 ดาว": { en: "5-Star Luxury Hotels & Resorts", zh: "五星级标准豪华酒店与度假村" },
         "ค้นหาโรงแรมและรีสอร์ทที่ดีที่สุดในเมืองไทย": { en: "Find the Best Hotels & Resorts in Thailand", zh: "探索泰国最优质的豪华酒店与度假村" },
         "ชมพรีวิวห้องพักสุดหรูทั้ง 3 สาขา (กรุงเทพฯ • พัทยา • ภูเก็ต) รับประกันราคาดีที่สุดและส่วนลดพิเศษเมื่อจองตรงกับ Easy Stay": {
@@ -82,7 +75,6 @@
         "ยกเลิก": { en: "Cancel", zh: "取消" },
         "บันทึกข้อมูล": { en: "Save Changes", zh: "保存资料" },
 
-        // --- Room Previews, Branches & Room Types ---
         "พรีวิวห้องพักสุดหรูของเรา": { en: "Our Luxury Room Previews", zh: "精选豪华客房预览" },
         "เลือกชมตัวอย่างห้องพัก เปรียบเทียบสิ่งอำนวยความสะดวก และตรวจสอบห้องว่างในแต่ละสาขาได้ทันที": {
             en: "Browse room galleries, compare amenities, and check real-time availability across all branches.",
@@ -131,7 +123,6 @@
         "มุมพักผ่อนและบรรยากาศภายในห้อง": { en: "Living & Relaxation Area", zh: "休闲区与室内氛围" },
         "ห้องน้ำหรูและสิ่งอำนวยความสะดวก": { en: "Luxury Bathroom & Amenities", zh: "豪华卫浴与配套设施" },
 
-        // --- Room Names, Database Descriptions, Bed Types & Amenities ---
         "Standard": { en: "Standard Room", zh: "标准客房 (Standard)" },
         "Deluxe": { en: "Deluxe Room", zh: "豪华客房 (Deluxe)" },
         "Suite": { en: "Executive Suite", zh: "豪华套房 (Suite)" },
@@ -173,7 +164,6 @@
         "อ่างอาบน้ำ Bathtub หรู": { en: "Luxury Bathtub", zh: "豪华独立浴缸" },
         "สิทธิ์เข้าใช้ Executive Lounge": { en: "Executive Lounge Access", zh: "行政酒廊尊享礼遇" },
 
-        // --- Destinations & Promotions ---
         "เลือกพักผ่อนใน 3 จุดหมายปลายทางยอดนิยม": { en: "Stay Across 3 Iconic Destinations", zh: "畅享三大热门旅游目的地" },
         "คลิกเลือกสาขาเพื่อค้นหาห้องพักว่างในจังหวัดที่คุณต้องการเดินทาง": {
             en: "Click a destination below to explore available rooms for your upcoming trip.",
@@ -219,7 +209,6 @@
         "โค้ดกลุ่ม:": { en: "Group Code:", zh: "团队码：" },
         "(คลิกคัดลอก)": { en: "(Click to copy)", zh: "（点击复制）" },
 
-        // --- Guest Reviews Section (including JSON Review Items) ---
         "เสียงตอบรับจากผู้เข้าพักจริง (Verified Guest Reviews)": { en: "Verified Guest Reviews", zh: "真实住客评价 (Verified Guest Reviews)" },
         "ความประทับใจระดับ 5 ดาวจากลูกค้าของเรา": { en: "5-Star Experiences from Our Guests", zh: "来自住客的五星级好评体验" },
         "สัมผัสประสบการณ์การพักผ่อนเหนือระดับที่ Easy Stay Hotel & Resort ทั้ง 3 สาขา ด้วยคะแนนความพึงพอใจเฉลี่ย 4.9 เต็ม 5 จากผู้เข้าพักจริง": {
@@ -271,7 +260,6 @@
         "ยอดเยี่ยม เยี่ยมยอด": { en: "Excellent & Outstanding!", zh: "非常棒，极佳体验！" },
         "สุดสุดสุดสุดสุดสุดสุด": { en: "Absolutely amazing experience!", zh: "非常棒的入住体验！" },
 
-        // --- Search Page ---
         "ผลการค้นหา: พบประเภทห้องว่าง": { en: "Search Results: Found", zh: "搜索结果：找到" },
         "รายการ": { en: "room type(s)", zh: "种可用房型" },
         "กำลังดูสาขา:": { en: "Viewing Branch:", zh: "当前分店：" },
@@ -302,7 +290,6 @@
         },
         "กลับไปดูพรีวิวห้องพักทุกสาขา": { en: "Back to All Room Previews", zh: "返回查看所有分店客房预览" },
 
-        // --- Checkout Page ---
         "ขั้นตอนการจองและเลือกบริการเสริม": { en: "Booking Details & Add-on Services", zh: "预订确认与附加服务" },
         "ตรวจสอบรายละเอียดห้องพัก เลือกบริการเสริม และชำระเงินผ่าน PromptPay": {
             en: "Review your room details, select optional add-ons, and complete payment via PromptPay.",
@@ -393,7 +380,6 @@
         },
         "บริการเสริม: รถรับส่ง": { en: "Add-on: Airport Transfer", zh: "附加服务：机场接送" },
 
-        // --- Booking Success, MyBookings, Refund Modal & Review Modal ---
         "การจองสำเร็จ!": { en: "Booking Successful!", zh: "预订成功！" },
         "ขอบคุณสำหรับการจองห้องพักกับ Easy Stay ระบบได้รับหลักฐานการชำระเงินของคุณแล้ว": {
             en: "Thank you for booking with Easy Stay. We have received your payment slip.",
@@ -522,7 +508,6 @@
         },
         "ไปหน้าพรีวิวห้องพัก": { en: "Browse Room Previews", zh: "前往客房预览" },
 
-        // --- Booking Voucher Page ---
         "เอกสารการจองฉบับสมบูรณ์": { en: "Official Booking Document", zh: "正式预订凭证" },
         "เอกสารยืนยันการจองห้องพัก (Booking Confirmation Voucher)": {
             en: "Booking Confirmation Voucher",
@@ -597,7 +582,6 @@
         "ใช้โค้ด GROUP15 ทันที": { en: "Apply GROUP15 Now", zh: "立即使用 GROUP15" },
         "หมายเลขการจองหลัก (Booking Reference)": { en: "Primary Booking Reference", zh: "主预订编号 (Booking Reference)" },
 
-        // --- Authentication (Login / Register / Profile / Forgot Password) ---
         "ยินดีต้อนรับสู่ Easy Stay Hotel": { en: "Welcome to Easy Stay Hotel", zh: "欢迎来到 Easy Stay 酒店" },
         "เข้าสู่ระบบเพื่อจัดการข้อมูลการจองห้องพัก รับข้อเสนอพิเศษเฉพาะสมาชิก และเพลิดเพลินกับการพักผ่อนระดับพรีเมียม": {
             en: "Sign in to manage your bookings, unlock member-only rates, and enjoy a premium stay.",
@@ -714,7 +698,6 @@
         "เกิดข้อผิดพลาด": { en: "Error Occurred", zh: "发生错误" }
     };
 
-    // 2. คลังแปล Placeholder ของช่อง Input & Textarea
     const PLACEHOLDER_DICT = {
         "ระบุชื่อ-นามสกุลผู้เข้าพัก": { en: "Enter guest full name", zh: "请输入住客真实姓名" },
         "กรอกรหัสคูปอง เช่น GROUP15": { en: "Enter promo code e.g. GROUP15", zh: "输入优惠码，如 GROUP15" },
@@ -746,7 +729,6 @@
         }
     };
 
-    // 3. แปลงชื่อเดือนภาษาไทยเป็น EN / ZH สำหรับวันที่ เช่น "24 พ.ย. 2569" หรือ "24 พ.ย. 2026"
     const THAI_MONTHS_MAP = {
         "ม.ค.": { en: "Jan", zh: "1月" },
         "ก.พ.": { en: "Feb", zh: "2月" },
@@ -762,7 +744,6 @@
         "ธ.ค.": { en: "Dec", zh: "12月" }
     };
 
-    // 4. กฎแปลข้อความแบบมีตัวเลขหรือตัวแปรไดนามิก (Regex Patterns)
     const REGEX_RULES = [
         {
             regex: /^ว่างรวม\s+(\d+)\s+ห้อง$/,
@@ -997,7 +978,6 @@
         }
     ];
 
-    // 5. คำศัพท์ย่อยสำหรับประโยคผสมหรือคำบรรยายห้องในฐานข้อมูล (Fragment Replacement)
     const PHRASE_FRAGMENTS = [
         { th: "เมื่อกดปุ่มด้านล่าง ระบบจะส่งรหัส", en: "When you click below, the system will send a", zh: "点击下方按钮后，系统将发送" },
         { th: "OTP 6 หลัก", en: "6-digit OTP code", zh: "6位 OTP 验证码" },
@@ -1037,19 +1017,16 @@
     function translateCore(trimmed, lang) {
         if (!trimmed || lang === 'th') return trimmed;
 
-        // รองรับข้อความที่มีเครื่องหมายคำพูด "..." ครอบอยู่ (เช่น ข้อความรีวิวลูกค้าในหน้าแรก)
         if (trimmed.length > 2 && trimmed.startsWith('"') && trimmed.endsWith('"')) {
             const inner = trimmed.slice(1, -1).trim();
             const translatedInner = translateCore(inner, lang);
             return `"${translatedInner}"`;
         }
 
-        // 1. ตรวจสอบจาก Exact Dictionary
         if (EXACT_DICT[trimmed] && EXACT_DICT[trimmed][lang]) {
             return EXACT_DICT[trimmed][lang];
         }
 
-        // 2. ตรวจสอบจาก Regex Rules
         for (let i = 0; i < REGEX_RULES.length; i++) {
             const rule = REGEX_RULES[i];
             if (rule.regex.test(trimmed)) {
@@ -1057,7 +1034,6 @@
             }
         }
 
-        // 3. ตรวจสอบคำผสมย่อย (Fragment fallback)
         if (/[\u0E00-\u0E7F]/.test(trimmed)) {
             let result = trimmed;
             let changed = false;
@@ -1074,12 +1050,10 @@
         return trimmed;
     }
 
-    // ฟังก์ชันแปล Text Node ทั้งหมดในหน้าเว็บโดยไม่กระทบ HTML Tags หรือไอคอน
     function applyLanguageToDOM(lang) {
         const info = SUPPORTED_LANGS[lang] || SUPPORTED_LANGS.th;
         document.documentElement.setAttribute('lang', info.htmlLang);
 
-        // อัปเดตปุ่มบน Navbar
         const badgeEl = document.getElementById('currentLangBadge');
         const labelEl = document.getElementById('currentLangLabel');
         if (badgeEl) badgeEl.textContent = info.code;
@@ -1094,7 +1068,6 @@
             icon.classList.toggle('d-none', iconLang !== lang);
         });
 
-        // 1. แปล Text Nodes
         const walker = document.createTreeWalker(
             document.body,
             NodeFilter.SHOW_TEXT,
@@ -1123,11 +1096,9 @@
             const currentVal = node.nodeValue;
             if (!currentVal || !currentVal.trim()) return;
 
-            // บันทึกค่าภาษาไทยต้นฉบับไว้ใน _origTh
             if (node._origTh === undefined) {
                 node._origTh = currentVal;
             } else if (lang !== 'th' && /[\u0E00-\u0E7F]/.test(currentVal) && currentVal !== node._lastTranslated) {
-                // กรณี JavaScript หน้าเว็บอัปเดตข้อความภาษาไทยใหม่แบบไดนามิก
                 node._origTh = currentVal;
             }
 
@@ -1154,7 +1125,6 @@
             }
         });
 
-        // 2. แปล Placeholders ของ Input & Textarea
         document.querySelectorAll('input[placeholder], textarea[placeholder]').forEach(el => {
             if (el._origPlaceholder === undefined) {
                 el._origPlaceholder = el.getAttribute('placeholder') || '';
@@ -1177,7 +1147,6 @@
     }
 
     document.addEventListener('DOMContentLoaded', function () {
-        // ผูก Event ปุ่มเลือกภาษา
         document.querySelectorAll('.lang-select-item').forEach(btn => {
             btn.addEventListener('click', function (e) {
                 e.preventDefault();
@@ -1186,11 +1155,9 @@
             });
         });
 
-        // โหลดภาษาที่ลูกค้าเลือกไว้ล่าสุด
         const savedLang = localStorage.getItem(STORAGE_KEY) || 'th';
         applyLanguageToDOM(savedLang);
 
-        // เฝ้าดูการเปลี่ยนแปลง DOM แบบไดนามิก (เช่น ตอนกดสลับแท็บสาขา หรือคำนวณราคาใหม่)
         let debounceTimer = null;
         const observer = new MutationObserver(function () {
             const currentLang = localStorage.getItem(STORAGE_KEY) || 'th';
@@ -1208,7 +1175,6 @@
         });
     });
 
-    // เปิดให้เรียกใช้งานจากภายนอกได้ผ่าน window.EasyStayI18n
     window.EasyStayI18n = {
         setLanguage: setLanguage,
         getLanguage: () => localStorage.getItem(STORAGE_KEY) || 'th'

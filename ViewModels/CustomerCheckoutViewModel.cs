@@ -20,13 +20,10 @@ namespace EasyStayHotel.Models.ViewModels
 
         public int Guests { get; set; }
 
-        // จำนวนห้องพักหลักที่ต้องการจองพร้อมกัน (ค่าเริ่มต้น 1 ห้อง)
         public int RoomsCount { get; set; } = 1;
 
-        // รายการประเภทห้องพักเพิ่มเติม (กรณีลูกค้ากด "+ จองห้องพักเพิ่ม" ในสาขาเดียวกัน)
         public System.Collections.Generic.List<int> ExtraRoomTypeIds { get; set; } = new System.Collections.Generic.List<int>();
 
-        // จำนวนห้องของแต่ละรายการห้องพักเพิ่มเติม
         public System.Collections.Generic.List<int> ExtraRoomCounts { get; set; } = new System.Collections.Generic.List<int>();
 
         [Required(ErrorMessage = "กรุณาระบุชื่อ-นามสกุล")]

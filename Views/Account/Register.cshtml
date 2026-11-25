@@ -34,7 +34,7 @@
         <div class="col-12 auth-container">
             <div class="card border-0 shadow-lg rounded-4 overflow-hidden bg-white">
                 <div class="row g-0">
-                    
+
                     <!-- ฝั่งซ้าย: แบนเนอร์ภาพลักษณ์และสิทธิประโยชน์สมาชิก -->
                     <div class="col-lg-4 auth-banner-side text-white p-4 p-md-5 d-flex flex-column justify-content-between position-relative">
                         <div>
@@ -124,7 +124,7 @@
                             <input type="hidden" asp-for="OtpCode" id="hiddenOtpInput" />
 
                             <div class="row g-3">
-                                
+
                                 <!-- 1. ชื่อ-นามสกุล -->
                                 <div class="col-md-12">
                                     <label asp-for="FullName" class="form-label small fw-bold text-dark">
@@ -313,9 +313,8 @@
     <script>
         $(document).ready(function () {
             let countdownInterval = null;
-            let remainingSeconds = 300; // 5 นาที
+            let remainingSeconds = 300;
 
-            // ปุ่มเปิด/ปิดตาดูรหัสผ่าน
             $('.toggle-pwd-btn').on('click', function () {
                 const targetId = $(this).data('target');
                 const input = $('#' + targetId);
@@ -330,7 +329,6 @@
                 }
             });
 
-            // ตรวจสอบความถูกต้องของฟอร์มเบื้องต้น
             function validateRegistrationForm() {
                 const fullName = $('#fullNameInput').val().trim();
                 const email = $('#emailInput').val().trim();
@@ -372,7 +370,6 @@
                 return true;
             }
 
-            // ฟังก์ชันเริ่มนับเวลาถอยหลัง
             function startCountdown() {
                 clearInterval(countdownInterval);
                 remainingSeconds = 300;
@@ -386,7 +383,6 @@
                         (mins < 10 ? '0' : '') + mins + ':' + (secs < 10 ? '0' : '') + secs
                     );
 
-                    // หลังจาก 30 วินาที เปิดให้กดส่งใหม่ได้
                     if (remainingSeconds <= 270) {
                         $('#btnResendOtp').removeAttr('disabled');
                     }
@@ -399,7 +395,6 @@
                 }, 1000);
             }
 
-            // ฟังก์ชันขอส่งรหัส OTP
             function requestOtpSend() {
                 const email = $('#emailInput').val().trim();
                 const fullName = $('#fullNameInput').val().trim();
@@ -421,7 +416,6 @@
                             $('#otpCodeInput').val('').focus();
                             $('#otpErrorMsg').addClass('d-none');
 
-                            // เปิด Modal OTP
                             const modal = new bootstrap.Modal(document.getElementById('otpModal'));
                             modal.show();
                             startCountdown();
@@ -436,20 +430,17 @@
                 });
             }
 
-            // เมื่อกดปุ่ม "ส่งรหัส OTP และดำเนินการสมัครสมาชิก"
             $('#btnRequestOtp').on('click', function () {
                 if (validateRegistrationForm()) {
                     requestOtpSend();
                 }
             });
 
-            // ปุ่มส่งรหัสใหม่อีกครั้งใน Modal
             $('#btnResendOtp').on('click', function () {
                 $(this).attr('disabled', true);
                 requestOtpSend();
             });
 
-            // เมื่อกดยืนยัน OTP ใน Modal
             $('#btnConfirmOtpAndRegister').on('click', function () {
                 const otp = $('#otpCodeInput').val().trim();
                 if (!otp || otp.length < 6) {
@@ -458,13 +449,11 @@
                     return;
                 }
 
-                // นำค่า OTP ไปใส่ใน Input ฟอร์มหลัก แล้ว Submit ฟอร์ม
                 $('#hiddenOtpInput').val(otp);
                 $(this).html('<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>กำลังยืนยัน...').attr('disabled', true);
                 $('#registerForm').submit();
             });
 
-            // ตรวจจับการกด Enter ในช่อง OTP
             $('#otpCodeInput').on('keypress', function (e) {
                 if (e.which === 13) {
                     $('#btnConfirmOtpAndRegister').click();

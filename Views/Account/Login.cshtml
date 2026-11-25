@@ -27,7 +27,7 @@
         <div class="col-12 auth-container">
             <div class="card border-0 shadow-lg rounded-4 overflow-hidden bg-white">
                 <div class="row g-0">
-                    
+
                     <!-- ฝั่งซ้าย: แบนเนอร์ภาพลักษณ์โรงแรม & สิทธิประโยชน์ -->
                     <div class="col-lg-5 auth-banner-side text-white p-4 p-md-5 d-flex flex-column justify-content-between position-relative">
                         <div>
@@ -184,11 +184,10 @@
 @section Scripts {
     <script>
         $(document).ready(function () {
-            // ปุ่มแสดง/ซ่อนรหัสผ่าน
             $('#togglePasswordBtn').on('click', function () {
                 const passwordInput = $('#loginPasswordInput');
                 const icon = $('#togglePasswordIcon');
-                
+
                 if (passwordInput.attr('type') === 'password') {
                     passwordInput.attr('type', 'text');
                     icon.removeClass('bi-eye').addClass('bi-eye-slash');

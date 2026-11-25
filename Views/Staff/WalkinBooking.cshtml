@@ -222,14 +222,12 @@
 @section Scripts {
     <script>
         $(document).ready(function () {
-            // วันที่เริ่มต้น
             const today = new Date().toISOString().split('T')[0];
             const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
 
             if (!$('#checkInDate').val()) $('#checkInDate').val(today);
             if (!$('#checkOutDate').val()) $('#checkOutDate').val(tomorrow);
 
-            // คำนวณยอดเงินรวมแบบ Real-time
             function calculateTotal() {
                 const checkInVal = $('#checkInDate').val();
                 const checkOutVal = $('#checkOutDate').val();
@@ -267,16 +265,13 @@
 
                 $('#hiddenTotalPrice').val(grandTotal);
 
-                // อัปเดต QR พร้อมเพย์
                 $('#promptPayQR').attr('src', `https://promptpay.io/0983813674/${grandTotal}.png`);
             }
 
-            // ผูก Event การคำนวณ
             $('#roomSelect, #checkInDate, #checkOutDate, .addon-checkbox').on('change input', function () {
                 calculateTotal();
             });
 
-            // ตรวจสอบวันที่เช็คเอาท์ต้องมากกว่าเช็คอิน
             $('#checkInDate').on('change', function () {
                 const inVal = $(this).val();
                 if (inVal) {
@@ -291,7 +286,6 @@
                 calculateTotal();
             });
 
-            // ซ่อน/แสดง PromptPay
             $('#paymentMethodSelect').on('change', function () {
                 if ($(this).val() === 'PromptPay') {
                     $('#promptPaySection').slideDown();

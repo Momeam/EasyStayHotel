@@ -217,7 +217,6 @@
                 int availPhuket = roomType.Rooms?.Count(r => r.Branch == "Phuket" && r.Status == "Available") ?? 0;
                 int availTotal = availBkk + availChon + availPhuket;
 
-                // เลือกสาขาเริ่มต้นที่มีห้องว่างสำหรับปุ่ม "จองเลย"
                 string preferredBranch = availBkk > 0 ? "Bangkok" : (availChon > 0 ? "Chonburi" : (availPhuket > 0 ? "Phuket" : "Bangkok"));
                 int defaultGuests = roomType.Capacity > 0 ? Math.Min(2, roomType.Capacity) : 2;
 
@@ -373,7 +372,7 @@
                                             data-bs-target="#roomPreviewModal-@roomType.RoomTypeId">
                                         <i class="bi bi-eye me-1"></i> ดูรายละเอียด
                                     </button>
-                                    
+
                                     @if (availTotal > 0)
                                     {
                                         <!-- ปุ่มจองเลย พร้อม Dropdown เลือกสาขาอื่นได้ทันที -->
@@ -754,7 +753,6 @@
 @section Scripts {
     <script>
         $(document).ready(function () {
-            // 1. ตรวจสอบวันที่ Check-in / Check-out ให้สอดคล้องกันเสมอ
             $('#mainCheckIn').on('change', function () {
                 const checkInVal = $(this).val();
                 if (checkInVal) {
@@ -769,7 +767,6 @@
                 }
             });
 
-            // 2. ระบบสลับแท็บสาขาในส่วนพรีวิวห้องพัก (Branch Filter Tabs)
             $('.branch-filter-btn').on('click', function () {
                 $('.branch-filter-btn').removeClass('active');
                 $(this).addClass('active');
@@ -778,7 +775,6 @@
                 const checkIn = $('#mainCheckIn').val();
                 const checkOut = $('#mainCheckOut').val();
 
-                // ถ้าเลือกสาขาเฉพาะ ให้เปลี่ยน Dropdown ในฟอร์มค้นหาด้านบนให้ตรงกันด้วย
                 if (selectedBranch !== 'ALL') {
                     $('#searchBranchSelect').val(selectedBranch);
                 }
@@ -803,7 +799,6 @@
                         targetBranch = 'Phuket';
                     }
 
-                    // อัปเดตป้ายสถานะจำนวนห้องว่างบนการ์ด
                     const badge = card.find('.avail-status-badge');
                     const countText = card.find('.avail-count-text');
 
@@ -815,13 +810,11 @@
                         countText.text('เต็มในสาขานี้');
                     }
 
-                    // อัปเดตลิงก์ปุ่ม "จองเลย" ให้ส่งสาขาและวันที่ปัจจุบันไปทันที
                     const bookUrl = `/Booking/Search?branch=${encodeURIComponent(targetBranch)}&checkIn=${encodeURIComponent(checkIn)}&checkOut=${encodeURIComponent(checkOut)}&rooms=1&guests=${defaultGuests}&roomTypeId=${roomTypeId}`;
                     card.find('.quick-book-btn').attr('href', bookUrl);
                 });
             });
 
-            // 3. ปุ่มคัดลอกโค้ดส่วนลด
             $('.copy-promo-btn').on('click', function () {
                 const btn = $(this);
                 const code = btn.data('code');

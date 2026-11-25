@@ -1,43 +1,28 @@
-// นำเข้า System สำหรับชนิดข้อมูลและคลาสพื้นฐาน
 using System;
-// นำเข้า System.Collections.Generic สำหรับการใช้งาน List
 using System.Collections.Generic;
-// นำเข้า System.Diagnostics สำหรับ Activity ในการติดตามข้อผิดพลาด
 using System.Diagnostics;
-// นำเข้า System.Linq สำหรับฟังก์ชันคิวรี LINQ เช่น OrderBy, ToList, Any
 using System.Linq;
-// นำเข้า Microsoft.AspNetCore.Mvc สำหรับสร้าง MVC Controller และ View Results
 using Microsoft.AspNetCore.Mvc;
-// นำเข้า Microsoft.EntityFrameworkCore สำหรับคำสั่ง Include ดึงข้อมูลห้องพักพร้อมประเภท
 using Microsoft.EntityFrameworkCore;
-// นำเข้าโมเดลของ EasyStayHotel
 using EasyStayHotel.Models;
 
-// กำหนดเนมสเปซ EasyStayHotel.Controllers
 namespace EasyStayHotel.Controllers;
 
-// คอนโทรลเลอร์หน้าแรกของเว็บไซต์ แสดงพรีวิวห้องพัก ข้อมูลสาขา และโปรโมชั่น
 public class HomeController : Controller
 {
-    // ตัวแปรเชื่อมต่อฐานข้อมูล MySQL
     private readonly EasystaydbContext _context;
 
-    // คอนสตรัคเตอร์รับ DbContext ผ่าน Dependency Injection
     public HomeController(EasystaydbContext context)
     {
-        // กำหนดค่า DbContext
         _context = context;
     }
 
-    // หน้าแรกของเว็บไซต์ (Landing Page) แสดงพรีวิวห้องพักพร้อมจำนวนห้องว่างจริงในแต่ละสาขา
     [HttpGet]
     public IActionResult Index()
     {
-        // กำหนด List เก็บประเภทห้องพัก
         List<Roomtype> roomTypes;
         try
         {
-            // ดึงประเภทห้องพักทั้งหมดพร้อมข้อมูลห้องพักย่อยในตาราง Rooms
             roomTypes = _context.Roomtypes
                 .Include(rt => rt.Rooms)
                 .OrderBy(rt => rt.BasePrice)
@@ -45,16 +30,13 @@ public class HomeController : Controller
         }
         catch
         {
-            // หากฐานข้อมูลยังไม่พร้อม ให้สร้าง List ว่าง
             roomTypes = new List<Roomtype>();
         }
 
-        // กรณีไม่มีข้อมูลในฐานข้อมูล ให้ใช้ข้อมูลจำลองเริ่มต้น (Fallback Data) เพื่อให้หน้าเว็บแสดงผลได้อย่างสวยงาม
         if (!roomTypes.Any())
         {
             roomTypes = new List<Roomtype>
             {
-                // ประเภทที่ 1: ห้องสแตนดาร์ด
                 new Roomtype
                 {
                     RoomTypeId = 1,
@@ -69,7 +51,6 @@ public class HomeController : Controller
                         new Room { RoomId = 103, RoomNo = "103", Branch = "Phuket", Status = "Available" }
                     }
                 },
-                // ประเภทที่ 2: ห้องดีลักซ์
                 new Roomtype
                 {
                     RoomTypeId = 2,
@@ -84,7 +65,6 @@ public class HomeController : Controller
                         new Room { RoomId = 203, RoomNo = "203", Branch = "Phuket", Status = "Available" }
                     }
                 },
-                // ประเภทที่ 3: ห้องสวีทสุดหรู
                 new Roomtype
                 {
                     RoomTypeId = 3,
@@ -102,21 +82,17 @@ public class HomeController : Controller
             };
         }
 
-        // ส่งข้อมูลประเภทห้องพักไปยัง View เพื่อเรนเดอร์การ์ดห้องพัก
         return View(roomTypes);
     }
 
-    // หน้านโยบายความเป็นส่วนตัว (Privacy Policy)
     public IActionResult Privacy()
     {
         return View();
     }
 
-    // หน้าแสดงข้อผิดพลาดของระบบ (Error Handling) ปิดแคชเพื่อความปลอดภัย
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
     public IActionResult Error()
     {
-        // ส่ง ErrorViewModel พร้อม Trace Identifier เพื่อใช้วิเคราะห์ปัญหา
         return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
     }
 }

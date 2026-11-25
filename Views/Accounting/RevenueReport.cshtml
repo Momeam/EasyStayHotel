@@ -905,7 +905,6 @@
 
 @section Scripts {
     <script>
-        // 1. กราฟแนวโน้มรายรับตามช่วงเวลา (Revenue Trend Bar Chart)
         const trendCtx = document.getElementById('revenueTrendChart').getContext('2d');
         const trendLabels = @Html.Raw(Json.Serialize(ViewBag.TrendLabels));
         const trendData = @Html.Raw(Json.Serialize(ViewBag.TrendData));
@@ -954,7 +953,6 @@
             }
         });
 
-        // 2. กราฟสัดส่วนรายได้แยกตาม 3 สาขา (3 Branches Doughnut Chart)
         const branchCtx = document.getElementById('branchShareChart').getContext('2d');
         const bkkRev = @ViewBag.BkkRevenue;
         const chonRev = @ViewBag.ChonRevenue;

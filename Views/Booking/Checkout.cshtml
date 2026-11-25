@@ -27,7 +27,7 @@
 
     <!-- ใช้ Form ครอบทั้งหมด เพื่อเตรียมส่งข้อมูลไปหลังบ้านตอนกดปุ่มยืนยัน -->
     <form asp-action="ConfirmBooking" asp-controller="Booking" method="post" enctype="multipart/form-data">
-        
+
         <!-- ซ่อนข้อมูลที่จำเป็นไว้ไม่ให้ลูกค้าแก้ แต่ต้องส่งไปหลังบ้าน -->
         <input type="hidden" asp-for="RoomId" />
         <input type="hidden" asp-for="RoomTypeName" />
@@ -42,7 +42,7 @@
         <div class="row g-4">
             <!-- คอลัมน์ซ้าย: รายละเอียด, บริการเสริม, ชำระเงิน -->
             <div class="col-md-8">
-                
+
                 <!-- 1. ข้อมูลรายละเอียดการเข้าพัก + พรีวิวห้องที่เลือก -->
                 <div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden">
                     <div class="card-body p-4">
@@ -185,7 +185,7 @@
                     <div class="card-body p-4">
                         <h5 class="fw-bold text-primary mb-2">บริการเสริมพิเศษ (Add-on Services)</h5>
                         <p class="text-muted small mb-4">เลือกบริการเสริมเพื่อยกระดับความสะดวกสบายในการพักผ่อนของคุณ</p>
-                        
+
                         <!-- เตียงเสริม -->
                         <div class="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom">
                             <div>
@@ -232,7 +232,7 @@
                     <div class="card-body p-4 text-center">
                         <h5 class="fw-bold text-primary mb-4 text-start">ช่องทางการชำระเงินที่ปลอดภัย</h5>
                         <h6 class="fw-bold mb-3"><i class="bi bi-wallet2"></i> PromptPay (พร้อมเพย์)</h6>
-                        
+
                         <img id="qrCodeImg" src="https://promptpay.io/0983813674/@(initialRoomPrice).png" class="img-fluid border p-2 rounded mb-3" style="width: 200px;" alt="PromptPay QR Code" />
                         <p class="text-muted small mb-4">สแกน QR Code เพื่อชำระยอดรวมด้วยแอปธนาคารของคุณ</p>
 
@@ -249,12 +249,12 @@
                 <div class="card border-0 shadow-sm rounded-4 sticky-top" style="top: 85px; z-index: 990;">
                     <div class="card-body p-4">
                         <h5 class="fw-bold text-primary mb-4">สรุปค่าใช้จ่ายทั้งหมด</h5>
-                        
+
                         <div class="d-flex justify-content-between small mb-2">
                             <span class="text-muted">ค่าห้องพัก <span id="uiSummaryNights">(@nights คืน@(roomsCount > 1 ? $", {roomsCount} ห้อง" : ""))</span></span>
                             <span class="fw-bold" id="uiRoomPrice">฿@initialRoomPrice.ToString("N0")</span>
                         </div>
-                        
+
                         <div id="uiAddonSection">
                             <!-- จะถูกเพิ่ม HTML ด้วย JavaScript ถ้ามีการเลือก Add-on -->
                         </div>
@@ -336,14 +336,13 @@
             const maxPrimaryAvail = @maxAvailableRooms;
             const branchRoomTypes = @Html.Raw(branchAvailTypesJson);
             let roomsCount = parseInt($('#hiddenRoomsCount').val()) || 1;
-            
+
             const priceExtraBed = 800;
             const priceBreakfast = 350;
             const priceTransfer = 1200;
 
             const thaiMonthsShort = ["", "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
 
-            // คำนวณจำนวนห้องรวมและราคารวมต่อคืนจากห้องหลัก + ห้องที่กดเพิ่ม
             function getMultiRoomTotals() {
                 const primaryQty = parseInt($('#uiPrimaryRoomsInput').val()) || 1;
                 $('#hiddenRoomsCount').val(primaryQty);
@@ -369,14 +368,12 @@
                     });
                 });
 
-                // ปรับจำนวนเตียงเสริมสูงสุดตามจำนวนห้องที่จอง (1 เตียงต่อห้อง)
                 $('#ExtraBedCount').attr('max', totalRooms);
                 const currentBeds = parseInt($('#ExtraBedCount').val()) || 0;
                 if (currentBeds > totalRooms) {
                     $('#ExtraBedCount').val(totalRooms);
                 }
 
-                // แสดงแบนเนอร์แนะนำคูปอง GROUP15 เมื่อจองตั้งแต่ 2 ห้องขึ้นไป
                 if (totalRooms >= 2) {
                     $('#groupPromoHintBanner').removeClass('d-none');
                 } else {
@@ -392,7 +389,6 @@
                 };
             }
 
-            // ปุ่มลด/เพิ่มจำนวนห้องพักหลัก
             $('#btnPrimaryRoomMinus').click(function () {
                 const current = parseInt($('#uiPrimaryRoomsInput').val()) || 1;
                 if (current > 1) {
@@ -411,7 +407,6 @@
                 }
             });
 
-            // ปุ่ม "+ จองห้องพักเพิ่ม" (เพิ่มแถวเลือกห้องที่ 2 / ประเภทห้องอื่นในสาขาเดียวกัน)
             $('#btnAddExtraRoomRow').click(function () {
                 if (!branchRoomTypes || branchRoomTypes.length === 0) return;
 
@@ -442,7 +437,6 @@
                 calculateSummary();
             });
 
-            // เมื่อเปลี่ยนประเภทห้องหรือจำนวนในแถวห้องที่เพิ่ม
             $(document).on('change', '.extra-room-type-select, .extra-room-qty-input', function () {
                 const row = $(this).closest('.extra-room-row');
                 const selectedOpt = row.find('.extra-room-type-select option:selected');
@@ -455,19 +449,16 @@
                 calculateSummary();
             });
 
-            // ลบแถวห้องที่กดเพิ่ม
             $(document).on('click', '.btn-remove-extra-room', function () {
                 $(this).closest('.extra-room-row').remove();
                 calculateSummary();
             });
 
-            // ปุ่มกดใช้โค้ด GROUP15 ทันทีจากแบนเนอร์
             $('#btnAutoApplyGroup15').click(function () {
                 $('#PromoCode').val('GROUP15');
                 calculateSummary();
             });
-            
-            // แปลงสตริง ISO (yyyy-MM-dd) เป็นรูปแบบแสดงผลภาษาไทยพร้อมปี พ.ศ. ที่ถูกต้อง
+
             function formatThaiDateDisplay(isoStr) {
                 if (!isoStr) return '';
                 const parts = isoStr.split('-');
@@ -479,7 +470,6 @@
                 return `${d} ${thaiMonthsShort[m] || ''} ${thaiYear}`;
             }
 
-            // จัดการการเปลี่ยนวันเข้าพัก/วันเช็คเอาท์ และคำนวณจำนวนคืนใหม่
             function syncDatesAndRecalculate() {
                 const inVal = $('#uiCheckInDate').val();
                 let outVal = $('#uiCheckOutDate').val();
@@ -488,7 +478,6 @@
                 const inDate = new Date(inVal + 'T00:00:00');
                 let outDate = new Date(outVal + 'T00:00:00');
 
-                // วันเช็คเอาท์ต้องมากกว่าวันเช็คอินอย่างน้อย 1 คืน
                 if (outDate <= inDate) {
                     const nextDate = new Date(inDate);
                     nextDate.setDate(nextDate.getDate() + 1);
@@ -500,7 +489,6 @@
                     outDate = nextDate;
                 }
 
-                // ปรับ min ของช่องเช็คเอาท์ให้อยู่หลังจากวันเช็คอินอย่างน้อย 1 วัน
                 const minOutDate = new Date(inDate);
                 minOutDate.setDate(minOutDate.getDate() + 1);
                 const minY = minOutDate.getFullYear();
@@ -508,24 +496,20 @@
                 const minD = String(minOutDate.getDate()).padStart(2, '0');
                 $('#uiCheckOutDate').attr('min', `${minY}-${minM}-${minD}`);
 
-                // คำนวณจำนวนคืนใหม่
                 const diffTime = outDate.getTime() - inDate.getTime();
                 let nights = Math.round(diffTime / (1000 * 3600 * 24));
                 if (nights < 1) nights = 1;
 
-                // ซิงค์ค่าไปยัง Hidden Inputs สำหรับ Submit ข้อมูล
                 $('#CheckInDate').val(inVal);
                 $('#CheckOutDate').val(outVal);
                 $('#hiddenNights').val(nights);
 
-                // อัปเดตข้อความบน UI
                 $('#uiNightsBadge').text(nights);
                 $('#uiHeaderNights').text(`${nights} คืน`);
                 $('#uiSummaryNights').text(`(${nights} คืน${roomsCount > 1 ? ', ' + roomsCount + ' ห้อง' : ''})`);
                 $('#uiCheckInThaiText').html(`<i class="bi bi-calendar2-check text-muted me-1"></i>${formatThaiDateDisplay(inVal)}`);
                 $('#uiCheckOutThaiText').html(`<i class="bi bi-calendar2-check text-muted me-1"></i>${formatThaiDateDisplay(outVal)}`);
 
-                // คำนวณยอดเงินและตรวจสอบโปรโมชั่นใหม่
                 calculateSummary();
             }
 
@@ -539,10 +523,8 @@
                 let totalAddons = 0;
                 let addonHtml = '';
 
-                // อัปเดตป้ายจำนวนคืนและจำนวนห้องรวม
                 $('#uiSummaryNights').text(`(${currentNights} คืน${multiInfo.totalRooms > 1 ? ', รวม ' + multiInfo.totalRooms + ' ห้อง' : ''})`);
 
-                // หากมีการกด "+ จองห้องพักเพิ่ม" ให้แสดงรายละเอียดแยกแต่ละห้องในฝั่งสรุปค่าใช้จ่าย
                 if (multiInfo.extraRoomsBreakdown.length > 0) {
                     addonHtml += `<div class="d-flex justify-content-between small mb-1 text-muted ps-2 border-start border-2 border-primary"><span>• @Html.Raw(Model.RoomTypeName) x${multiInfo.primaryQty} ห้อง</span><span>฿${(baseRoomPrice * multiInfo.primaryQty * currentNights).toLocaleString()}</span></div>`;
                     multiInfo.extraRoomsBreakdown.forEach(function (item) {
@@ -550,7 +532,6 @@
                     });
                 }
 
-                // คำนวณบริการเสริมต่างๆ
                 const bedQty = parseInt($('#ExtraBedCount').val()) || 0;
                 if (bedQty > 0) {
                     totalAddons += bedQty * priceExtraBed * currentNights;
@@ -571,14 +552,12 @@
 
                 const subTotal = totalRoomPrice + totalAddons;
 
-                // 1. อัปเดตราคาทันทีเสมอเพื่อป้องกันการแสดง ฿0
                 $('#uiRoomPrice').text(`฿${totalRoomPrice.toLocaleString()}`);
                 $('#uiAddonSection').html(addonHtml);
                 $('#uiGrandTotal').text(`฿${subTotal.toLocaleString()}`);
                 $('#hiddenTotalPrice').val(subTotal);
                 $('#qrCodeImg').attr('src', `https://promptpay.io/0983813674/${subTotal}.png`);
 
-                // 2. ส่งข้อมูลไปถาม Backend เพื่อคำนวณส่วนลดโปรโมชั่น
                 const checkInVal = $('#CheckInDate').val() || $('#uiCheckInDate').val() || '';
                 const requestData = {
                     BasePrice: baseRoomPrice,
@@ -600,28 +579,24 @@
                         let finalTotal = subTotal;
                         let discountHtml = '';
 
-                        // ถ้าโค้ดผิดพลาดให้แจ้งเตือนและเคลียร์ช่อง
                         if ($('#PromoCode').val() && response && !response.success) {
                             alert(response.message || 'รหัสส่วนลดไม่ถูกต้อง');
                             $('#PromoCode').val(''); 
-                            calculateSummary(); // คำนวณใหม่โดยไม่มีคูปอง
+                            calculateSummary();
                             return;
                         }
 
-                        // ถ้ามีส่วนลด (ไม่ว่าจะอัตโนมัติหรือคูปอง)
                         if (response && response.discount > 0) {
                             finalTotal = Math.max(0, subTotal - response.discount);
                             $('#uiDiscountSection').removeClass('d-none');
                             $('#uiDiscountAmount').text(`-฿${response.discount.toLocaleString()}`);
-                            
-                            // แสดงป้ายชื่อโปรโมชั่น
+
                             let promoNames = (response.promotions || []).join(' และ ');
                             discountHtml = `<div class="d-flex justify-content-between small mb-2 text-success"><span class="fw-bold"><i class="bi bi-tag-fill"></i> โปรโมชั่นที่ใช้:</span><span class="text-end">${promoNames}</span></div>`;
                         } else {
                             $('#uiDiscountSection').addClass('d-none');
                         }
 
-                        // อัปเดต UI ยอดรวมหลังหักส่วนลด
                         $('#uiAddonSection').html(addonHtml + discountHtml);
                         $('#uiGrandTotal').text(`฿${finalTotal.toLocaleString()}`);
                         $('#hiddenTotalPrice').val(finalTotal);
@@ -634,7 +609,6 @@
                 });
             }
 
-            // จัดการปุ่ม + และ - ของบริการเสริม
             $('.btn-plus').click(function () {
                 const input = $('#' + $(this).data('target'));
                 const max = parseInt(input.attr('max')) || 10;
@@ -655,7 +629,6 @@
                 }
             });
 
-            // ตรวจจับการกดปุ่ม "ใช้รหัส"
             $('#btnApplyPromo').click(function () {
                 if (!$('#PromoCode').val().trim()) {
                     alert('กรุณากรอกรหัสโปรโมชั่น');
@@ -664,18 +637,15 @@
                 calculateSummary();
             });
 
-            // กดเลือกชิปโค้ดส่วนลดด่วน
             $('.quick-promo-chip').click(function () {
                 $('#PromoCode').val($(this).data('code'));
                 calculateSummary();
             });
 
-            // เมื่อกรอกอีเมลเสร็จ ให้เช็คสิทธิ์ส่วนลดเดือนเกิดใหม่
             $('#Email').on('change', function () {
                 calculateSummary();
             });
 
-            // คำนวณทันทีเมื่อโหลดหน้าเว็บ (เพื่อให้ส่วนลดอัตโนมัติทำงาน)
             calculateSummary();
         });
     </script>
